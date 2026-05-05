@@ -1,0 +1,44 @@
+const db = require("../config/db");
+const Dashboard = {
+  getMonthlyRevenue: async (year) => {
+    const [rows] = await db.query(
+      `
+      SELECT MONTH(check_out_date) as month, SUM(total_amount) as total_revenue
+      FROM bookings 
+      WHERE YEAR(check_out_date) = ? AND status = 'Checked_out' AND payment_status = 'Paid'
+      GROUP BY MONTH(check_out_date)
+      ORDER BY month ASC
+    `,
+      [year],
+    );
+    return rows;
+  },
+  getOverviewStats: async () => {
+    const [roomStats] = await db.query(
+      "SELECT status, COUNT(*) as count FROM rooms GROUP BY status",
+    );
+    const today = new Date().toISOString().split("T")[0];
+    const [bookingStats] = await db.query(
+      `SELECT 
+        SUM(CASE WHEN check_in_date = ? THEN 1 ELSE 0 END) as arrivals_today,
+        SUM(CASE WHEN check_out_date = ? THEN 1 ELSE 0 END) as departures_today,
+        COUNT(*) as total_active_bookings
+       FROM bookings WHERE status NOT IN ('Cancelled', 'Checked_out')`,
+      [today, today],
+    );
+
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const [revenue] = await db.query(
+      "SELECT SUM(total_amount) as monthly_revenue FROM bookings WHERE status = 'Checked_out' AND MONTH(check_out_date) = ? AND YEAR(check_out_date) = ?",
+      [currentMonth, currentYear],
+    );
+
+    return {
+      rooms: roomStats,
+      bookings: bookingStats[0],
+      revenue: revenue[0].monthly_revenue || 0,
+    };
+  },
+};
+module.exports = Dashboard;
