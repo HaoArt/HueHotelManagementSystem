@@ -17,6 +17,8 @@ const UserRoutes = require("./routes/userRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const auditRoutes = require("./routes/auditRoutes");
+const surchargeRoutes = require("./routes/surchargeRoutes");
+const destinationRoutes = require("./routes/destinationRoutes");
 
 const app = express();
 app.use(cors());
@@ -33,13 +35,15 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/audits", auditRoutes);
-
+app.use("/api/surcharges", surchargeRoutes);
+app.use("/api/destinations", destinationRoutes);
 
 app.use((err, req, res, next) => {
   console.error("Lỗi Middleware/Hệ thống:", err.message || err);
   res.status(500).json({
     status: "error",
-    message: "Lỗi xử lý luồng dữ liệu (Kiểm tra lại định dạng file hoặc API Key Cloudinary)",
+    message:
+      "Lỗi xử lý luồng dữ liệu (Kiểm tra lại định dạng file hoặc API Key Cloudinary)",
   });
 });
 

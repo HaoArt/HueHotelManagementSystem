@@ -261,6 +261,18 @@ exports.createBooking = async (req, res) => {
       payment_status: "Unpaid",
     });
 
+    if (validServices.length > 0) {
+      for (let s of validServices) {
+        // Sử dụng luôn hàm của FolioModel để thêm dịch vụ
+        await Folio.addServiceToBooking(
+          bookingId,
+          s.service_id,
+          s.quantity,
+          s.total_price,
+        );
+      }
+    }
+
     if (appliedCouponId) {
       await Coupon.incrementUsage(appliedCouponId);
     }
@@ -322,7 +334,7 @@ exports.createWalkInBooking = async (req, res) => {
     const existingUser = await User.findByPhone(phone);
 
     if (existingUser) {
-      user_id = existingUser.id; 
+      user_id = existingUser.id;
     } else {
       const dummyEmail = `walkin_${phone}_${Date.now()}@huehotel.local`;
       user_id = await User.createGuestUser(full_name, phone, dummyEmail);

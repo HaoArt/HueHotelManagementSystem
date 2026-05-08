@@ -4,10 +4,7 @@ import { Outlet } from "react-router-dom";
 import Topbar from "../../components/common/dashboard/Topbar";
 import Sidebar from "../../components/common/dashboard/Sidebar";
 
-
-
 const DashboardLayout = () => {
-  // State quản lý việc đóng/mở Sidebar trên điện thoại
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -15,7 +12,7 @@ const DashboardLayout = () => {
   };
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <Topbar handleDrawerToggle={handleDrawerToggle} />
 
       <Sidebar
@@ -27,14 +24,16 @@ const DashboardLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 4 }, // Đệm content
-          bgcolor: "#f5f7fa", // Nền xám nhẹ cho toàn bộ Dashboard
-          minHeight: "100vh",
+          p: { xs: 2, sm: 4 },
+          bgcolor: "#f5f7fa",
+          height: "100vh", 
+          overflowY: "auto", 
+          overflowX: "hidden", 
           width: "100%",
+          position: "relative",
         }}
       >
-        <Toolbar />
-
+        <Toolbar /> 
         <Outlet />
       </Box>
     </Box>

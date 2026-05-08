@@ -18,6 +18,9 @@ import AdminRoomSettingsPage from "../pages/admin/AdminRoomSettingPage";
 import AdminCustomersPage from "../pages/admin/AdminCustomersPage";
 import AdminAuditLogs from "../pages/admin/AdminAuditLogs";
 import AdminContacts from "../pages/admin/AdminContacts";
+import AdminCouponsPage from "../pages/admin/AdminCouponsPage";
+import AdminPricingPage from "../pages/admin/AdminPricingPage";
+import DiscoverHue from "../pages/client/DiscoverHue";
 
 const AppRouter = () => {
   return (
@@ -26,7 +29,7 @@ const AppRouter = () => {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
         <Route path="rooms" element={<Rooms />} />
-        {/* <Route path="about" element={<About />} /> */}
+        <Route path="discover-hue" element={<DiscoverHue />} />
         <Route path="contact" element={<Contact />} />
         <Route path="rooms/:id" element={<RoomDetail />} />
 
@@ -65,6 +68,8 @@ const AppRouter = () => {
         <Route path="services" element={<AdminServicesPage />} />
         <Route path="contacts" element={<AdminContacts />} />
         <Route path="audit" element={<AdminAuditLogs />} />
+        <Route path="coupon" element={<AdminCouponsPage />} />
+        <Route path="pricing" element={<AdminPricingPage />} />
       </Route>
 
       {/* 3. Xác thực & Catch-all */}

@@ -17,7 +17,13 @@ router.patch(
   authorizeRoles("Admin", "Receptionist"),
   userController.updateCustomerStatus,
 );
+router.post(
+  "/admin/reset-password/:id",
+  verifyToken,
+  authorizeRoles("Admin"),
+  userController.adminResetPassword,
+);
 router.get("/profile", verifyToken, userController.getProfile);
 router.put("/profile", verifyToken, userController.updateProfile);
 
-module.exports = router;    
+module.exports = router;

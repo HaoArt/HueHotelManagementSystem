@@ -9,10 +9,12 @@ import {
   Alert,
   Card,
   CardContent,
+  Stack,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SearchBar from "../../components/specific/SearchBar";
-import RoomCard from "../../components/specific/RoomCard"; // <-- Import Component
+import RoomCard from "../../components/specific/RoomCard";
 
 // Icons
 import PoolIcon from "@mui/icons-material/Pool";
@@ -21,7 +23,7 @@ import SpaIcon from "@mui/icons-material/Spa";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
-import Button from "@mui/material/Button";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 // Swiper (for review slider)
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -29,6 +31,7 @@ import { EffectCoverflow, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
+
 import couponService from "../../services/couponService";
 import RoomTypeService from "../../services/roomTypeService";
 import reviewService from "../../services/reviewService";
@@ -160,7 +163,7 @@ const Home = () => {
       <Box
         sx={{
           height: { xs: "55vh", md: "65vh" },
-          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.7), rgba(49, 27, 146, 0.85)), url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600")`,
+          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.47), rgba(49, 27, 146, 0.18)),url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
@@ -169,19 +172,20 @@ const Home = () => {
           justifyContent: "center",
           color: "white",
           textAlign: "center",
-          pb: 8,
+          pb: 12, // Tăng khoảng trống bên dưới để hiển thị giờ giấc cân đối
         }}
       >
         <Container>
           <Typography
             variant="h2"
             component="h1"
-            fontWeight="800"
-            letterSpacing={2}
+            fontWeight="900"
+            letterSpacing={3}
             gutterBottom
             sx={{
               textTransform: "uppercase",
-              fontSize: { xs: "2.5rem", md: "3.75rem" },
+              fontSize: { xs: "2.8rem", md: "4rem" },
+              textShadow: "2px 2px 10px rgba(0,0,0,0.3)",
             }}
           >
             HUẾ HOTEL
@@ -193,24 +197,96 @@ const Home = () => {
               mb: 4,
               maxWidth: "600px",
               mx: "auto",
-              fontWeight: 400,
-              opacity: 0.9,
+              fontWeight: 500,
+              opacity: 0.95,
+              fontStyle: "italic",
             }}
           >
             Nơi di sản hội tụ cùng đẳng cấp nghỉ dưỡng
           </Typography>
+
+          {/* THÔNG TIN GIỜ CHECK-IN/OUT (Dạng Glassmorphism tinh tế) */}
+          <Stack
+            direction="row"
+            spacing={4}
+            justifyContent="center"
+            alignItems="center"
+            sx={{
+              mt: 2,
+              backdropFilter: "blur(10px)", // Hiệu ứng làm mờ nền ảnh
+              bgcolor: "rgba(255, 255, 255, 0.15)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "50px",
+              py: 1.5,
+              px: { xs: 3, md: 6 },
+              width: "fit-content",
+              mx: "auto",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <AccessTimeIcon sx={{ fontSize: 22, color: COLORS.gold }} />
+              <Box textAlign="left">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    opacity: 0.8,
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Check-in
+                </Typography>
+                <Typography variant="body1" fontWeight="800">
+                  14:00 PM
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Box
+              sx={{
+                width: "1px",
+                height: "30px",
+                bgcolor: "rgba(255, 255, 255, 0.3)",
+              }}
+            />
+
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <AccessTimeIcon sx={{ fontSize: 22, color: COLORS.gold }} />
+              <Box textAlign="left">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    opacity: 0.8,
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Check-out
+                </Typography>
+                <Typography variant="body1" fontWeight="800">
+                  12:00 PM
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
         </Container>
       </Box>
 
       {/* 2. THANH TÌM KIẾM */}
-      <Box sx={{ mt: -6, position: "relative", zIndex: 10 }}>
+      <Box sx={{ mt: -5, position: "relative", zIndex: 10 }}>
         <Container maxWidth="lg">
           <Box
             sx={{
-              p: 1,
+              p: 1.5,
               bgcolor: "white",
-              borderRadius: "12px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+              borderRadius: "16px",
+              boxShadow: "0 15px 40px rgba(0,0,0,0.12)",
+              border: "1px solid rgba(0,0,0,0.05)",
             }}
           >
             <SearchBar onSearch={handleSearch} />
@@ -389,7 +465,7 @@ const Home = () => {
               {topRooms && topRooms.length > 0
                 ? topRooms
                     .slice(0, 3)
-                    .map((room) => <RoomCard key={room.id} room={room} />) // Sử dụng RoomCard ở đây
+                    .map((room) => <RoomCard key={room.id} room={room} />)
                 : !loading && (
                     <Typography
                       sx={{ gridColumn: "1 / -1", textAlign: "center" }}

@@ -62,3 +62,28 @@ exports.updateProfile = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
+
+exports.adminResetPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const defaultPassword = "Huehotel@123";
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy khách hàng!" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(defaultPassword, salt);
+
+    await User.updatePassword(user.email, password_hash);
+
+    return res.status(200).json({
+      status: "OK",
+      message: `Đã cấp lại mật khẩu! Mật khẩu mới là: ${defaultPassword}`,
+    });
+  } catch (error) {
+    console.error("Lỗi reset password:", error);
+    return res.status(500).json({ message: "Lỗi server khi cấp lại mật khẩu" });
+  }
+};

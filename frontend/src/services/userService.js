@@ -35,6 +35,14 @@ const UserService = {
       throw error.response?.data?.message || "Lỗi cập nhật trạng thái";
     }
   },
+  resetCustomerPassword: async (id) => {
+    try {
+      const response = await api.post(`/users/admin/reset-password/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || "Lỗi khi cấp lại mật khẩu";
+    }
+  },
 };
 
 export default UserService;

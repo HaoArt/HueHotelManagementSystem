@@ -98,7 +98,11 @@ const Header = () => {
             <Nav.Link as={Link} to="/rooms" style={getLinkStyle("/rooms")}>
               Phòng & Suite
             </Nav.Link>
-            <Nav.Link as={Link} to="/about" style={getLinkStyle("/about")}>
+            <Nav.Link
+              as={Link}
+              to="/discover-hue"
+              style={getLinkStyle("/discover-hue")}
+            >
               Khám phá Huế
             </Nav.Link>
             <Nav.Link as={Link} to="/contact" style={getLinkStyle("/contact")}>

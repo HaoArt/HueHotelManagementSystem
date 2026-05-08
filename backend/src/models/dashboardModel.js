@@ -13,6 +13,18 @@ const Dashboard = {
     );
     return rows;
   },
+
+  // ĐÃ SỬA: Đồng bộ điều kiện thống kê với hàm Monthly
+  getYearlyRevenue: async () => {
+    const [rows] = await db.query(
+      `SELECT YEAR(check_out_date) as year, SUM(total_amount) as revenue 
+       FROM bookings 
+       WHERE status = 'Checked_out' AND payment_status = 'Paid'
+       GROUP BY YEAR(check_out_date) 
+       ORDER BY year ASC`,
+    );
+    return rows;
+  },
   getOverviewStats: async () => {
     const [roomStats] = await db.query(
       "SELECT status, COUNT(*) as count FROM rooms GROUP BY status",

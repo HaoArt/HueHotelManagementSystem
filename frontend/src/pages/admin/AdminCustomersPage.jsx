@@ -33,6 +33,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ShieldIcon from "@mui/icons-material/Shield";
 import PersonIcon from "@mui/icons-material/Person";
+import VpnKeyIcon from "@mui/icons-material/VpnKey"; // Thêm Icon Chìa Khóa
 
 import UserService from "../../services/userService";
 
@@ -51,8 +52,9 @@ const AdminCustomersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- STATE MỚI: SNACKBAR & CONFIRM DIALOG ---
+  // --- STATE QUẢN LÝ SNACKBAR & CONFIRM DIALOG ---
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -89,7 +91,7 @@ const AdminCustomersPage = () => {
     });
   }, [customers, searchTerm]);
 
-  // CẬP NHẬT: Dùng Dialog thay cho window.confirm
+  // XỬ LÝ KHÓA/MỞ KHÓA TÀI KHOẢN
   const handleToggleStatus = (id, currentStatus, name) => {
     const newStatus = currentStatus === "Active" ? "Blacklisted" : "Active";
     const actionText =
@@ -102,6 +104,7 @@ const AdminCustomersPage = () => {
       confirmColor: newStatus === "Blacklisted" ? "error" : "success",
       onConfirm: async () => {
         try {
+          setIsSubmitting(true);
           await UserService.updateCustomerStatus(id, newStatus);
           setSnackbar({
             open: true,
@@ -117,13 +120,39 @@ const AdminCustomersPage = () => {
             severity: "error",
           });
         } finally {
-          setConfirmDialog({
-            open: false,
-            title: "",
-            message: "",
-            onConfirm: null,
-            confirmColor: "primary",
+          setIsSubmitting(false);
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
+  };
+
+  // XỬ LÝ CẤP LẠI MẬT KHẨU
+  const handleResetPassword = (id, name) => {
+    setConfirmDialog({
+      open: true,
+      title: "Cấp lại mật khẩu",
+      message: `Hệ thống sẽ cấp lại mật khẩu mặc định cho tài khoản "${name}". Bạn có muốn tiếp tục?`,
+      confirmColor: "warning",
+      onConfirm: async () => {
+        try {
+          setIsSubmitting(true);
+          const res = await UserService.resetCustomerPassword(id);
+          // Cho thời gian hiển thị Snackbar dài hơn (8 giây) để Admin kịp copy/đọc mật khẩu
+          setSnackbar({
+            open: true,
+            message: res.message || "Đã cấp lại mật khẩu thành công!",
+            severity: "success",
           });
+        } catch (err) {
+          setSnackbar({
+            open: true,
+            message: String(err),
+            severity: "error",
+          });
+        } finally {
+          setIsSubmitting(false);
+          setConfirmDialog({ ...confirmDialog, open: false });
         }
       },
     });
@@ -151,7 +180,15 @@ const AdminCustomersPage = () => {
   };
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       {/* HEADER */}
       <Box sx={{ mb: 4 }}>
         <Typography
@@ -167,6 +204,7 @@ const AdminCustomersPage = () => {
         </Typography>
       </Box>
 
+      {/* HIỂN THỊ LỖI KHI LOAD TRANG (NẾU CÓ) */}
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: "4px" }}>
           {error}
@@ -215,7 +253,7 @@ const AdminCustomersPage = () => {
           bgcolor: "white",
         }}
       >
-        <TableContainer>
+        <TableContainer sx={{ overflowX: "auto" }}>
           <Table>
             <TableHead sx={{ bgcolor: COLORS.headerBg }}>
               <TableRow>
@@ -339,6 +377,25 @@ const AdminCustomersPage = () => {
                       />
                     </TableCell>
                     <TableCell align="right">
+                      {/* NÚT CẤP LẠI MẬT KHẨU */}
+                      <Tooltip title="Cấp lại mật khẩu">
+                        <IconButton
+                          onClick={() =>
+                            handleResetPassword(user.id, user.full_name)
+                          }
+                          sx={{
+                            color: "#ed6c02", // Màu cam nổi bật
+                            bgcolor: "rgba(237, 108, 2, 0.1)",
+                            borderRadius: "4px",
+                            mr: 1, // Kéo giãn khoảng cách với nút kế bên
+                          }}
+                          size="small"
+                        >
+                          <VpnKeyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* NÚT KHÓA / MỞ KHÓA */}
                       {user.status === "Active" ? (
                         <Tooltip title="Khóa tài khoản">
                           <IconButton
@@ -423,8 +480,13 @@ const AdminCustomersPage = () => {
             color={confirmDialog.confirmColor}
             disableElevation
             sx={buttonStyle}
+            disabled={isSubmitting}
           >
-            Xác nhận
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -434,7 +496,7 @@ const AdminCustomersPage = () => {
       {/* =============================================================== */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={8000} // Đặt 8 giây để Admin kịp copy lại mật khẩu mới
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
@@ -442,7 +504,7 @@ const AdminCustomersPage = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%", borderRadius: "4px" }}
+          sx={{ width: "100%", borderRadius: "4px", fontSize: "1rem" }}
         >
           {snackbar.message}
         </Alert>

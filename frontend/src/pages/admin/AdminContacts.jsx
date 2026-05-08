@@ -57,6 +57,12 @@ const AdminContacts = () => {
     data: null,
     message: "",
   });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
   const [isSending, setIsSending] = useState(false);
 
   const fetchContacts = async () => {
@@ -105,19 +111,26 @@ const AdminContacts = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn thư này không?")) {
-      try {
-        await ContactService.deleteContact(id);
-        setSnackbar({
-          open: true,
-          message: "Đã xóa thư thành công!",
-          severity: "success",
-        });
-        fetchContacts();
-      } catch (err) {
-        setSnackbar({ open: true, message: String(err), severity: "error" });
-      }
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Xóa thư liên hệ",
+      message: "Bạn có chắc chắn muốn xóa vĩnh viễn thư này không?",
+      onConfirm: async () => {
+        try {
+          await ContactService.deleteContact(id);
+          setSnackbar({
+            open: true,
+            message: "Đã xóa thư thành công!",
+            severity: "success",
+          });
+          fetchContacts();
+        } catch (err) {
+          setSnackbar({ open: true, message: String(err), severity: "error" });
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleOpenDetail = async (item) => {
@@ -171,7 +184,15 @@ const AdminContacts = () => {
   }
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -228,7 +249,7 @@ const AdminContacts = () => {
           bgcolor: "white",
         }}
       >
-        <TableContainer sx={{ maxHeight: "75vh" }}>
+        <TableContainer sx={{ maxHeight: "75vh", overflowX: "auto" }}>
           <Table stickyHeader hover>
             <TableHead>
               <TableRow>
@@ -572,7 +593,42 @@ const AdminContacts = () => {
             disabled={isSending}
             sx={{ fontWeight: "bold" }}
           >
-            {isSending ? "ĐANG GỬI..." : "GỬI PHẢN HỒI"}
+            {isSending ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "GỬI PHẢN HỒI"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CONFIRM DIALOG CHUNG */}
+      <Dialog
+        disableScrollLock={true}
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+      >
+        <DialogTitle sx={{ fontWeight: "bold", color: "error.main" }}>
+          {confirmDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            color="inherit"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={confirmDialog.onConfirm}
+            variant="contained"
+            color="error"
+            disableElevation
+          >
+            Xác nhận
           </Button>
         </DialogActions>
       </Dialog>
