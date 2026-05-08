@@ -161,7 +161,15 @@ const AdminAuditLogs = () => {
   }
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       {/* HEADER */}
       <Box
         sx={{

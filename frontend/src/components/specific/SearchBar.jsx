@@ -8,7 +8,6 @@ import {
   Typography,
   Stack,
   Box,
-  Grid,
   Divider,
 } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -253,8 +252,17 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
   return (
     <Box sx={{ p: { xs: 2, md: 1.5 }, width: "100%" }}>
       <form onSubmit={handleSearch}>
-        <Grid container spacing={2} alignItems="flex-end">
-          <Grid item xs={12} md={2.5}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "flex-end",
+            flexWrap: "nowrap",
+            width: "100%",
+          }}
+        >
+          {/* CHECK IN */}
+          <Box sx={{ flex: "1 1 220px", minWidth: 200 }}>
             <Typography
               variant="caption"
               fontWeight="bold"
@@ -266,6 +274,7 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             >
               NGÀY NHẬN PHÒNG
             </Typography>
+
             <TextField
               fullWidth
               type="date"
@@ -283,9 +292,10 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
                 ),
               }}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={2.5}>
+          {/* CHECK OUT */}
+          <Box sx={{ flex: "1 1 220px", minWidth: 200 }}>
             <Typography
               variant="caption"
               fontWeight="bold"
@@ -297,6 +307,7 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             >
               NGÀY TRẢ PHÒNG
             </Typography>
+
             <TextField
               fullWidth
               type="date"
@@ -314,9 +325,10 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
                 ),
               }}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={3}>
+          {/* ROOM TYPE */}
+          <Box sx={{ flex: "1.2 1 260px", minWidth: 220 }}>
             <Typography
               variant="caption"
               fontWeight="bold"
@@ -328,6 +340,7 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             >
               LOẠI PHÒNG
             </Typography>
+
             <TextField
               select
               fullWidth
@@ -345,15 +358,17 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
               }}
             >
               <MenuItem value="all">Tất cả loại phòng</MenuItem>
+
               {dbRoomTypes.map((type) => (
                 <MenuItem key={type.id} value={type.type_name}>
                   {type.type_name}
                 </MenuItem>
               ))}
             </TextField>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={2}>
+          {/* CAPACITY */}
+          <Box sx={{ flex: "0.8 1 180px", minWidth: 180 }}>
             <Typography
               variant="caption"
               fontWeight="bold"
@@ -365,6 +380,7 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             >
               SỐ KHÁCH
             </Typography>
+
             <TextField
               select
               fullWidth
@@ -387,10 +403,17 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
                 </MenuItem>
               ))}
             </TextField>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={2}>
-            {/* Thêm Label tàng hình để cân bằng chiều cao với các cột khác */}
+          {/* BUTTON */}
+          {/* BUTTON */}
+          <Box
+            sx={{
+              flex: "0 0 160px",
+              minWidth: 140,
+              flexShrink: 0,
+            }}
+          >
             <Typography
               variant="caption"
               display="block"
@@ -420,8 +443,8 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             >
               TÌM KIẾM
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </form>
     </Box>
   );

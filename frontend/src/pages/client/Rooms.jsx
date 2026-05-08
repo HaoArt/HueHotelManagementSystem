@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import {
   Typography,
@@ -44,6 +45,7 @@ const Rooms = () => {
     setError("");
     try {
       const data = await RoomTypeService.getAllRoomTypes();
+      // Mặc định lưu danh sách gốc từ API trả về
       setRoomTypes(data.data || data);
     } catch (err) {
       setError(err.message || "Có lỗi xảy ra khi tải danh sách phòng.");
@@ -60,6 +62,9 @@ const Rooms = () => {
       const results = response.data || response;
       setRoomTypes(results);
 
+      // Đưa trạng thái sắp xếp về mặc định khi tìm kiếm mới
+      setSortBy("Đề xuất");
+
       if (results.length === 0) {
         setError(
           "Không tìm thấy loại phòng nào phù hợp. Vui lòng thử đổi ngày hoặc giảm số người.",
@@ -72,6 +77,7 @@ const Rooms = () => {
     }
   };
 
+  // Lắng nghe thay đổi khi Load trang lần đầu hoặc nhận data từ Homepage
   useEffect(() => {
     if (location.state && location.state.initialSearchData) {
       handleSearch(location.state.initialSearchData);
@@ -79,6 +85,31 @@ const Rooms = () => {
       fetchAllRooms();
     }
   }, [location.state]);
+
+  // LOGIC SẮP XẾP: Lắng nghe sự thay đổi của sortBy
+  useEffect(() => {
+    if (roomTypes.length === 0) return;
+
+    let sortedArray = [...roomTypes]; // Tạo một mảng copy để không làm biến đổi state gốc trực tiếp
+
+    if (sortBy === "Giá tăng dần") {
+      sortedArray.sort(
+        (a, b) => parseFloat(a.base_price) - parseFloat(b.base_price),
+      );
+    } else if (sortBy === "Giá giảm dần") {
+      sortedArray.sort(
+        (a, b) => parseFloat(b.base_price) - parseFloat(a.base_price),
+      );
+    } else {
+      // Nếu là "Đề xuất", sắp xếp lại theo ID (Hoặc em có thể tự tùy chỉnh tiêu chí "Đề xuất")
+      sortedArray.sort((a, b) => a.id - b.id);
+    }
+
+    // Cập nhật lại mảng đã sắp xếp vào State
+    setRoomTypes(sortedArray);
+  }, [sortBy]);
+  // Chú ý: Chỉ cho chạy lại useEffect này khi biến sortBy thay đổi,
+  // không đưa roomTypes vào dependency array để tránh vòng lặp vô hạn (Infinite Loop).
 
   // Hàm mô phỏng tạo mô tả ngắn dựa trên tên phòng để UI đẹp như thiết kế
   const generateDescription = (roomName) => {
@@ -99,7 +130,7 @@ const Rooms = () => {
         color: "#fff",
       };
     }
-    if (index === 0) {
+    if (index === 0 && sortBy === "Đề xuất") {
       return {
         label: "Phổ biến",
         icon: <StarIcon fontSize="small" sx={{ color: "#1976d2" }} />,
@@ -116,7 +147,7 @@ const Rooms = () => {
       <Box
         sx={{
           height: { xs: "40vh", md: "50vh" },
-          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.7), rgba(49, 27, 146, 0.85)), url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600")`,
+          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.47), rgba(49, 27, 146, 0.18)), url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",

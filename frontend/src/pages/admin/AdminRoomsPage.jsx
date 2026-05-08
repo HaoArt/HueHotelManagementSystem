@@ -35,6 +35,7 @@ import {
   ListItemText,
   Chip,
   IconButton,
+  Snackbar,
 } from "@mui/material";
 
 // Icons
@@ -51,6 +52,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 
 // Services
 import RoomService from "../../services/roomService";
@@ -58,14 +60,13 @@ import BookingService from "../../services/bookingService";
 import FolioService from "../../services/folioService";
 import ServiceService from "../../services/serviceService";
 
-// Đồng bộ Theme Colors
 const COLORS = {
-  primary: "#5e35b1", // Tím chủ đạo
+  primary: "#5e35b1",
   primaryDark: "#4527a0",
   teal: "#009688",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
-  textMain: "#1a1a1a",
+  textMain: "#001529",
 };
 
 const AdminRoomsPage = () => {
@@ -82,7 +83,6 @@ const AdminRoomsPage = () => {
   const [statusDialog, setStatusDialog] = useState({ open: false, room: null });
   const [newStatus, setNewStatus] = useState("");
 
-  // --- STATE QUẢN LÝ KHÁCH IN-HOUSE ---
   const [occupiedDialog, setOccupiedDialog] = useState({
     open: false,
     room: null,
@@ -92,12 +92,37 @@ const AdminRoomsPage = () => {
   const [folioData, setFolioData] = useState([]);
   const [totalFolioAmount, setTotalFolioAmount] = useState(0);
 
-  // --- STATE THÊM DỊCH VỤ ---
   const [addServiceDialog, setAddServiceDialog] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [serviceQty, setServiceQty] = useState(1);
   const [changeRoomDialog, setChangeRoomDialog] = useState(false);
   const [selectedNewRoom, setSelectedNewRoom] = useState("");
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    confirmColor: "primary",
+    onConfirm: null,
+  });
+
+  // THÊM: STATE LƯU CÁC DỊCH VỤ ĐANG CHỜ PHỤC VỤ (CỦA TẤT CẢ CÁC PHÒNG)
+  const [pendingOrders, setPendingOrders] = useState([]);
+
+  // HÀM QUÉT YÊU CẦU DỊCH VỤ TỪ KHÁCH HÀNG
+  const fetchPendingOrders = async () => {
+    try {
+      const res = await FolioService.getPendingOrders();
+      setPendingOrders(res.data || []);
+    } catch (err) {
+      console.error("Lỗi lấy danh sách chờ:", err);
+    }
+  };
 
   useEffect(() => {
     const initData = async () => {
@@ -109,6 +134,7 @@ const AdminRoomsPage = () => {
         ]);
         setRooms(resRooms.data || resRooms);
         setServicesList(resServices.data || []);
+        await fetchPendingOrders(); // Lấy ngay lúc vừa load xong
       } catch (err) {
         setError(err);
       } finally {
@@ -116,14 +142,25 @@ const AdminRoomsPage = () => {
       }
     };
     initData();
+
+    // THÊM CƠ CHẾ POLLING: TỰ ĐỘNG QUÉT SERVER MỖI 15 GIÂY TÌM YÊU CẦU MỚI
+    const interval = setInterval(() => {
+      fetchPendingOrders();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchRoomsOnly = async () => {
     try {
       const res = await RoomService.getRooms();
       setRooms(res.data || res);
+      await fetchPendingOrders();
     } catch (err) {
-      alert("Lỗi làm mới: " + err);
+      setSnackbar({
+        open: true,
+        message: "Lỗi làm mới: " + err,
+        severity: "error",
+      });
     }
   };
 
@@ -205,10 +242,30 @@ const AdminRoomsPage = () => {
     try {
       await RoomService.updateRoomStatus(statusDialog.room.id, newStatus);
       setStatusDialog({ open: false, room: null });
+      setSnackbar({
+        open: true,
+        message: "Cập nhật thành công!",
+        severity: "success",
+      });
       fetchRoomsOnly();
     } catch (err) {
-      alert(err);
+      setSnackbar({
+        open: true,
+        message: "Lỗi cập nhật: " + err,
+        severity: "error",
+      });
     }
+  };
+
+  const reloadFolioData = async (bookingId, roomTotalAmount) => {
+    const folioRes = await FolioService.getFolio(bookingId);
+    const servicesUsed = folioRes.data?.services || [];
+    setFolioData(servicesUsed);
+    const totalService = servicesUsed.reduce(
+      (sum, item) => sum + parseFloat(item.total_price),
+      0,
+    );
+    setTotalFolioAmount(parseFloat(roomTotalAmount) + totalService);
   };
 
   const handleRoomClick = async (room) => {
@@ -221,19 +278,13 @@ const AdminRoomsPage = () => {
         );
         const booking = bookingRes.data;
         setCurrentBooking(booking);
-
-        const folioRes = await FolioService.getFolio(booking.id);
-
-        const servicesUsed = folioRes.data?.services || [];
-        setFolioData(servicesUsed);
-
-        const totalService = servicesUsed.reduce(
-          (sum, item) => sum + parseFloat(item.total_price),
-          0,
-        );
-        setTotalFolioAmount(parseFloat(booking.total_amount) + totalService);
+        await reloadFolioData(booking.id, booking.total_amount);
       } catch (err) {
-        alert("Lỗi tải thông tin phòng: " + err);
+        setSnackbar({
+          open: true,
+          message: "Lỗi tải thông tin: " + err,
+          severity: "error",
+        });
         setOccupiedDialog({ open: false, room: null });
       } finally {
         setLoadingOccupied(false);
@@ -246,7 +297,11 @@ const AdminRoomsPage = () => {
 
   const handleAddServiceSubmit = async () => {
     if (!selectedServiceId || serviceQty < 1)
-      return alert("Vui lòng chọn dịch vụ và số lượng hợp lệ!");
+      return setSnackbar({
+        open: true,
+        message: "Dữ liệu không hợp lệ!",
+        severity: "warning",
+      });
     try {
       await FolioService.orderService({
         booking_id: currentBooking.id,
@@ -256,21 +311,30 @@ const AdminRoomsPage = () => {
       setAddServiceDialog(false);
       setSelectedServiceId("");
       setServiceQty(1);
-
-      const folioRes = await FolioService.getFolio(currentBooking.id);
-
-      const servicesUsed = folioRes.data?.services || [];
-      setFolioData(servicesUsed);
-      const totalService = servicesUsed.reduce(
-        (sum, item) => sum + parseFloat(item.total_price),
-        0,
-      );
-      setTotalFolioAmount(
-        parseFloat(currentBooking.total_amount) + totalService,
-      );
-      alert("Đã thêm dịch vụ thành công!");
+      await reloadFolioData(currentBooking.id, currentBooking.total_amount);
+      await fetchPendingOrders();
+      setSnackbar({
+        open: true,
+        message: "Đã thêm dịch vụ!",
+        severity: "success",
+      });
     } catch (error) {
-      alert(error);
+      setSnackbar({ open: true, message: "Lỗi: " + error, severity: "error" });
+    }
+  };
+
+  const handleMarkAsDelivered = async (itemId) => {
+    try {
+      await FolioService.markAsDelivered(itemId);
+      setSnackbar({
+        open: true,
+        message: "Đã xác nhận phục vụ dịch vụ!",
+        severity: "success",
+      });
+      await reloadFolioData(currentBooking.id, currentBooking.total_amount);
+      await fetchPendingOrders(); // Cập nhật lại số lượng chuông cảnh báo ở ngoài
+    } catch (error) {
+      setSnackbar({ open: true, message: error.toString(), severity: "error" });
     }
   };
 
@@ -290,16 +354,23 @@ const AdminRoomsPage = () => {
   };
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
-      {/* HEADER & NÚT BẤM (CẬP NHẬT GIAO DIỆN NHỎ GỌN & CĂN CHỈNH) */}
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          alignItems: "flex-start",
           gap: 3,
           mb: 4,
           flexWrap: "wrap",
+          justifyContent: "space-between",
         }}
       >
         <Box sx={{ mr: 2 }}>
@@ -309,34 +380,43 @@ const AdminRoomsPage = () => {
             color={COLORS.textMain}
             sx={{ letterSpacing: "-1px" }}
           >
-            Sơ Đồ Phòng Khách
+            Sơ Đồ Phòng
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Hiển thị {filteredRooms.length} phòng trong hệ thống
           </Typography>
         </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {/* ToggleButtonGroup đã được ép height và padding nhỏ lại */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            height: "42px",
+            mt: 0.5,
+          }}
+        >
           <ToggleButtonGroup
             value={viewMode}
             exclusive
             onChange={(e, newMode) => newMode && setViewMode(newMode)}
             sx={{
-              bgcolor: "white",
+              bgcolor: "#f9f9f9",
               borderRadius: "4px",
               border: `1px solid ${COLORS.border}`,
+              height: "100%",
               "& .MuiToggleButton-root": {
-                py: 0.5,
-                px: 2,
+                py: 0,
+                px: 2.5,
                 textTransform: "none",
                 borderRadius: "4px",
                 borderColor: "transparent",
+                fontWeight: "600",
+                color: "text.secondary",
+                fontSize: "0.85rem",
               },
               "& .Mui-selected": {
-                bgcolor: "rgba(0, 150, 136, 0.08) !important",
-                color: `${COLORS.teal} !important`,
-                fontWeight: "bold",
+                bgcolor: "#e0e0e0 !important",
+                color: `${COLORS.textMain} !important`,
               },
             }}
           >
@@ -347,8 +427,6 @@ const AdminRoomsPage = () => {
               <ViewListIcon sx={{ mr: 1, fontSize: 18 }} /> Danh sách
             </ToggleButton>
           </ToggleButtonGroup>
-
-          {/* Button LÀM MỚI cũng đồng bộ kích thước */}
           <Button
             variant="contained"
             onClick={fetchRoomsOnly}
@@ -358,7 +436,8 @@ const AdminRoomsPage = () => {
               bgcolor: COLORS.teal,
               "&:hover": { bgcolor: "#00796b" },
               px: 3,
-              py: 0.8, // Giảm padding dọc để nút thon lại
+              height: "100%",
+              fontSize: "0.85rem",
             }}
           >
             LÀM MỚI
@@ -366,7 +445,34 @@ const AdminRoomsPage = () => {
         </Box>
       </Box>
 
-      {/* FILTER BAR */}
+      {/* THÔNG BÁO TỔNG QUÁT NẾU CÓ ĐƠN DỊCH VỤ MỚI */}
+      {pendingOrders.length > 0 && (
+        <Alert
+          severity="warning"
+          icon={<NotificationsActiveIcon fontSize="inherit" />}
+          sx={{
+            mb: 4,
+            borderRadius: "8px",
+            bgcolor: "#fff3e0",
+            border: "1px solid #ffe0b2",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="body1" fontWeight="bold" color="#e65100">
+            CÓ {pendingOrders.length} YÊU CẦU DỊCH VỤ MỚI CHƯA PHỤC VỤ!
+          </Typography>
+          <Typography variant="body2" color="#e65100">
+            Các phòng đang yêu cầu:{" "}
+            <b>
+              {Array.from(
+                new Set(pendingOrders.map((p) => p.room_number)),
+              ).join(", ")}
+            </b>
+            . Vui lòng nhấp vào phòng để xem chi tiết.
+          </Typography>
+        </Alert>
+      )}
+
       <Paper
         elevation={0}
         sx={{
@@ -403,7 +509,7 @@ const AdminRoomsPage = () => {
                 label="Trạng thái"
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
-                <MenuItem value="All">Tất cả trạng thái</MenuItem>
+                <MenuItem value="All">Tất cả</MenuItem>
                 <MenuItem value="Available">Sẵn sàng (Available)</MenuItem>
                 <MenuItem value="Occupied">Đang có khách (Occupied)</MenuItem>
                 <MenuItem value="Dirty">Cần dọn dẹp (Dirty)</MenuItem>
@@ -421,7 +527,7 @@ const AdminRoomsPage = () => {
               >
                 {roomTypes.map((type) => (
                   <MenuItem key={type} value={type}>
-                    {type === "All" ? "Tất cả loại phòng" : type}
+                    {type === "All" ? "Tất cả" : type}
                   </MenuItem>
                 ))}
               </Select>
@@ -450,7 +556,6 @@ const AdminRoomsPage = () => {
         </Grid>
       </Paper>
 
-      {/* RENDER DỮ LIỆU */}
       {viewMode === "grid" ? (
         <Box>
           {Object.keys(groupedRooms)
@@ -476,9 +581,15 @@ const AdminRoomsPage = () => {
                 >
                   {groupedRooms[floor].map((room) => {
                     const config = getStatusConfig(room.status);
+
+                    // KIỂM TRA XEM PHÒNG NÀY CÓ ĐANG ORDER MÓN GÌ KHÔNG ĐỂ HIỆN CHUÔNG
+                    const hasPendingOrder = pendingOrders.some(
+                      (p) => p.room_number === room.room_number,
+                    );
+
                     return (
                       <Tooltip
-                        title={`Nhấn để quản lý phòng ${room.room_number}`}
+                        title={`Quản lý phòng ${room.room_number}`}
                         arrow
                         placement="top"
                         key={room.id}
@@ -495,18 +606,41 @@ const AdminRoomsPage = () => {
                             alignItems: "center",
                             bgcolor: config.bg,
                             color: config.color,
-                            borderRadius: "4px", // Giảm độ bo góc
-                            border: `1px solid ${config.border}`,
+                            borderRadius: "4px",
+                            border: `1px solid ${hasPendingOrder ? "#ed6c02" : config.border}`,
                             position: "relative",
                             cursor: "pointer",
                             overflow: "hidden",
                             transition: "all 0.2s ease",
+                            boxShadow: hasPendingOrder
+                              ? "0 0 10px rgba(237, 108, 2, 0.5)"
+                              : "none",
                             "&:hover": {
                               transform: "translateY(-4px)",
                               boxShadow: `0 4px 12px ${config.color}30`,
                             },
                           }}
                         >
+                          {/* CHUÔNG NHẤP NHÁY NẾU CÓ YÊU CẦU MỚI */}
+                          {hasPendingOrder && (
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: 8,
+                                left: 10,
+                                color: "#ed6c02",
+                                "@keyframes blinker": {
+                                  "0%": { opacity: 1 },
+                                  "50%": { opacity: 0.2 },
+                                  "100%": { opacity: 1 },
+                                },
+                                animation: "blinker 1s linear infinite",
+                              }}
+                            >
+                              <NotificationsActiveIcon fontSize="small" />
+                            </Box>
+                          )}
+
                           <Box
                             sx={{
                               position: "absolute",
@@ -517,20 +651,6 @@ const AdminRoomsPage = () => {
                           >
                             {config.icon}
                           </Box>
-
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              opacity: 0.05,
-                              transform: "scale(4)",
-                              bottom: -10,
-                              left: -10,
-                              color: "rgba(0,0,0,0.5)",
-                            }}
-                          >
-                            <HotelIcon />
-                          </Box>
-
                           <Typography
                             variant="h4"
                             fontWeight="900"
@@ -551,27 +671,28 @@ const AdminRoomsPage = () => {
                           >
                             {room.type_name || room.name}
                           </Typography>
-
                           <Box
                             sx={{
                               position: "absolute",
                               bottom: 0,
                               width: "100%",
-                              bgcolor: config.color,
+                              bgcolor: hasPendingOrder
+                                ? "#ed6c02"
+                                : config.color,
                               color: "white",
                               textAlign: "center",
                               py: 0.5,
                               zIndex: 1,
+                              transition: "0.3s",
                             }}
                           >
                             <Typography
                               variant="caption"
-                              sx={{
-                                fontWeight: "bold",
-                                fontSize: "0.7rem",
-                              }}
+                              sx={{ fontWeight: "bold", fontSize: "0.7rem" }}
                             >
-                              {config.label.toUpperCase()}
+                              {hasPendingOrder
+                                ? "CÓ YÊU CẦU"
+                                : config.label.toUpperCase()}
                             </Typography>
                           </Box>
                         </Paper>
@@ -583,11 +704,14 @@ const AdminRoomsPage = () => {
             ))}
         </Box>
       ) : (
-        /* ================= CHẾ ĐỘ BẢNG (LIST VIEW) ================= */
         <TableContainer
           component={Paper}
           elevation={0}
-          sx={{ borderRadius: "4px", border: `1px solid ${COLORS.border}` }}
+          sx={{
+            borderRadius: "4px",
+            border: `1px solid ${COLORS.border}`,
+            overflowX: "auto",
+          }}
         >
           <Table sx={{ minWidth: 650 }}>
             <TableHead sx={{ bgcolor: COLORS.primary }}>
@@ -601,6 +725,9 @@ const AdminRoomsPage = () => {
                 <TableCell sx={{ fontWeight: "bold", color: "white" }}>
                   Trạng thái
                 </TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "white" }}>
+                  Dịch vụ phòng
+                </TableCell>
                 <TableCell
                   align="right"
                   sx={{ fontWeight: "bold", color: "white" }}
@@ -612,6 +739,9 @@ const AdminRoomsPage = () => {
             <TableBody>
               {filteredRooms.map((room) => {
                 const config = getStatusConfig(room.status);
+                const hasPendingOrder = pendingOrders.some(
+                  (p) => p.room_number === room.room_number,
+                );
                 return (
                   <TableRow
                     key={room.id}
@@ -638,11 +768,27 @@ const AdminRoomsPage = () => {
                           border: `1px solid ${config.border}`,
                         }}
                       >
-                        {config.icon}
+                        {config.icon}{" "}
                         <Typography variant="caption" fontWeight="bold">
                           {config.label}
                         </Typography>
                       </Box>
+                    </TableCell>
+                    <TableCell>
+                      {hasPendingOrder ? (
+                        <Chip
+                          icon={<NotificationsActiveIcon />}
+                          label="Có yêu cầu mới"
+                          color="warning"
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: "bold" }}
+                        />
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Không có yêu cầu
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell align="right">
                       <Button
@@ -667,7 +813,7 @@ const AdminRoomsPage = () => {
         </TableContainer>
       )}
 
-
+      {/* DIALOG CHỈNH TRẠNG THÁI PHÒNG TRỐNG */}
       <Dialog
         disableScrollLock={true}
         open={statusDialog.open}
@@ -689,7 +835,7 @@ const AdminRoomsPage = () => {
             >
               <MenuItem value="Available">
                 <Box sx={{ display: "flex", gap: 2 }}>
-                  <CheckCircleIcon color="success" /> Sẵn sàng đón khách
+                  <CheckCircleIcon color="success" /> Sẵn sàng
                 </Box>
               </MenuItem>
               <MenuItem value="Dirty">
@@ -724,9 +870,7 @@ const AdminRoomsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* =============================================================== */}
-      {/* DIALOG KHÁCH IN-HOUSE */}
-      {/* =============================================================== */}
+      {/* DIALOG KHÁCH IN-HOUSE CÓ DỊCH VỤ */}
       <Dialog
         disableScrollLock={true}
         open={occupiedDialog.open}
@@ -758,7 +902,6 @@ const AdminRoomsPage = () => {
             }}
           />
         </DialogTitle>
-
         <DialogContent sx={{ pt: 3, minHeight: 400 }}>
           {loadingOccupied ? (
             <Box
@@ -826,7 +969,7 @@ const AdminRoomsPage = () => {
                     color="text.secondary"
                     gutterBottom
                   >
-                    Trả phòng (Dự kiến):{" "}
+                    Trả phòng:{" "}
                     <b style={{ color: "#000" }}>
                       {new Date(
                         currentBooking.check_out_date,
@@ -838,13 +981,12 @@ const AdminRoomsPage = () => {
                     color="text.secondary"
                     gutterBottom
                   >
-                    Tiền phòng (Tổng):{" "}
+                    Tiền phòng:{" "}
                     <b style={{ color: "#000" }}>
                       {parseFloat(currentBooking.total_amount).toLocaleString()}{" "}
                       đ
                     </b>
                   </Typography>
-
                   <Box
                     sx={{
                       mt: 3,
@@ -914,7 +1056,7 @@ const AdminRoomsPage = () => {
                   </Box>
                   <Divider sx={{ mb: 2 }} />
 
-                  <List sx={{ flexGrow: 1, overflow: "auto", maxHeight: 150 }}>
+                  <List sx={{ flexGrow: 1, overflow: "auto", maxHeight: 200 }}>
                     {folioData.length === 0 ? (
                       <Typography
                         variant="body2"
@@ -926,16 +1068,72 @@ const AdminRoomsPage = () => {
                       </Typography>
                     ) : (
                       folioData.map((item, index) => (
-                        <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                        <ListItem
+                          key={index}
+                          disablePadding
+                          sx={{
+                            mb: 1.5,
+                            bgcolor:
+                              item.status === "Pending"
+                                ? "#fffde7"
+                                : "transparent",
+                            p: 1,
+                            borderRadius: 1,
+                          }}
+                        >
                           <ListItemText
-                            primary={`${item.services_name || item.service_name || "Dịch vụ"} (x${item.quantity})`}
-                            secondary={new Date(item.created_at).toLocaleString(
-                              "vi-VN",
-                            )}
+                            primary={
+                              <Typography variant="body2" fontWeight="bold">
+                                {item.services_name ||
+                                  item.service_name ||
+                                  "Dịch vụ"}{" "}
+                                (x{item.quantity})
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography
+                                variant="caption"
+                                color={
+                                  item.status === "Pending"
+                                    ? "warning.main"
+                                    : "success.main"
+                                }
+                              >
+                                {item.status === "Pending"
+                                  ? "⏳ Khách đang chờ..."
+                                  : "✅ Đã phục vụ"}
+                              </Typography>
+                            }
                           />
-                          <Typography fontWeight="bold">
-                            {parseFloat(item.total_price).toLocaleString()}đ
-                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                            }}
+                          >
+                            <Typography fontWeight="bold" variant="body2">
+                              {parseFloat(item.total_price).toLocaleString()}đ
+                            </Typography>
+                            {item.status === "Pending" && (
+                              <Tooltip
+                                title="Xác nhận đã mang lên phòng"
+                                placement="top"
+                              >
+                                <IconButton
+                                  color="success"
+                                  size="small"
+                                  onClick={() => handleMarkAsDelivered(item.id)}
+                                  sx={{
+                                    border: "1px solid #4caf50",
+                                    bgcolor: "#e8f5e9",
+                                  }}
+                                >
+                                  <CheckCircleIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
                         </ListItem>
                       ))
                     )}
@@ -970,11 +1168,10 @@ const AdminRoomsPage = () => {
             </Grid>
           ) : (
             <Alert severity="error" sx={{ borderRadius: "4px" }}>
-              Không lấy được thông tin khách hàng. Vui lòng kiểm tra lại!
+              Lỗi dữ liệu
             </Alert>
           )}
         </DialogContent>
-
         <DialogActions
           sx={{
             p: 2,
@@ -1008,21 +1205,33 @@ const AdminRoomsPage = () => {
               startIcon={<ReceiptLongIcon />}
               disabled={!currentBooking}
               sx={buttonStyle}
-              onClick={async () => {
-                if (
-                  window.confirm(
-                    `Xác nhận khách thanh toán đủ số tiền ${totalFolioAmount.toLocaleString()}đ và Check-out?`,
-                  )
-                ) {
-                  try {
-                    await BookingService.checkOutBooking(currentBooking.id);
-                    alert("Check-out thành công!");
-                    setOccupiedDialog({ open: false, room: null });
-                    fetchRoomsOnly();
-                  } catch (error) {
-                    alert(error);
-                  }
-                }
+              onClick={() => {
+                setConfirmDialog({
+                  open: true,
+                  title: "Xác nhận Check-out",
+                  message: `Thu đủ ${totalFolioAmount.toLocaleString()}đ và Check-out?`,
+                  confirmColor: "success",
+                  onConfirm: async () => {
+                    try {
+                      await BookingService.checkOutBooking(currentBooking.id);
+                      setSnackbar({
+                        open: true,
+                        message: "Check-out thành công!",
+                        severity: "success",
+                      });
+                      setOccupiedDialog({ open: false, room: null });
+                      fetchRoomsOnly();
+                    } catch (error) {
+                      setSnackbar({
+                        open: true,
+                        message: "Lỗi: " + error,
+                        severity: "error",
+                      });
+                    } finally {
+                      setConfirmDialog({ ...confirmDialog, open: false });
+                    }
+                  },
+                });
               }}
             >
               Thanh Toán & Check-out
@@ -1031,7 +1240,6 @@ const AdminRoomsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG CON: THÊM DỊCH VỤ VÀO PHÒNG */}
       <Dialog
         disableScrollLock={true}
         open={addServiceDialog}
@@ -1043,7 +1251,7 @@ const AdminRoomsPage = () => {
         <DialogTitle
           sx={{ fontWeight: "bold", bgcolor: COLORS.primary, color: "white" }}
         >
-          Thêm Dịch Vụ Mới
+          Thêm Dịch Vụ
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <FormControl fullWidth sx={{ mt: 1, mb: 3, ...inputStyle }}>
@@ -1055,10 +1263,7 @@ const AdminRoomsPage = () => {
             >
               {servicesList.map((svc) => (
                 <MenuItem key={svc.id} value={svc.id}>
-                  {svc.name} -{" "}
-                  <span style={{ color: "#ed6c02", marginLeft: "5px" }}>
-                    {parseFloat(svc.price).toLocaleString()}đ
-                  </span>
+                  {svc.name} - {parseFloat(svc.price).toLocaleString()}đ
                 </MenuItem>
               ))}
             </Select>
@@ -1087,12 +1292,11 @@ const AdminRoomsPage = () => {
             sx={{ ...buttonStyle, bgcolor: COLORS.primary }}
             onClick={handleAddServiceSubmit}
           >
-            XÁC NHẬN THÊM
+            XÁC NHẬN
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG CON 2: ĐỔI PHÒNG */}
       <Dialog
         disableScrollLock={true}
         open={changeRoomDialog}
@@ -1108,8 +1312,7 @@ const AdminRoomsPage = () => {
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <Alert severity="info" sx={{ mb: 3, borderRadius: "4px" }}>
-            Hệ thống chỉ hiển thị các phòng đang ở trạng thái{" "}
-            <b>Sẵn sàng (Available)</b>.
+            Chỉ hiển thị các phòng <b>Sẵn sàng (Available)</b>.
           </Alert>
           <FormControl fullWidth sx={{ mt: 1, ...inputStyle }}>
             <InputLabel>Chọn phòng mới</InputLabel>
@@ -1125,9 +1328,6 @@ const AdminRoomsPage = () => {
                     Phòng {r.room_number} - {r.type_name || r.name}
                   </MenuItem>
                 ))}
-              {rooms.filter((r) => r.status === "Available").length === 0 && (
-                <MenuItem disabled>Không có phòng trống nào!</MenuItem>
-              )}
             </Select>
           </FormControl>
         </DialogContent>
@@ -1145,18 +1345,25 @@ const AdminRoomsPage = () => {
             disableElevation
             sx={buttonStyle}
             onClick={async () => {
-              if (!selectedNewRoom) return alert("Vui lòng chọn 1 phòng mới!");
               try {
                 await BookingService.changeRoom(
                   currentBooking.id,
                   selectedNewRoom,
                 );
-                alert("Đổi phòng thành công!");
+                setSnackbar({
+                  open: true,
+                  message: "Đổi phòng thành công!",
+                  severity: "success",
+                });
                 setChangeRoomDialog(false);
                 setOccupiedDialog({ open: false, room: null });
                 fetchRoomsOnly();
               } catch (error) {
-                alert(error);
+                setSnackbar({
+                  open: true,
+                  message: "Lỗi: " + error,
+                  severity: "error",
+                });
               }
             }}
           >
@@ -1164,6 +1371,59 @@ const AdminRoomsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog
+        disableScrollLock={true}
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: "bold",
+            color: `${confirmDialog.confirmColor}.main`,
+          }}
+        >
+          {confirmDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            color="inherit"
+            sx={buttonStyle}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={confirmDialog.onConfirm}
+            variant="contained"
+            color={confirmDialog.confirmColor}
+            disableElevation
+            sx={buttonStyle}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%", borderRadius: "4px" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

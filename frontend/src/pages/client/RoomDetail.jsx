@@ -46,9 +46,14 @@ const COLORS = {
   primaryLight: "#ede7f6", // Tím nhạt cho nền icon
   border: "#e0e0e0",
   textMain: "#333",
+  textTitle:"#fff",
   textSecondary: "#666",
   bgLight: "#f8f9fa",
 };
+
+// Hình ảnh dự phòng độ phân giải cao (1920px) khi link ảnh bị lỗi
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=80";
 
 const RoomDetail = () => {
   const { id } = useParams();
@@ -95,7 +100,6 @@ const RoomDetail = () => {
     });
   };
 
-  // Tính trung bình sao đánh giá để render
   const averageRating =
     reviews.length > 0
       ? (
@@ -140,15 +144,14 @@ const RoomDetail = () => {
     );
   }
 
-  // Khởi tạo mảng hình ảnh cho Slider (Nếu phòng ko có mảng ảnh thì fallback về mảng mặc định)
+  // Khởi tạo mảng hình ảnh cho Slider (Nâng cấp độ phân giải lên 1920px)
   const imagesList =
     room.images && room.images.length > 0
       ? room.images.map((img) => img.image_url)
       : [
-          room.image_url ||
-            "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200",
-          "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1200",
-          "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200",
+          room.image_url || FALLBACK_IMAGE,
+          "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1920&q=80",
+          "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=80",
         ];
 
   return (
@@ -187,10 +190,11 @@ const RoomDetail = () => {
           sx={{
             position: "relative",
             height: { xs: "300px", md: "450px" },
-            borderRadius: "8px", // Hạn chế border radius theo yêu cầu
+            borderRadius: "8px",
             overflow: "hidden",
             mb: 4,
             boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+            bgcolor: "#000", // Nền đen đề phòng ảnh tải chậm
           }}
         >
           <Swiper
@@ -202,16 +206,37 @@ const RoomDetail = () => {
             style={{ width: "100%", height: "100%" }}
           >
             {imagesList.map((url, idx) => (
-              <SwiperSlide key={idx}>
+              <SwiperSlide key={idx} style={{ width: "100%", height: "100%" }}>
                 <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%), url(${url})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
+                  sx={{ width: "100%", height: "100%", position: "relative" }}
+                >
+                  {/* CẬP NHẬT: Dùng thẻ img để ảnh nét hơn và bắt lỗi vỡ ảnh */}
+                  <img
+                    src={url}
+                    alt={`slide-${idx}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                    onError={(e) => {
+                      // Nếu link ảnh bị lỗi 404 (vỡ ảnh), tự động thế bằng ảnh dự phòng
+                      e.target.onerror = null;
+                      e.target.src = FALLBACK_IMAGE;
+                    }}
+                  />
+                  {/* CẬP NHẬT: Lớp phủ Gradient đen trong suốt */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </Box>
               </SwiperSlide>
             ))}
           </Swiper>
@@ -222,9 +247,9 @@ const RoomDetail = () => {
               position: "absolute",
               bottom: 0,
               left: 0,
-              zIndex: 10, // Nổi lên trên swiper
+              zIndex: 10,
               p: { xs: 3, md: 5 },
-              pointerEvents: "none", // Không làm ảnh hưởng thao tác vuốt của người dùng
+              pointerEvents: "none",
             }}
           >
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
@@ -254,7 +279,7 @@ const RoomDetail = () => {
               variant="h3"
               fontWeight="bold"
               color="white"
-              sx={{ mb: 1, fontSize: { xs: "2rem", md: "3rem" } }}
+              sx={{ mb: 1, fontSize: { xs: "2rem", md: "3rem" },color:"white" }}
             >
               {room.type_name || room.name}
             </Typography>
@@ -681,7 +706,6 @@ const RoomDetail = () => {
                 </Typography>
               </Box>
 
-              {/* MÔ PHỎNG INPUT (Sẽ chuyển sang trang Booking để chọn thật) */}
               <Box sx={{ mb: 3 }}>
                 <Stack
                   direction="row"

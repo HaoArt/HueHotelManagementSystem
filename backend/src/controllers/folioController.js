@@ -40,3 +40,49 @@ exports.getCheckoutFolio = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+exports.deleteFolioItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const item = await Folio.getItemById(id);
+    if (!item) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy dịch vụ đã yêu cầu!" });
+    }
+    if (item.status !== "Pending") {
+      return res
+        .status(400)
+        .json({ message: "Lễ tân đã phục vụ dịch vụ này, không thể hủy!" });
+    }
+    await Folio.deleteItem(id);
+    return res
+      .status(200)
+      .json({ status: "OK", message: "Hủy dịch vụ thành công!" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+exports.markItemDelivered = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Folio.updateItemStatus(id, "Delivered");
+    res
+      .status(200)
+      .json({ status: "OK", message: "Đã đánh dấu phục vụ thành công!" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ status: "error", message: "Lỗi cập nhật trạng thái dịch vụ" });
+  }
+};
+
+exports.getAllPendingOrders = async (req, res) => {
+  try {
+    const data = await Folio.getPendingOrders();
+    return res.status(200).json({ status: "OK", data });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};

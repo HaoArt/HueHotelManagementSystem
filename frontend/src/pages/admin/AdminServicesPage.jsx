@@ -47,6 +47,7 @@ const AdminServicesPage = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [dialog, setDialog] = useState({
     open: false,
@@ -59,7 +60,7 @@ const AdminServicesPage = () => {
     description: "",
   });
 
-  // --- STATE MỚI: SNACKBAR & CONFIRM DIALOG ---
+  // --- STATE QUẢN LÝ SNACKBAR & CONFIRM DIALOG ---
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -116,6 +117,7 @@ const AdminServicesPage = () => {
     }
 
     try {
+      setIsSubmitting(true);
       if (dialog.isEdit) {
         await ServiceService.updateService(dialog.serviceId, formData);
         setSnackbar({
@@ -139,6 +141,8 @@ const AdminServicesPage = () => {
         message: err.response?.data?.message || "Có lỗi xảy ra!",
         severity: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -149,6 +153,7 @@ const AdminServicesPage = () => {
       message: `Bạn có chắc chắn muốn xóa dịch vụ "${name}"? Thao tác này không thể hoàn tác.`,
       onConfirm: async () => {
         try {
+          setIsSubmitting(true);
           await ServiceService.deleteService(id);
           setSnackbar({
             open: true,
@@ -163,6 +168,7 @@ const AdminServicesPage = () => {
             severity: "error",
           });
         } finally {
+          setIsSubmitting(false);
           setConfirmDialog({
             open: false,
             title: "",
@@ -190,7 +196,15 @@ const AdminServicesPage = () => {
   const inputStyle = { "& .MuiOutlinedInput-root": { borderRadius: "4px" } };
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       {/* HEADER */}
       <Box
         sx={{
@@ -246,6 +260,7 @@ const AdminServicesPage = () => {
           border: `1px solid ${COLORS.border}`,
           borderRadius: "4px",
           bgcolor: "white",
+          overflowX: "auto",
         }}
       >
         <Table sx={{ minWidth: 700 }}>
@@ -383,7 +398,7 @@ const AdminServicesPage = () => {
       {/* DIALOG THÊM / SỬA DỊCH VỤ */}
       {/* =============================================================== */}
       <Dialog
-        disableScrollLock={true}
+        disableScrollLock={true} // Ngăn lỗi đơ trang
         open={dialog.open}
         onClose={handleCloseDialog}
         maxWidth="xs"
@@ -449,17 +464,24 @@ const AdminServicesPage = () => {
               bgcolor: COLORS.teal,
               "&:hover": { bgcolor: "#00796b" },
             }}
+            disabled={isSubmitting}
           >
-            {dialog.isEdit ? "LƯU THAY ĐỔI" : "TẠO DỊCH VỤ"}
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : dialog.isEdit ? (
+              "LƯU THAY ĐỔI"
+            ) : (
+              "TẠO DỊCH VỤ"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* =============================================================== */}
-      {/* DIALOG XÁC NHẬN XÓA */}
+      {/* DIALOG XÁC NHẬN XÓA (THAY THẾ WINDOW.CONFIRM) */}
       {/* =============================================================== */}
       <Dialog
-        disableScrollLock={true}
+        disableScrollLock={true} // Ngăn lỗi đơ trang
         open={confirmDialog.open}
         onClose={() =>
           setConfirmDialog({
@@ -498,14 +520,19 @@ const AdminServicesPage = () => {
             color="error"
             disableElevation
             sx={buttonStyle}
+            disabled={isSubmitting}
           >
-            Xác nhận xóa
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận xóa"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* =============================================================== */}
-      {/* SNACKBAR THÔNG BÁO */}
+      {/* SNACKBAR THÔNG BÁO (THAY THẾ ALERT) */}
       {/* =============================================================== */}
       <Snackbar
         open={snackbar.open}

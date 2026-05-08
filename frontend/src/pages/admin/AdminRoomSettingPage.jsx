@@ -31,6 +31,7 @@ import {
   Tooltip,
   Chip,
   Divider,
+  Snackbar,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -44,9 +45,9 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import RoomService from "../../services/roomService";
 import RoomTypeService from "../../services/roomTypeService";
 
-// Đồng bộ Theme Colors với AdminBookingsPage
+// Đồng bộ Theme Colors với các trang Admin khác
 const COLORS = {
-  primary: "#5e35b1", // Tím chủ đạo cho text/icon quan trọng
+  primary: "#5e35b1", // Tím chủ đạo
   headerBg: "#5e35b1", // Nền Header bảng và Dialog
   teal: "#009688", // Màu Tab, Nút bấm
   orange: "#e65100", // Màu Nút bấm nổi bật
@@ -59,6 +60,20 @@ const AdminRoomSettingsPage = () => {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // States quản lý thông báo Snackbar & Confirm Dialog
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
 
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -103,7 +118,10 @@ const AdminRoomSettingsPage = () => {
       setRoomTypes(resTypes.data || resTypes);
       setRooms(resRooms.data || resRooms);
     } catch (err) {
-      setError(err);
+      // Cập nhật: Trích xuất thông báo lỗi an toàn để tránh crash React
+      setError(
+        err.response?.data?.message || err.message || "Lỗi khi tải dữ liệu",
+      );
     } finally {
       setLoading(false);
     }
@@ -161,10 +179,16 @@ const AdminRoomSettingsPage = () => {
   };
 
   const handleSubmitType = async () => {
-    if (!typeForm.type_name || !typeForm.base_price)
-      return alert("Vui lòng điền đủ thông tin bắt buộc!");
+    if (!typeForm.type_name || !typeForm.base_price) {
+      return setSnackbar({
+        open: true,
+        message: "Vui lòng điền đủ thông tin bắt buộc!",
+        severity: "warning",
+      });
+    }
 
     try {
+      setIsSubmitting(true);
       const formData = new FormData();
       formData.append("type_name", typeForm.type_name);
       formData.append("base_price", typeForm.base_price);
@@ -176,20 +200,34 @@ const AdminRoomSettingsPage = () => {
         selectedImages.forEach((file) => formData.append("images", file));
         formData.append("images_to_delete", JSON.stringify(imagesToDelete));
         await RoomTypeService.updateRoomType(typeDialog.id, formData);
-        alert("Cập nhật thông tin thành công!");
+        setSnackbar({
+          open: true,
+          message: "Cập nhật thông tin thành công!",
+          severity: "success",
+        });
       } else {
         selectedImages.forEach((file) => {
           formData.append("images", file);
         });
         await RoomTypeService.createRoomType(formData);
-        alert("Tạo hạng phòng và tải ảnh lên thành công!");
+        setSnackbar({
+          open: true,
+          message: "Tạo hạng phòng và tải ảnh lên thành công!",
+          severity: "success",
+        });
       }
       setTypeDialog({ open: false, isEdit: false, id: null });
       fetchData();
     } catch (err) {
-      alert(
-        "Lỗi tạo/cập nhật hạng phòng: " + (err.response?.data?.message || err.message || err),
-      );
+      setSnackbar({
+        open: true,
+        message:
+          "Lỗi tạo/cập nhật hạng phòng: " +
+          (err.response?.data?.message || err.message || err),
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,34 +246,78 @@ const AdminRoomSettingsPage = () => {
   };
 
   const handleSubmitRoom = async () => {
-    if (!roomForm.room_number || !roomForm.room_type_id)
-      return alert("Vui lòng điền đủ thông tin!");
+    if (!roomForm.room_number || !roomForm.room_type_id) {
+      return setSnackbar({
+        open: true,
+        message: "Vui lòng điền đủ thông tin!",
+        severity: "warning",
+      });
+    }
+
     try {
+      setIsSubmitting(true);
       if (roomDialog.isEdit) {
         await RoomService.updateRoom(roomDialog.id, roomForm);
-        alert("Cập nhật phòng thành công!");
+        setSnackbar({
+          open: true,
+          message: "Cập nhật phòng thành công!",
+          severity: "success",
+        });
       } else {
         await RoomService.createRoom(roomForm);
-        alert("Thêm phòng thành công!");
+        setSnackbar({
+          open: true,
+          message: "Thêm phòng thành công!",
+          severity: "success",
+        });
       }
       setRoomDialog({ open: false, isEdit: false, id: null });
       fetchData();
     } catch (err) {
-      alert(
-        "Lỗi tạo/cập nhật phòng: " + (err.response?.data?.message || err.message || err),
-      );
+      setSnackbar({
+        open: true,
+        message:
+          "Lỗi tạo/cập nhật phòng: " +
+          (err.response?.data?.message || err.message || err),
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDeleteRoom = async (id, roomNum) => {
-    if (window.confirm(`Xóa phòng số ${roomNum}?`)) {
-      try {
-        await RoomService.deleteRoom(id);
-        fetchData();
-      } catch (err) {
-        alert("Lỗi xóa phòng: " + (err.response?.data?.message || err.message || err));
-      }
-    }
+  const handleDeleteRoom = (id, roomNum) => {
+    setConfirmDialog({
+      open: true,
+      title: "Xác nhận xóa phòng",
+      message: `Bạn có chắc chắn muốn xóa phòng số ${roomNum}? Thao tác này không thể hoàn tác.`,
+      onConfirm: async () => {
+        try {
+          await RoomService.deleteRoom(id);
+          setSnackbar({
+            open: true,
+            message: "Xóa phòng thành công!",
+            severity: "success",
+          });
+          fetchData();
+        } catch (err) {
+          setSnackbar({
+            open: true,
+            message:
+              "Lỗi xóa phòng: " +
+              (err.response?.data?.message || err.message || err),
+            severity: "error",
+          });
+        } finally {
+          setConfirmDialog({
+            open: false,
+            title: "",
+            message: "",
+            onConfirm: null,
+          });
+        }
+      },
+    });
   };
 
   const getStatusChip = (status) => {
@@ -294,8 +376,16 @@ const AdminRoomSettingsPage = () => {
     );
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
-      {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ (CĂN CHỈNH GIỐNG ADMIN BOOKING) */}
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
+      {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ */}
       <Box
         sx={{
           display: "flex",
@@ -522,9 +612,12 @@ const AdminRoomSettingsPage = () => {
                         <Tooltip title="Xóa">
                           <IconButton
                             onClick={() =>
-                              alert(
-                                "Chức năng xóa hạng phòng tạm khóa để bảo mật dữ liệu",
-                              )
+                              setSnackbar({
+                                open: true,
+                                message:
+                                  "Chức năng xóa hạng phòng tạm khóa để bảo mật dữ liệu",
+                                severity: "info",
+                              })
                             }
                             sx={{
                               color: "#d32f2f",
@@ -556,7 +649,7 @@ const AdminRoomSettingsPage = () => {
 
         {/* TAB 2: ROOMS */}
         {tabValue === 1 && (
-          <TableContainer>
+          <TableContainer sx={{ overflowX: "auto" }}>
             <Table sx={{ minWidth: 900 }}>
               <TableHead sx={{ bgcolor: COLORS.headerBg }}>
                 <TableRow>
@@ -882,8 +975,13 @@ const AdminRoomSettingsPage = () => {
               bgcolor: COLORS.teal,
               "&:hover": { bgcolor: "#00796b" },
             }}
+            disabled={isSubmitting}
           >
-            LƯU LẠI
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "LƯU LẠI"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -956,11 +1054,76 @@ const AdminRoomSettingsPage = () => {
               bgcolor: COLORS.teal,
               "&:hover": { bgcolor: "#00796b" },
             }}
+            disabled={isSubmitting}
           >
-            {roomDialog.isEdit ? "CẬP NHẬT" : "TẠO PHÒNG"}
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : roomDialog.isEdit ? (
+              "CẬP NHẬT"
+            ) : (
+              "TẠO PHÒNG"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* CONFIRM DIALOG CHUNG CHO XÓA PHÒNG/V.V */}
+      <Dialog
+        disableScrollLock={true}
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+      >
+        <DialogTitle sx={{ fontWeight: "bold", color: "error.main" }}>
+          {confirmDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            color="inherit"
+            sx={{
+              borderRadius: "4px",
+              textTransform: "none",
+              fontWeight: "bold",
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={confirmDialog.onConfirm}
+            variant="contained"
+            color="error"
+            disableElevation
+            sx={{
+              borderRadius: "4px",
+              textTransform: "none",
+              fontWeight: "bold",
+            }}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR THÔNG BÁO CHUNG */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%", borderRadius: "4px" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

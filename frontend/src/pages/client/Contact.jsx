@@ -97,12 +97,10 @@ const Contact = () => {
 
   return (
     <Box sx={{ bgcolor: "#f8f9fa", minHeight: "100vh", pb: 0 }}>
-      {/* KHU VỰC HERO BANNER */}
-      {/* KHU VỰC HERO BANNER - ĐỒNG BỘ */}
       <Box
         sx={{
           height: { xs: "40vh", md: "50vh" },
-          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.7), rgba(49, 27, 146, 0.85)), url("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600")`,
+          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.47), rgba(49, 27, 146, 0.18)), url("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",

@@ -25,6 +25,8 @@ import {
   DialogActions,
   Card,
   CardContent,
+  CircularProgress,
+  Snackbar,
 } from "@mui/material";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
@@ -71,6 +73,12 @@ const Booking = () => {
     checkOut: "",
     paymentMethod: "DepositOnline", // Default theo design
     note: "",
+  });
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
   });
 
   const [availableServices, setAvailableServices] = useState([]);
@@ -120,7 +128,7 @@ const Booking = () => {
       try {
         const [svcRes, couponRes] = await Promise.all([
           ServiceService.getAllServices(),
-          couponService.getActiveCoupons(),
+          couponService.getActiveCouponsForUser(),
         ]);
         setAvailableServices(svcRes.data || []);
 
@@ -266,9 +274,11 @@ const Booking = () => {
   const handleSelectCoupon = (coupon) => {
     const subTotal = policy.roomTotal + policy.servicesTotal;
     if (subTotal < coupon.min_order_value) {
-      alert(
-        `Đơn hàng tối thiểu để áp dụng mã này là ${Number(coupon.min_order_value).toLocaleString()}đ`,
-      );
+      setSnackbar({
+        open: true,
+        message: `Đơn hàng tối thiểu để áp dụng mã này là ${Number(coupon.min_order_value).toLocaleString()}đ`,
+        severity: "warning",
+      });
       return;
     }
     setSelectedCoupon(coupon);
@@ -850,7 +860,7 @@ const Booking = () => {
                       },
                     }}
                   >
-                    {loading ? "ĐANG XỬ LÝ..." : "XÁC NHẬN ĐẶT PHÒNG"}
+                {loading ? <CircularProgress size={24} color="inherit" /> : "XÁC NHẬN ĐẶT PHÒNG"}
                   </Button>
 
                   <Stack
@@ -988,6 +998,22 @@ const Booking = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={4000}
+      onClose={() => setSnackbar({ ...snackbar, open: false })}
+      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+    >
+      <Alert
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        severity={snackbar.severity}
+        variant="filled"
+        sx={{ width: "100%" }}
+      >
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
     </Box>
   );
 };

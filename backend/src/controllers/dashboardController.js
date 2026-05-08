@@ -1,6 +1,6 @@
 const Dashboard = require("../models/dashboardModel");
 
-exports.getDashboardData = async (req, res) => { 
+exports.getDashboardData = async (req, res) => {
   try {
     const year = req.query.year || new Date().getFullYear();
     const monthlyRevenue = await Dashboard.getMonthlyRevenue(year);
@@ -27,7 +27,36 @@ exports.getDashboardData = async (req, res) => {
 exports.getStats = async (req, res) => {
   try {
     const stats = await Dashboard.getOverviewStats();
-    res.status(200).json({ status: "OK", data: stats });
+
+    const currentYear = new Date().getFullYear();
+    const monthlyData = await Dashboard.getMonthlyRevenue(currentYear);
+    const yearlyData = await Dashboard.getYearlyRevenue();
+
+    // Format mảng 12 tháng
+    const formattedMonthlyData = Array.from({ length: 12 }, (_, i) => {
+      const monthItem = monthlyData.find((item) => item.month === i + 1);
+      return {
+        name: `T${i + 1}`,
+        fullLabel: `Tháng ${i + 1} (${currentYear})`,
+        revenue: monthItem ? parseFloat(monthItem.total_revenue) : 0,
+      };
+    });
+
+    // Format mảng theo Năm
+    const formattedYearlyData = yearlyData.map((item) => ({
+      name: `${item.year}`,
+      fullLabel: `Năm ${item.year}`,
+      revenue: parseFloat(item.revenue),
+    }));
+
+    res.status(200).json({
+      status: "OK",
+      data: {
+        ...stats,
+        chartDataMonthly: formattedMonthlyData,
+        chartDataYearly: formattedYearlyData,
+      },
+    });
   } catch (error) {
     res
       .status(500)

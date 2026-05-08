@@ -110,11 +110,13 @@ const Booking = {
   },
   getByUserId: async (user_id) => {
     const [rows] = await db.query(
-      `SELECT b.*, rt.type_name, r.room_number 
-       FROM bookings b 
-       JOIN room_types rt ON b.room_type_id = rt.id
+      `SELECT b.*, r.room_number, rt.type_name,
+        (SELECT image_url FROM room_images WHERE room_type_id = b.room_type_id LIMIT 1) as image_url,
+        (b.total_amount + COALESCE((SELECT SUM(total_price) FROM booking_services WHERE booking_id = b.id), 0)) AS grand_total
+       FROM bookings b
        LEFT JOIN rooms r ON b.room_id = r.id
-       WHERE b.user_id = ? 
+       LEFT JOIN room_types rt ON b.room_type_id = rt.id
+       WHERE b.user_id = ?
        ORDER BY b.created_at DESC`,
       [user_id],
     );

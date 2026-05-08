@@ -64,6 +64,7 @@ const AdminBookingsPage = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [tabValue, setTabValue] = useState("All");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [detailDialog, setDetailDialog] = useState({
     open: false,
@@ -102,7 +103,11 @@ const AdminBookingsPage = () => {
       const res = await BookingService.getAllBookingsAdmin();
       setBookings(res.data || res);
     } catch (err) {
-      setError(err.response?.data?.message || "Lỗi khi lấy danh sách đơn");
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Lỗi khi lấy danh sách đơn",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -133,7 +138,7 @@ const AdminBookingsPage = () => {
               bgcolor: "#fff3e0",
               color: "#ed6c02",
               fontWeight: "bold",
-              borderRadius: "16px",
+              borderRadius: "4px",
             }}
             size="small"
           />
@@ -146,7 +151,7 @@ const AdminBookingsPage = () => {
               bgcolor: "#e3f2fd",
               color: "#1976d2",
               fontWeight: "bold",
-              borderRadius: "16px",
+              borderRadius: "4px",
             }}
             size="small"
           />
@@ -159,7 +164,7 @@ const AdminBookingsPage = () => {
               bgcolor: "#e8f5e9",
               color: "#2e7d32",
               fontWeight: "bold",
-              borderRadius: "16px",
+              borderRadius: "4px",
             }}
             size="small"
           />
@@ -172,7 +177,7 @@ const AdminBookingsPage = () => {
               bgcolor: "#f5f5f5",
               color: "#333",
               fontWeight: "bold",
-              borderRadius: "16px",
+              borderRadius: "4px",
             }}
             size="small"
           />
@@ -186,7 +191,7 @@ const AdminBookingsPage = () => {
               color: "#d32f2f",
               border: "1px solid #d32f2f",
               fontWeight: "bold",
-              borderRadius: "16px",
+              borderRadius: "4px",
             }}
             size="small"
           />
@@ -204,6 +209,7 @@ const AdminBookingsPage = () => {
       confirmColor: "warning",
       onConfirm: async () => {
         try {
+          setIsSubmitting(true);
           await BookingService.confirmDeposit(id);
           setSnackbar({
             open: true,
@@ -218,6 +224,7 @@ const AdminBookingsPage = () => {
             severity: "error",
           });
         } finally {
+          setIsSubmitting(false);
           setConfirmDialog({ ...confirmDialog, open: false });
         }
       },
@@ -232,6 +239,7 @@ const AdminBookingsPage = () => {
       confirmColor: "info",
       onConfirm: async () => {
         try {
+          setIsSubmitting(true);
           await BookingService.checkInBooking(id);
           setSnackbar({
             open: true,
@@ -246,6 +254,7 @@ const AdminBookingsPage = () => {
             severity: "error",
           });
         } finally {
+          setIsSubmitting(false);
           setConfirmDialog({ ...confirmDialog, open: false });
         }
       },
@@ -260,6 +269,7 @@ const AdminBookingsPage = () => {
       confirmColor: "error",
       onConfirm: async () => {
         try {
+          setIsSubmitting(true);
           await BookingService.cancelBooking(id);
           setSnackbar({
             open: true,
@@ -274,6 +284,7 @@ const AdminBookingsPage = () => {
             severity: "error",
           });
         } finally {
+          setIsSubmitting(false);
           setConfirmDialog({ ...confirmDialog, open: false });
         }
       },
@@ -321,6 +332,7 @@ const AdminBookingsPage = () => {
     }
 
     try {
+      setIsSubmitting(true);
       await BookingService.createWalkInBooking(walkInForm);
       setSnackbar({
         open: true,
@@ -344,6 +356,8 @@ const AdminBookingsPage = () => {
         message: err.response?.data?.message || "Có lỗi xảy ra khi tạo đơn.",
         severity: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -355,7 +369,15 @@ const AdminBookingsPage = () => {
     );
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: 4,
+        bgcolor: COLORS.bgLight,
+        minHeight: "100vh",
+        overflowX: "hidden",
+        pb: 10,
+      }}
+    >
       {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ */}
       <Box
         sx={{
@@ -379,7 +401,7 @@ const AdminBookingsPage = () => {
             Điều phối Check-in, Check-out và xác nhận thanh toán
           </Typography>
         </Box>
-        <Box>
+        <Box sx={{ display: "flex", gap: 2 }}>
           <Button
             variant="contained"
             onClick={handleOpenWalkIn}
@@ -388,7 +410,7 @@ const AdminBookingsPage = () => {
               bgcolor: COLORS.orange,
               "&:hover": { bgcolor: "#d84315" },
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "4px",
               px: 3,
               py: 1,
               boxShadow: "none",
@@ -403,7 +425,7 @@ const AdminBookingsPage = () => {
               bgcolor: COLORS.teal,
               "&:hover": { bgcolor: "#00796b" },
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "4px",
               px: 3,
               py: 1,
               boxShadow: "none",
@@ -423,7 +445,7 @@ const AdminBookingsPage = () => {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 3,
+          borderRadius: "4px",
           border: `1px solid ${COLORS.border}`,
           overflow: "hidden",
         }}
@@ -484,7 +506,7 @@ const AdminBookingsPage = () => {
                 </InputAdornment>
               ),
               sx: {
-                borderRadius: 3,
+                borderRadius: "4px",
                 bgcolor: "white",
                 "& fieldset": { borderColor: COLORS.border },
               },
@@ -493,7 +515,7 @@ const AdminBookingsPage = () => {
           />
         </Box>
 
-        <TableContainer sx={{ bgcolor: "white" }}>
+        <TableContainer sx={{ bgcolor: "white", overflowX: "auto" }}>
           <Table sx={{ minWidth: 900 }}>
             <TableHead sx={{ bgcolor: COLORS.headerBg }}>
               <TableRow>
@@ -622,7 +644,7 @@ const AdminBookingsPage = () => {
                             onClick={() => handleCheckIn(b.id)}
                             sx={{
                               fontWeight: "bold",
-                              borderRadius: 2,
+                              borderRadius: "4px",
                               boxShadow: "none",
                             }}
                           >
@@ -656,7 +678,7 @@ const AdminBookingsPage = () => {
         disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        PaperProps={{ sx: { borderRadius: 3, minWidth: 350 } }}
+        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
       >
         <DialogTitle
           sx={{
@@ -681,8 +703,13 @@ const AdminBookingsPage = () => {
             variant="contained"
             color={confirmDialog.confirmColor}
             disableElevation
+            disabled={isSubmitting}
           >
-            Xác nhận
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -713,7 +740,7 @@ const AdminBookingsPage = () => {
         onClose={() => setDetailDialog({ open: false, booking: null })}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 4, bgcolor: "#f8f9fa" } }}
+        PaperProps={{ sx: { borderRadius: "4px", bgcolor: "#f8f9fa" } }}
       >
         {detailDialog.booking && (
           <>
@@ -738,7 +765,7 @@ const AdminBookingsPage = () => {
                     elevation={0}
                     sx={{
                       p: 3,
-                      borderRadius: 3,
+                      borderRadius: "4px",
                       border: "1px solid #e0e0e0",
                       height: "100%",
                     }}
@@ -806,7 +833,7 @@ const AdminBookingsPage = () => {
                         mt: 2,
                         bgcolor: "#e3f2fd",
                         p: 1.5,
-                        borderRadius: 2,
+                        borderRadius: "4px",
                       }}
                     >
                       <Box>
@@ -838,7 +865,7 @@ const AdminBookingsPage = () => {
                     elevation={0}
                     sx={{
                       p: 3,
-                      borderRadius: 3,
+                      borderRadius: "4px",
                       border: "1px solid #e0e0e0",
                       height: "100%",
                       display: "flex",
@@ -927,7 +954,12 @@ const AdminBookingsPage = () => {
                     </Stack>
 
                     <Box
-                      sx={{ p: 2, bgcolor: "#fff3e0", borderRadius: 2, mb: 3 }}
+                      sx={{
+                        p: 2,
+                        bgcolor: "#fff3e0",
+                        borderRadius: "4px",
+                        mb: 3,
+                      }}
                     >
                       <Box
                         sx={{
@@ -968,7 +1000,7 @@ const AdminBookingsPage = () => {
                         flexGrow: 1,
                         p: 2,
                         bgcolor: "#f5f5f5",
-                        borderRadius: 2,
+                        borderRadius: "4px",
                         fontStyle: detailDialog.booking.note
                           ? "normal"
                           : "italic",
@@ -1007,7 +1039,7 @@ const AdminBookingsPage = () => {
         onClose={() => setWalkInDialog(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ sx: { borderRadius: "4px" } }}
       >
         <DialogTitle
           sx={{ bgcolor: COLORS.orange, color: "white", fontWeight: "bold" }}
@@ -1134,8 +1166,13 @@ const AdminBookingsPage = () => {
               boxShadow: "none",
               "&:hover": { bgcolor: "#d84315" },
             }}
+            disabled={isSubmitting}
           >
-            XÁC NHẬN VÀ GIAO PHÒNG
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "XÁC NHẬN VÀ GIAO PHÒNG"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

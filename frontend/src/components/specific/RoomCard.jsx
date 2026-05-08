@@ -20,6 +20,7 @@ const COLORS = {
   primary: "#4a148c",
   border: "#e0e0e0",
   textMain: "#333",
+  textTitle:"#fff",
   textSecondary: "#666",
 };
 
