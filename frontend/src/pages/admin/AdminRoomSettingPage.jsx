@@ -32,6 +32,7 @@ import {
   Chip,
   Divider,
   Snackbar,
+  Grid,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -45,15 +46,32 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import RoomService from "../../services/roomService";
 import RoomTypeService from "../../services/roomTypeService";
 
-// Đồng bộ Theme Colors với các trang Admin khác
+// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY
 const COLORS = {
-  primary: "#5e35b1", // Tím chủ đạo
-  headerBg: "#5e35b1", // Nền Header bảng và Dialog
-  teal: "#009688", // Màu Tab, Nút bấm
-  orange: "#e65100", // Màu Nút bấm nổi bật
+  primary: "#5e35b1",
+  navy: "#0b1b3f",
+  teal: "#009688",
+  orange: "#e65100",
+  error: "#d32f2f",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
   textMain: "#1a1a1a",
+};
+
+// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminRoomSettingsPage = () => {
@@ -73,6 +91,7 @@ const AdminRoomSettingsPage = () => {
     title: "",
     message: "",
     onConfirm: null,
+    confirmColor: "primary",
   });
 
   const [roomTypes, setRoomTypes] = useState([]);
@@ -118,7 +137,6 @@ const AdminRoomSettingsPage = () => {
       setRoomTypes(resTypes.data || resTypes);
       setRooms(resRooms.data || resRooms);
     } catch (err) {
-      // Cập nhật: Trích xuất thông báo lỗi an toàn để tránh crash React
       setError(
         err.response?.data?.message || err.message || "Lỗi khi tải dữ liệu",
       );
@@ -291,6 +309,7 @@ const AdminRoomSettingsPage = () => {
       open: true,
       title: "Xác nhận xóa phòng",
       message: `Bạn có chắc chắn muốn xóa phòng số ${roomNum}? Thao tác này không thể hoàn tác.`,
+      confirmColor: "error",
       onConfirm: async () => {
         try {
           await RoomService.deleteRoom(id);
@@ -314,6 +333,7 @@ const AdminRoomSettingsPage = () => {
             title: "",
             message: "",
             onConfirm: null,
+            confirmColor: "primary"
           });
         }
       },
@@ -329,8 +349,9 @@ const AdminRoomSettingsPage = () => {
             sx={{
               bgcolor: "#e8f5e9",
               color: "#2e7d32",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
+              border: "none"
             }}
             size="small"
           />
@@ -340,10 +361,25 @@ const AdminRoomSettingsPage = () => {
           <Chip
             label="Đang sử dụng"
             sx={{
-              bgcolor: "#e3f2fd",
-              color: "#1976d2",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              bgcolor: "rgba(94, 53, 177, 0.1)",
+              color: COLORS.primary,
+              fontWeight: 700,
+              borderRadius: 1,
+              border: "none"
+            }}
+            size="small"
+          />
+        );
+      case "Dirty":
+        return (
+          <Chip
+            label="Chưa dọn dẹp"
+            sx={{
+              bgcolor: "rgba(237, 108, 2, 0.1)",
+              color: COLORS.orange,
+              fontWeight: 700,
+              borderRadius: 1,
+              border: "none"
             }}
             size="small"
           />
@@ -353,24 +389,25 @@ const AdminRoomSettingsPage = () => {
           <Chip
             label="Bảo trì"
             sx={{
-              bgcolor: "#ffebee",
-              color: "#d32f2f",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              bgcolor: "white",
+              color: COLORS.error,
+              fontWeight: 700,
+              borderRadius: 1,
+              border: `1px solid ${COLORS.error}`
             }}
             size="small"
           />
         );
       default:
         return (
-          <Chip label={status} size="small" sx={{ borderRadius: "4px" }} />
+          <Chip label={status} size="small" sx={{ borderRadius: 1 }} />
         );
     }
   };
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
@@ -378,39 +415,42 @@ const AdminRoomSettingsPage = () => {
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
         minHeight: "100vh",
-        overflowX: "hidden",
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
         pb: 10,
       }}
     >
-      {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ */}
+      {/* HEADER ĐỒNG BỘ MỚI */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 3,
-          mb: 4,
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
+          justifyContent: "space-between",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "68%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: COLORS.textMain, letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Thiết Lập Dữ Liệu
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             Quản lý hệ thống hạ tầng phòng nghỉ của khách sạn
           </Typography>
         </Box>
 
-        <Box>
-          {/* NÚT THAO TÁC HIỂN THỊ DỰA TRÊN TAB ĐANG CHỌN */}
+        <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
           {tabValue === 0 && (
             <Button
               variant="contained"
@@ -418,12 +458,14 @@ const AdminRoomSettingsPage = () => {
               startIcon={<AddIcon />}
               disableElevation
               sx={{
-                bgcolor: COLORS.orange,
-                "&:hover": { bgcolor: "#d84315" },
-                fontWeight: "bold",
-                borderRadius: "4px",
-                px: 3,
+                background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Nút cam nổi bật
+                fontWeight: 700,
+                borderRadius: 1,
+                textTransform: "none",
+                px: 2.25,
                 py: 1,
+                boxShadow: "0 10px 20px rgba(230, 81, 0, 0.24)",
+                "&:hover": { boxShadow: "0 14px 24px rgba(230,81,0,0.32)" },
               }}
             >
               THÊM HẠNG PHÒNG
@@ -436,61 +478,67 @@ const AdminRoomSettingsPage = () => {
               startIcon={<AddIcon />}
               disableElevation
               sx={{
-                bgcolor: COLORS.teal,
-                "&:hover": { bgcolor: "#00796b" },
-                fontWeight: "bold",
-                borderRadius: "4px",
-                px: 3,
+                background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", // Nút xanh Navy/Teal
+                fontWeight: 700,
+                borderRadius: 1,
+                textTransform: "none",
+                px: 2.25,
                 py: 1,
+                boxShadow: "0 10px 22px rgba(11, 27, 63, 0.24)",
+                "&:hover": { boxShadow: "0 14px 26px rgba(11, 27, 63, 0.32)" },
               }}
             >
               THÊM SỐ PHÒNG
             </Button>
           )}
-        </Box>
+        </Stack>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: "4px" }}>
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 1 }}>
           {error}
         </Alert>
       )}
 
+      {/* CONTAINER GLASSMORPHISM */}
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "4px",
-          border: `1px solid ${COLORS.border}`,
+          ...glassCardSx,
+          p: 0,
+          border: "1px solid rgba(11,27,63,0.12)",
           overflow: "hidden",
-          bgcolor: "white",
         }}
       >
         <Box
-          sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "#f8f9fa" }}
+          sx={{ borderBottom: 1, borderColor: "rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.84)" }}
         >
           <Tabs
             value={tabValue}
             onChange={(e, val) => setTabValue(val)}
             sx={{
               "& .MuiTab-root": {
-                fontWeight: "bold",
+                fontWeight: 700,
                 textTransform: "none",
-                fontSize: "1rem",
+                fontSize: "0.94rem",
+                borderRadius: 1,
+                minHeight: 46,
               },
               "& .Mui-selected": { color: `${COLORS.teal} !important` },
               "& .MuiTabs-indicator": {
                 backgroundColor: COLORS.teal,
-                height: 3,
+                height: 4,
+                borderRadius: 999,
               },
             }}
           >
             <Tab
-              icon={<HotelIcon fontSize="small" />}
+              icon={<HotelIcon fontSize="small" sx={{ mr: 0.5 }} />}
               iconPosition="start"
               label="Hạng Phòng"
             />
             <Tab
-              icon={<MeetingRoomIcon fontSize="small" />}
+              icon={<MeetingRoomIcon fontSize="small" sx={{ mr: 0.5 }} />}
               iconPosition="start"
               label="Danh Sách Số Phòng"
             />
@@ -499,148 +547,176 @@ const AdminRoomSettingsPage = () => {
 
         {/* TAB 1: ROOM TYPES */}
         {tabValue === 0 && (
-          <TableContainer>
+          <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
             <Table sx={{ minWidth: 900 }}>
-              <TableHead sx={{ bgcolor: COLORS.headerBg }}>
+              <TableHead
+                sx={{
+                  background:
+                    "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
+                }}
+              >
                 <TableRow>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Tên Hạng Phòng
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Giá Cơ Bản
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Diện tích
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Sức Chứa
                   </TableCell>
                   <TableCell
                     align="right"
-                    sx={{ color: "white", fontWeight: "bold" }}
+                    sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}
                   >
                     Thao tác
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {roomTypes.map((type) => (
-                  <TableRow
-                    key={type.id}
-                    hover
-                    sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
-                    }}
-                  >
-                    <TableCell fontWeight="bold">
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 2 }}
-                      >
-                        {type.image_url ? (
-                          <img
-                            src={type.image_url}
-                            alt={type.type_name}
-                            style={{
-                              width: 50,
-                              height: 50,
-                              borderRadius: "4px",
-                              objectFit: "cover",
-                            }}
-                          />
-                        ) : (
-                          <Box
-                            sx={{
-                              width: 50,
-                              height: 50,
-                              borderRadius: "4px",
-                              bgcolor: "#f5f5f5",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <HotelIcon color="disabled" />
-                          </Box>
-                        )}
-                        <Typography
-                          variant="body2"
-                          fontWeight="bold"
-                          color={COLORS.textMain}
-                        >
-                          {type.type_name}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        color="error.main"
-                        fontWeight="bold"
-                        variant="body2"
-                      >
-                        {parseFloat(type.base_price).toLocaleString("vi-VN")} đ
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {type.area ? `${type.area} m²` : "Chưa cập nhật"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {type.capacity} Người
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="flex-end"
-                      >
-                        <Tooltip title="Chỉnh sửa">
-                          <IconButton
-                            onClick={() => handleOpenTypeDialog(type)}
-                            sx={{
-                              color: COLORS.teal,
-                              bgcolor: "rgba(0, 150, 136, 0.1)",
-                              borderRadius: "4px",
-                            }}
-                            size="small"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xóa">
-                          <IconButton
-                            onClick={() =>
-                              setSnackbar({
-                                open: true,
-                                message:
-                                  "Chức năng xóa hạng phòng tạm khóa để bảo mật dữ liệu",
-                                severity: "info",
-                              })
-                            }
-                            sx={{
-                              color: "#d32f2f",
-                              bgcolor: "rgba(211, 47, 47, 0.1)",
-                              borderRadius: "4px",
-                            }}
-                            size="small"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {roomTypes.length === 0 && (
+                {roomTypes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
                       <Typography color="text.secondary">
                         Chưa có dữ liệu hạng phòng.
                       </Typography>
                     </TableCell>
                   </TableRow>
+                ) : (
+                  roomTypes.map((type) => (
+                    <TableRow
+                      key={type.id}
+                      hover
+                      sx={{
+                        transition: "background-color 0.2s ease",
+                        "& td": {
+                          borderBottom: "1px solid rgba(11,27,63,0.08)",
+                          py: 1.5,
+                        },
+                        "&:nth-of-type(even)": {
+                          bgcolor: "rgba(11,27,63,0.018)",
+                        },
+                        "&:hover": {
+                          bgcolor: "rgba(0,150,136,0.07)",
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          {type.image_url ? (
+                            <img
+                              src={type.image_url}
+                              alt={type.type_name}
+                              style={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: "8px",
+                                objectFit: "cover",
+                                border: "1px solid rgba(11,27,63,0.1)"
+                              }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: "8px",
+                                bgcolor: "rgba(11,27,63,0.05)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "1px dashed rgba(11,27,63,0.2)"
+                              }}
+                            >
+                              <HotelIcon sx={{ color: "rgba(11,27,63,0.3)" }} />
+                            </Box>
+                          )}
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color={COLORS.textMain}
+                          >
+                            {type.type_name}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          color="error.main"
+                          fontWeight="bold"
+                          variant="body2"
+                        >
+                          {parseFloat(type.base_price).toLocaleString("vi-VN")} đ
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="500">
+                          {type.area ? `${type.area} m²` : "---"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="500">
+                          {type.capacity} Người
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="flex-end"
+                        >
+                          <Tooltip title="Chỉnh sửa">
+                            <IconButton
+                              onClick={() => handleOpenTypeDialog(type)}
+                              sx={{
+                                color: COLORS.teal,
+                                bgcolor: "rgba(0, 150, 136, 0.1)",
+                                borderRadius: 1,
+                                border: "1px solid rgba(0, 150, 136, 0.2)",
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  bgcolor: "rgba(0, 150, 136, 0.18)",
+                                  transform: "translateY(-1px)",
+                                },
+                              }}
+                              size="small"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa">
+                            <IconButton
+                              onClick={() =>
+                                setSnackbar({
+                                  open: true,
+                                  message:
+                                    "Chức năng xóa hạng phòng tạm khóa để bảo mật dữ liệu",
+                                  severity: "info",
+                                })
+                              }
+                              sx={{
+                                color: "#d32f2f",
+                                bgcolor: "rgba(211, 47, 47, 0.1)",
+                                borderRadius: 1,
+                                border: "1px solid rgba(211, 47, 47, 0.2)",
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  bgcolor: "rgba(211, 47, 47, 0.18)",
+                                  transform: "translateY(-1px)",
+                                },
+                              }}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -649,97 +725,125 @@ const AdminRoomSettingsPage = () => {
 
         {/* TAB 2: ROOMS */}
         {tabValue === 1 && (
-          <TableContainer sx={{ overflowX: "auto" }}>
+          <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
             <Table sx={{ minWidth: 900 }}>
-              <TableHead sx={{ bgcolor: COLORS.headerBg }}>
+              <TableHead
+                sx={{
+                  background:
+                    "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
+                }}
+              >
                 <TableRow>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Số Phòng
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Thuộc Hạng Phòng
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                     Trạng thái hiện tại
                   </TableCell>
                   <TableCell
                     align="right"
-                    sx={{ color: "white", fontWeight: "bold" }}
+                    sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}
                   >
                     Thao tác
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rooms.map((room) => (
-                  <TableRow
-                    key={room.id}
-                    hover
-                    sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
-                    }}
-                  >
-                    <TableCell>
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight="bold"
-                        color={COLORS.textMain}
-                      >
-                        P.{room.room_number}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {room.type_name || "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{getStatusChip(room.status)}</TableCell>
-                    <TableCell align="right">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="flex-end"
-                      >
-                        <Tooltip title="Chỉnh sửa thông tin phòng">
-                          <IconButton
-                            onClick={() => handleOpenRoomDialog(room)}
-                            sx={{
-                              color: COLORS.teal,
-                              bgcolor: "rgba(0, 150, 136, 0.1)",
-                              borderRadius: "4px",
-                            }}
-                            size="small"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xóa phòng">
-                          <IconButton
-                            onClick={() =>
-                              handleDeleteRoom(room.id, room.room_number)
-                            }
-                            sx={{
-                              color: "#d32f2f",
-                              bgcolor: "rgba(211, 47, 47, 0.1)",
-                              borderRadius: "4px",
-                            }}
-                            size="small"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {rooms.length === 0 && (
+                {rooms.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={4} align="center" sx={{ py: 5 }}>
                       <Typography color="text.secondary">
                         Chưa có dữ liệu phòng.
                       </Typography>
                     </TableCell>
                   </TableRow>
+                ) : (
+                  rooms.map((room) => (
+                    <TableRow
+                      key={room.id}
+                      hover
+                      sx={{
+                        transition: "background-color 0.2s ease",
+                        "& td": {
+                          borderBottom: "1px solid rgba(11,27,63,0.08)",
+                          py: 1.5,
+                        },
+                        "&:nth-of-type(even)": {
+                          bgcolor: "rgba(11,27,63,0.018)",
+                        },
+                        "&:hover": {
+                          bgcolor: "rgba(0,150,136,0.07)",
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight="900"
+                          color={COLORS.navy}
+                        >
+                          P.{room.room_number}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="600" color="text.secondary">
+                          {room.type_name || "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{getStatusChip(room.status)}</TableCell>
+                      <TableCell align="right">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="flex-end"
+                        >
+                          <Tooltip title="Chỉnh sửa thông tin phòng">
+                            <IconButton
+                              onClick={() => handleOpenRoomDialog(room)}
+                              sx={{
+                                color: COLORS.teal,
+                                bgcolor: "rgba(0, 150, 136, 0.1)",
+                                borderRadius: 1,
+                                border: "1px solid rgba(0, 150, 136, 0.2)",
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  bgcolor: "rgba(0, 150, 136, 0.18)",
+                                  transform: "translateY(-1px)",
+                                },
+                              }}
+                              size="small"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa phòng">
+                            <IconButton
+                              onClick={() =>
+                                handleDeleteRoom(room.id, room.room_number)
+                              }
+                              sx={{
+                                color: "#d32f2f",
+                                bgcolor: "rgba(211, 47, 47, 0.1)",
+                                borderRadius: 1,
+                                border: "1px solid rgba(211, 47, 47, 0.2)",
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  bgcolor: "rgba(211, 47, 47, 0.18)",
+                                  transform: "translateY(-1px)",
+                                },
+                              }}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -754,90 +858,128 @@ const AdminRoomSettingsPage = () => {
         disableScrollLock={true}
         open={typeDialog.open}
         onClose={() => setTypeDialog({ open: false, isEdit: false, id: null })}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            bgcolor: "#f8fafc",
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ bgcolor: COLORS.headerBg, color: "white", fontWeight: "bold" }}
+          sx={{
+            background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+            color: "white",
+            fontWeight: 800,
+            textAlign: "center",
+            py: 2,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
         >
-          {typeDialog.isEdit ? "Cập Nhật Hạng Phòng" : "Thêm Hạng Phòng Mới"}
+          {typeDialog.isEdit ? "CẬP NHẬT HẠNG PHÒNG" : "THÊM HẠNG PHÒNG MỚI"}
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, pb: 2 }}>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            <TextField
-              label="Tên Hạng (VD: Deluxe, Suite...)"
-              fullWidth
-              size="small"
-              value={typeForm.type_name}
-              onChange={(e) =>
-                setTypeForm({ ...typeForm, type_name: e.target.value })
-              }
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-            />
-            <TextField
-              label="Giá tiền 1 đêm (VNĐ)"
-              type="number"
-              fullWidth
-              size="small"
-              value={typeForm.base_price}
-              onChange={(e) =>
-                setTypeForm({ ...typeForm, base_price: e.target.value })
-              }
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-            />
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Diện tích (m²)"
-                type="number"
-                fullWidth
-                size="small"
-                value={typeForm.area}
-                onChange={(e) =>
-                  setTypeForm({ ...typeForm, area: e.target.value })
-                }
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-              />
-              <TextField
-                label="Sức chứa (Người)"
-                type="number"
-                fullWidth
-                size="small"
-                value={typeForm.capacity}
-                onChange={(e) =>
-                  setTypeForm({
-                    ...typeForm,
-                    capacity: parseInt(e.target.value),
-                  })
-                }
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-              />
-            </Stack>
-            <TextField
-              label="Mô tả tiện ích phòng"
-              multiline
-              rows={3}
-              fullWidth
-              value={typeForm.description}
-              onChange={(e) =>
-                setTypeForm({ ...typeForm, description: e.target.value })
-              }
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-            />
+        <DialogContent sx={{ pt: 4, pb: 2 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              borderRadius: 1,
+              border: "1px solid #e2e8f0",
+              bgcolor: "white",
+            }}
+          >
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Tên Hạng (VD: Deluxe, Suite...) (*)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={typeForm.type_name}
+                  onChange={(e) =>
+                    setTypeForm({ ...typeForm, type_name: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Giá tiền 1 đêm (VNĐ) (*)
+                </Typography>
+                <TextField
+                  type="number"
+                  fullWidth
+                  size="small"
+                  value={typeForm.base_price}
+                  onChange={(e) =>
+                    setTypeForm({ ...typeForm, base_price: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                 <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Diện tích (m²)
+                </Typography>
+                <TextField
+                  type="number"
+                  fullWidth
+                  size="small"
+                  value={typeForm.area}
+                  onChange={(e) =>
+                    setTypeForm({ ...typeForm, area: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Sức chứa (Người)
+                </Typography>
+                <TextField
+                  type="number"
+                  fullWidth
+                  size="small"
+                  value={typeForm.capacity}
+                  onChange={(e) =>
+                    setTypeForm({
+                      ...typeForm,
+                      capacity: parseInt(e.target.value),
+                    })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Mô tả tiện ích phòng
+                </Typography>
+                <TextField
+                  multiline
+                  rows={3}
+                  fullWidth
+                  value={typeForm.description}
+                  onChange={(e) =>
+                    setTypeForm({ ...typeForm, description: e.target.value })
+                  }
+                />
+              </Grid>
+            </Grid>
 
             {/* KHU VỰC TẢI ẢNH */}
             <Box
               sx={{
-                p: 2,
+                p: 3,
+                mt: 4,
                 border: `1px solid ${COLORS.border}`,
-                borderRadius: "4px",
+                borderRadius: 1,
                 bgcolor: "#fbfbfb",
               }}
             >
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
-                fontWeight="bold"
+                fontWeight="800"
                 gutterBottom
               >
                 QUẢN LÝ HÌNH ẢNH
@@ -848,7 +990,7 @@ const AdminRoomSettingsPage = () => {
                   <Stack
                     direction="row"
                     spacing={2}
-                    sx={{ mt: 1, mb: 2, overflowX: "auto", pb: 1 }}
+                    sx={{ mt: 2, mb: 2, overflowX: "auto", pb: 1 }}
                   >
                     {existingImages.map((img, index) => (
                       <Box
@@ -859,10 +1001,10 @@ const AdminRoomSettingsPage = () => {
                           src={img.image_url}
                           alt="existing preview"
                           style={{
-                            width: 80,
-                            height: 80,
+                            width: 100,
+                            height: 100,
                             objectFit: "cover",
-                            borderRadius: "4px",
+                            borderRadius: "8px",
                             border: `1px solid ${COLORS.border}`,
                           }}
                         />
@@ -872,11 +1014,12 @@ const AdminRoomSettingsPage = () => {
                           onClick={() => handleRemoveExistingImage(img)}
                           sx={{
                             position: "absolute",
-                            top: -8,
-                            right: -8,
+                            top: -10,
+                            right: -10,
                             bgcolor: "white",
                             border: `1px solid ${COLORS.border}`,
                             "&:hover": { bgcolor: "#ffebee" },
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -884,7 +1027,7 @@ const AdminRoomSettingsPage = () => {
                       </Box>
                     ))}
                   </Stack>
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 3 }} />
                 </>
               )}
 
@@ -895,14 +1038,20 @@ const AdminRoomSettingsPage = () => {
                 startIcon={<AddPhotoAlternateIcon />}
                 sx={{
                   borderStyle: "dashed",
-                  height: 40,
+                  borderWidth: 2,
+                  height: 50,
                   fontWeight: "bold",
-                  borderRadius: "4px",
+                  borderRadius: 1,
                   color: COLORS.teal,
-                  borderColor: COLORS.teal,
+                  borderColor: "rgba(0, 150, 136, 0.4)",
+                  bgcolor: "rgba(0, 150, 136, 0.02)",
+                  "&:hover": {
+                    borderColor: COLORS.teal,
+                    bgcolor: "rgba(0, 150, 136, 0.05)"
+                  }
                 }}
               >
-                CHỌN THÊM ẢNH
+                BẤM VÀO ĐÂY ĐỂ CHỌN THÊM ẢNH TỪ MÁY TÍNH
                 <input
                   type="file"
                   hidden
@@ -916,7 +1065,7 @@ const AdminRoomSettingsPage = () => {
                 <Stack
                   direction="row"
                   spacing={2}
-                  sx={{ mt: 2, overflowX: "auto", pb: 1 }}
+                  sx={{ mt: 3, overflowX: "auto", pb: 1 }}
                 >
                   {selectedImages.map((file, index) => (
                     <Box
@@ -927,11 +1076,11 @@ const AdminRoomSettingsPage = () => {
                         src={URL.createObjectURL(file)}
                         alt="preview"
                         style={{
-                          width: 80,
-                          height: 80,
+                          width: 100,
+                          height: 100,
                           objectFit: "cover",
-                          borderRadius: "4px",
-                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: "8px",
+                          border: `2px solid ${COLORS.teal}`,
                         }}
                       />
                       <IconButton
@@ -940,11 +1089,12 @@ const AdminRoomSettingsPage = () => {
                         onClick={() => handleRemoveImage(index)}
                         sx={{
                           position: "absolute",
-                          top: -8,
-                          right: -8,
+                          top: -10,
+                          right: -10,
                           bgcolor: "white",
                           border: `1px solid ${COLORS.border}`,
                           "&:hover": { bgcolor: "#ffebee" },
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
                         }}
                       >
                         <CancelIcon fontSize="small" />
@@ -954,28 +1104,40 @@ const AdminRoomSettingsPage = () => {
                 </Stack>
               )}
             </Box>
-          </Stack>
+          </Paper>
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
+        <DialogActions
+          sx={{
+            p: 3,
+            bgcolor: "white",
+            borderTop: "1px solid #e2e8f0",
+            justifyContent: "space-between",
+          }}
+        >
           <Button
             onClick={() =>
               setTypeDialog({ open: false, isEdit: false, id: null })
             }
-            sx={{ borderRadius: "4px", color: "text.secondary" }}
+            color="inherit"
+            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
           >
-            Hủy
+            Hủy bỏ
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmitType}
             disableElevation
-            sx={{
-              borderRadius: "4px",
-              fontWeight: "bold",
-              bgcolor: COLORS.teal,
-              "&:hover": { bgcolor: "#00796b" },
-            }}
             disabled={isSubmitting}
+            sx={{
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              px: 4,
+              py: 1,
+              borderRadius: 1,
+              textTransform: "none",
+              boxShadow: "0 10px 20px rgba(11,27,63,0.2)",
+              "&:hover": { boxShadow: "0 12px 24px rgba(11,27,63,0.28)" },
+            }}
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
@@ -987,7 +1149,7 @@ const AdminRoomSettingsPage = () => {
       </Dialog>
 
       {/* =============================================================== */}
-      {/* DIALOG PHÒNG */}
+      {/* DIALOG SỐ PHÒNG CHUẨN */}
       {/* =============================================================== */}
       <Dialog
         disableScrollLock={true}
@@ -995,66 +1157,107 @@ const AdminRoomSettingsPage = () => {
         onClose={() => setRoomDialog({ open: false, isEdit: false, id: null })}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            bgcolor: "#f8fafc",
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ bgcolor: COLORS.headerBg, color: "white", fontWeight: "bold" }}
+          sx={{
+            background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+            color: "white",
+            fontWeight: 800,
+            textAlign: "center",
+            py: 2,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
         >
           {roomDialog.isEdit
-            ? `Chỉnh Sửa Phòng ${roomForm.room_number}`
-            : "Thêm Số Phòng Mới"}
+            ? `CHỈNH SỬA PHÒNG ${roomForm.room_number}`
+            : "THÊM SỐ PHÒNG MỚI"}
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            <TextField
-              label="Số phòng (VD: 101, 502)"
-              fullWidth
-              size="small"
-              value={roomForm.room_number}
-              onChange={(e) =>
-                setRoomForm({ ...roomForm, room_number: e.target.value })
-              }
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "4px" } }}
-            />
-            <FormControl fullWidth size="small">
-              <InputLabel>Chọn Hạng Phòng</InputLabel>
-              <Select
-                value={roomForm.room_type_id}
-                label="Chọn Hạng Phòng"
-                onChange={(e) =>
-                  setRoomForm({ ...roomForm, room_type_id: e.target.value })
-                }
-                sx={{ borderRadius: "4px" }}
-              >
-                {roomTypes.map((rt) => (
-                  <MenuItem key={rt.id} value={rt.id}>
-                    {rt.type_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+        <DialogContent sx={{ pt: 4, pb: 2 }}>
+           <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 1,
+              border: "1px solid #e2e8f0",
+              bgcolor: "white",
+            }}
+          >
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Số phòng (VD: 101, 502) (*)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={roomForm.room_number}
+                  onChange={(e) =>
+                    setRoomForm({ ...roomForm, room_number: e.target.value })
+                  }
+                />
+              </Box>
+              <Box>
+                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                  Chọn Hạng Phòng (*)
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={roomForm.room_type_id}
+                    onChange={(e) =>
+                      setRoomForm({ ...roomForm, room_type_id: e.target.value })
+                    }
+                  >
+                    {roomTypes.map((rt) => (
+                      <MenuItem key={rt.id} value={rt.id}>
+                        {rt.type_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Stack>
+          </Paper>
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
+        <DialogActions
+           sx={{
+            p: 3,
+            bgcolor: "white",
+            borderTop: "1px solid #e2e8f0",
+            justifyContent: "space-between",
+          }}
+        >
           <Button
             onClick={() =>
               setRoomDialog({ open: false, isEdit: false, id: null })
             }
-            sx={{ borderRadius: "4px", color: "text.secondary" }}
+            color="inherit"
+            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
           >
-            Hủy
+            Hủy bỏ
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmitRoom}
             disableElevation
-            sx={{
-              borderRadius: "4px",
-              fontWeight: "bold",
-              bgcolor: COLORS.teal,
-              "&:hover": { bgcolor: "#00796b" },
-            }}
             disabled={isSubmitting}
+            sx={{
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              px: 3,
+              py: 1,
+              borderRadius: 1,
+              textTransform: "none",
+              boxShadow: "0 10px 20px rgba(11,27,63,0.2)",
+              "&:hover": { boxShadow: "0 12px 24px rgba(11,27,63,0.28)" },
+            }}
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
@@ -1067,14 +1270,26 @@ const AdminRoomSettingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* CONFIRM DIALOG CHUNG CHO XÓA PHÒNG/V.V */}
+      {/* CONFIRM DIALOG ĐỒNG BỘ */}
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            minWidth: 350,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", color: "error.main" }}>
+        <DialogTitle
+          sx={{
+            fontWeight: "bold",
+            color: confirmDialog.confirmColor === "error" ? "error.main" : `${confirmDialog.confirmColor}.main`,
+          }}
+        >
           {confirmDialog.title}
         </DialogTitle>
         <DialogContent>
@@ -1084,24 +1299,16 @@ const AdminRoomSettingsPage = () => {
           <Button
             onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
             color="inherit"
-            sx={{
-              borderRadius: "4px",
-              textTransform: "none",
-              fontWeight: "bold",
-            }}
+            sx={{ fontWeight: 700, textTransform: "none" }}
           >
             Hủy
           </Button>
           <Button
             onClick={confirmDialog.onConfirm}
             variant="contained"
-            color="error"
+            color={confirmDialog.confirmColor || "error"}
             disableElevation
-            sx={{
-              borderRadius: "4px",
-              textTransform: "none",
-              fontWeight: "bold",
-            }}
+            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
           >
             Xác nhận
           </Button>
@@ -1119,7 +1326,7 @@ const AdminRoomSettingsPage = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%", borderRadius: "4px" }}
+          sx={{ width: "100%", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>
