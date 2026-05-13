@@ -21,6 +21,7 @@ import AdminContacts from "../pages/admin/AdminContacts";
 import AdminCouponsPage from "../pages/admin/AdminCouponsPage";
 import AdminPricingPage from "../pages/admin/AdminPricingPage";
 import DiscoverHue from "../pages/client/DiscoverHue";
+import AdminSystemConfig from "../pages/admin/AdminSystemConfig";
 
 const AppRouter = () => {
   return (
@@ -55,7 +56,7 @@ const AppRouter = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["Admin", "Receptionist"]}>
             <DashboardLayout />
           </ProtectedRoute>
         }
@@ -70,6 +71,7 @@ const AppRouter = () => {
         <Route path="audit" element={<AdminAuditLogs />} />
         <Route path="coupon" element={<AdminCouponsPage />} />
         <Route path="pricing" element={<AdminPricingPage />} />
+        <Route path="system-config" element={<AdminSystemConfig />} />
       </Route>
 
       {/* 3. Xác thực & Catch-all */}

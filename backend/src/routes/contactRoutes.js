@@ -6,33 +6,28 @@ const {
   authorizeRoles,
 } = require("../middlewares/authMiddleware");
 
-// 1. Khách hàng gửi thư liên hệ
 router.post("/", contactController.submitContact);
 
-// 2. Admin lấy danh sách toàn bộ thư
 router.get(
   "/",
   verifyToken,
-  authorizeRoles("Admin"),
+  authorizeRoles("Admin", "Receptionist"),
   contactController.getAllContacts,
 );
-
 
 router.put(
   "/:id/read",
   verifyToken,
-  authorizeRoles("Admin"),
+  authorizeRoles("Admin", "Receptionist"),
   contactController.markAsRead,
 );
-
 
 router.post(
   "/:id/reply",
   verifyToken,
-  authorizeRoles("Admin"),
+  authorizeRoles("Admin", "Receptionist"),
   contactController.replyContact,
 );
-
 
 router.delete(
   "/:id",

@@ -15,17 +15,46 @@ import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import PersonIcon from "@mui/icons-material/Person";
 import BedIcon from "@mui/icons-material/Bed";
 
-// Đồng bộ Theme Colors
+// Đồng bộ Theme Colors (Thầy đổi màu primary về #5e35b1 cho chuẩn bộ nhận diện Huế Hotel)
 const COLORS = {
-  primary: "#4a148c",
+  primary: "#5e35b1",
   border: "#e0e0e0",
   textMain: "#333",
-  textTitle:"#fff",
+  textTitle: "#fff",
   textSecondary: "#666",
 };
 
 const RoomCard = ({ room, badge, description }) => {
   const navigate = useNavigate();
+
+  // ==========================================
+  // 1. Hàm tối ưu ảnh Cloudinary cho Card (w_800 là đủ nét)
+  // ==========================================
+  const optimizeImageUrl = (url) => {
+    if (!url)
+      return "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80";
+    if (url.includes("cloudinary.com") && !url.includes("/upload/w_")) {
+      return url.replace("/upload/", "/upload/w_800,q_100,f_auto/");
+    }
+    return url;
+  };
+
+  // ==========================================
+  // 2. Hàm tính loại giường tự động
+  // ==========================================
+  const getBedInfo = (capacity) => {
+    if (capacity >= 4) return "2 Giường Đôi";
+    if (capacity === 1) return "1 Giường Đơn";
+    return "1 Giường King";
+  };
+
+  // ==========================================
+  // 3. Xử lý hiển thị mô tả (Cắt ngắn để Card không bị méo)
+  // ==========================================
+  const displayDescription =
+    description ||
+    room.description ||
+    "Trải nghiệm không gian lưu trú sang trọng với đầy đủ tiện nghi.";
 
   return (
     <Card
@@ -38,18 +67,25 @@ const RoomCard = ({ room, badge, description }) => {
         flexDirection: "column",
         bgcolor: "white",
         position: "relative",
+        height: "100%", // Đảm bảo thẻ giãn đều trong lưới Flexbox
+        transition: "transform 0.3s ease, box-shadow 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: "0 10px 20px rgba(0,0,0,0.08)",
+        },
       }}
     >
       {/* HÌNH ẢNH CÓ CHỨA BADGE */}
-      <Box sx={{ position: "relative" }}>
+      <Box sx={{ position: "relative", overflow: "hidden" }}>
         <CardMedia
           component="img"
           height="240"
-          image={
-            room.image_url ||
-            "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800"
-          }
+          image={optimizeImageUrl(room.image_url)}
           alt={room.type_name || room.name}
+          sx={{
+            transition: "transform 0.5s ease",
+            "&:hover": { transform: "scale(1.05)" },
+          }}
         />
         {badge && (
           <Chip
@@ -82,12 +118,12 @@ const RoomCard = ({ room, badge, description }) => {
         <Typography
           variant="h6"
           fontWeight="bold"
-          sx={{ mb: 1, color: COLORS.textMain }}
+          sx={{ mb: 1.5, color: COLORS.textMain }}
         >
           {room.type_name || room.name}
         </Typography>
 
-        {/* ICONS THÔNG SỐ */}
+        {/* ICONS THÔNG SỐ (SỬ DỤNG DỮ LIỆU ĐỘNG) */}
         <Stack
           direction="row"
           spacing={2}
@@ -103,45 +139,41 @@ const RoomCard = ({ room, badge, description }) => {
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <BedIcon sx={{ fontSize: 18 }} />
-            <Typography variant="body2">1 Giường Đôi</Typography>
+            <Typography variant="body2">{getBedInfo(room.capacity)}</Typography>
           </Box>
         </Stack>
 
-        {/* MÔ TẢ NGẮN */}
-        {description && (
-          <Typography
-            variant="body2"
-            color={COLORS.textSecondary}
-            sx={{ mb: 3, flexGrow: 1, lineHeight: 1.6 }}
-          >
-            {description}
-          </Typography>
-        )}
+        {/* MÔ TẢ NGẮN (DÙNG CLAMP ĐỂ CẮT CHỮ GỌN GÀNG) */}
+        <Typography
+          variant="body2"
+          color={COLORS.textSecondary}
+          sx={{
+            mb: 3,
+            flexGrow: 1,
+            lineHeight: 1.6,
+            display: "-webkit-box",
+            WebkitLineClamp: 2, // Chỉ cho hiển thị tối đa 2 dòng
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {displayDescription}
+        </Typography>
 
-        {/* KHU VỰC GIÁ VÀ NÚT BẤM (Giá 1 hàng, Nút 1 hàng chia đều) */}
+        {/* KHU VỰC GIÁ VÀ NÚT BẤM */}
         <Box sx={{ mt: "auto" }}>
-          <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-            >
+          <Box sx={{ mb: 2, display: "flex", alignItems: "baseline", gap: 1 }}>
+            <Typography variant="caption" color="text.secondary">
               Từ
             </Typography>
             <Typography
               variant="h6"
               sx={{ color: COLORS.primary, fontWeight: "bold" }}
             >
-              {Number(room.base_price || room.price).toLocaleString("vi-VN")}{" "}
-              VNĐ
-              <Typography
-                component="span"
-                variant="caption"
-                color="text.secondary"
-              >
-                {" "}
-                / đêm
-              </Typography>
+              {Number(room.base_price || room.price).toLocaleString("vi-VN")} đ
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              / đêm
             </Typography>
           </Box>
 
@@ -150,15 +182,15 @@ const RoomCard = ({ room, badge, description }) => {
               variant="outlined"
               onClick={() => navigate(`/rooms/${room.id}`, { state: { room } })}
               sx={{
-                flex: 1, // Chia đều không gian
+                flex: 1,
                 borderRadius: "4px",
-                color: COLORS.textMain,
+                color: COLORS.primary,
                 borderColor: COLORS.border,
                 textTransform: "none",
                 fontWeight: "bold",
                 "&:hover": {
-                  borderColor: COLORS.textMain,
-                  bgcolor: "transparent",
+                  borderColor: COLORS.primary,
+                  bgcolor: "rgba(94, 53, 177, 0.04)", // Nhấn màu tím nhạt khi hover
                 },
               }}
             >
@@ -169,12 +201,12 @@ const RoomCard = ({ room, badge, description }) => {
               disableElevation
               onClick={() => navigate("/booking", { state: { room } })}
               sx={{
-                flex: 1, // Chia đều không gian
+                flex: 1,
                 borderRadius: "4px",
                 bgcolor: COLORS.primary,
                 textTransform: "none",
                 fontWeight: "bold",
-                "&:hover": { bgcolor: "#311b92" },
+                "&:hover": { bgcolor: "#4527a0" },
               }}
             >
               ĐẶT NGAY

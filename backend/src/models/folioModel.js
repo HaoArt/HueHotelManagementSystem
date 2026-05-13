@@ -16,12 +16,38 @@ const Folio = {
 
   getFolioDetails: async (booking_id) => {
     const [bookingData] = await db.query(
-      "SELECT * FROM bookings WHERE id = ?",
+      `SELECT b.*, rt.base_price 
+       FROM bookings b 
+       JOIN room_types rt ON b.room_type_id = rt.id 
+       WHERE b.id = ?`,
       [booking_id],
     );
     if (bookingData.length === 0) {
       throw new Error("Không tìm thấy thông tin đơn đặt phòng!");
     }
+    let roomTotal = parseFloat(bookingData[0].total_amount) || 0;
+    if (bookingData[0].status === "Checked_in") {
+      const today = new Date();
+      const expectedCheckOut = new Date(bookingData[0].check_out_date);
+      const todayZero = new Date(today).setHours(0, 0, 0, 0);
+      const expectedZero = new Date(expectedCheckOut).setHours(0, 0, 0, 0);
+      if (todayZero !== expectedZero) {
+        const checkInZero = new Date(bookingData[0].check_in_date).setHours(
+          0,
+          0,
+          0,
+          0,
+        );
+        let actualDays = Math.ceil(
+          Math.abs(todayZero - checkInZero) / (1000 * 60 * 60 * 24),
+        );
+        if (actualDays === 0) actualDays = 1;
+        roomTotal =
+          actualDays * parseFloat(bookingData[0].base_price) -
+          parseFloat(bookingData[0].discount_amount || 0);
+      }
+    }
+    bookingData[0].total_amount = roomTotal;
     const [servicesData] = await db.query(
       `SELECT bs.id, bs.status, bs.quantity, bs.total_price, bs.created_at, s.name as services_name, s.price as unit_price 
       FROM booking_services bs 
@@ -36,7 +62,6 @@ const Folio = {
       totalServicesPrice += parseFloat(services.total_price);
     });
 
-    const roomTotal = parseFloat(bookingData[0].total_amount) || 0;
     const deposit = parseFloat(bookingData[0].deposit_amount) || 0;
 
     return {

@@ -157,30 +157,34 @@ const DashboardOverview = () => {
     }
   };
 
+  // ĐÃ FIX: Sửa lại giao diện Tooltip nhỏ gọn khi hover vào biểu đồ
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <Box
+        <Paper
+          elevation={3}
           sx={{
-            p: 4,
-            bgcolor: COLORS.bgLight,
-            minHeight: "100vh",
-            overflowX: "hidden",
-            pb: 10,
+            p: 1.5,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: "8px",
+            bgcolor: "white",
+            minWidth: "120px",
           }}
         >
           <Typography
-            variant="body2"
+            variant="caption"
             fontWeight="bold"
+            display="block"
             color="text.secondary"
-            mb={0.5}
+            sx={{ mb: 0.5, textTransform: "uppercase" }}
           >
-            {payload[0].payload.fullLabel}
+            {payload[0].payload.fullLabel || payload[0].payload.name}
           </Typography>
-          <Typography variant="body1" fontWeight="bold" color={COLORS.primary}>
+          <Divider sx={{ mb: 1 }} />
+          <Typography variant="body2" fontWeight="900" color={COLORS.primary}>
             {`${payload[0].value.toLocaleString("vi-VN")} đ`}
           </Typography>
-        </Box>
+        </Paper>
       );
     }
     return null;

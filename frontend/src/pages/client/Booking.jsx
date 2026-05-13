@@ -44,15 +44,15 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import RoomServiceIcon from "@mui/icons-material/RoomService";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-// Custom Theme Colors matching the design
 const COLORS = {
-  primary: "#4a148c", // Tím đậm chủ đạo
-  primaryLight: "#f3e5f5", // Tím nhạt cho item được chọn
-  border: "#e0e0e0", // Viền xám nhạt
-  depositBg: "#ffcdd2", // Nền đỏ nhạt cho tiền cọc
+  primary: "#4a148c",
+  primaryLight: "#f3e5f5",
+  border: "#e0e0e0",
+  depositBg: "#ffcdd2",
   textMain: "#333",
-  borderRadius: "8px", // Hạn chế border radius quá lớn theo yêu cầu
+  borderRadius: "8px",
 };
 
 const Booking = () => {
@@ -71,7 +71,7 @@ const Booking = () => {
     phone: user?.phone || "",
     checkIn: "",
     checkOut: "",
-    paymentMethod: "DepositOnline", // Default theo design
+    paymentMethod: "DepositOnline",
     note: "",
   });
 
@@ -87,6 +87,10 @@ const Booking = () => {
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
+
+  // --- CÁC STATE MỚI CHO DIALOG QR ---
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -122,7 +126,6 @@ const Booking = () => {
     });
   };
 
-  // FETCH DỮ LIỆU
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -131,7 +134,6 @@ const Booking = () => {
           couponService.getActiveCouponsForUser(),
         ]);
         setAvailableServices(svcRes.data || []);
-
         const coupons = couponRes.data?.data || couponRes.data || [];
         setAvailableCoupons(
           coupons.filter((c) => c.status === "ACTIVE" || c.status === "Active"),
@@ -143,7 +145,6 @@ const Booking = () => {
     fetchData();
   }, []);
 
-  // LOGIC TÍNH TOÁN (Giữ nguyên)
   useEffect(() => {
     if (formData.checkIn && formData.checkOut) {
       const today = new Date();
@@ -205,28 +206,30 @@ const Booking = () => {
 
       if (isHigh) {
         percent = 50;
-        holdText =
-          "Đơn hàng giá trị cao: Hệ thống sẽ giữ phòng 15 phút để chờ thanh toán cọc.";
         if (formData.paymentMethod === "PayAtDesk") {
           setFormData((prev) => ({ ...prev, paymentMethod: "DepositOnline" }));
         }
       }
 
+      let activePercent =
+        formData.paymentMethod === "PayAtDesk" && !isHigh ? 0 : percent;
+
       setPolicy({
         holdUntilText: holdText,
-        depositPercent: percent,
+        depositPercent: activePercent,
         totalDays: diffDays > 0 ? diffDays : 0,
         roomTotal: roomTotal,
         servicesTotal: svcsTotal,
         discountAmount: discount,
         finalTotalAmount: finalTotal,
-        depositAmount: (finalTotal * percent) / 100,
+        depositAmount: (finalTotal * activePercent) / 100,
         isHighValue: isHigh,
       });
     }
   }, [
     formData.checkIn,
     formData.checkOut,
+    formData.paymentMethod,
     roomInfo.base_price,
     selectedServices,
     availableServices,
@@ -261,9 +264,18 @@ const Booking = () => {
       };
 
       const res = await BookingService.createBooking(payload);
-      navigate("/booking-success", {
-        state: { bookingId: res.id || res.booking_id },
-      });
+
+      if (formData.paymentMethod === "DepositOnline") {
+        setCreatedBooking(res);
+        setQrDialogOpen(true);
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Đặt phòng thành công!",
+          severity: "success",
+        });
+        setTimeout(() => navigate("/profile"), 1500);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Có lỗi xảy ra khi đặt phòng.");
     } finally {
@@ -285,13 +297,12 @@ const Booking = () => {
     setCouponDialogOpen(false);
   };
 
-  // Dùng chung style cho các Paper bọc bên ngoài
   const paperSectionStyle = {
     p: 3,
     borderRadius: COLORS.borderRadius,
     mb: 3,
     border: `1px solid ${COLORS.border}`,
-    boxShadow: "none", // Bỏ shadow theo ý đồ thiết kế phẳng
+    boxShadow: "none",
   };
 
   const avatarStyle = {
@@ -395,6 +406,7 @@ const Booking = () => {
                       size="small"
                       type="date"
                       name="checkIn"
+                      InputLabelProps={{ shrink: true }}
                       value={formData.checkIn}
                       onChange={(e) =>
                         setFormData({ ...formData, checkIn: e.target.value })
@@ -411,6 +423,7 @@ const Booking = () => {
                       size="small"
                       type="date"
                       name="checkOut"
+                      InputLabelProps={{ shrink: true }}
                       value={formData.checkOut}
                       onChange={(e) =>
                         setFormData({ ...formData, checkOut: e.target.value })
@@ -590,7 +603,7 @@ const Booking = () => {
                             verticalAlign: "middle",
                             mr: 0.5,
                           }}
-                        />
+                        />{" "}
                         Đơn hàng vượt quá ngưỡng quy định (4 triệu VNĐ) bắt buộc
                         phải đặt cọc trực tuyến.
                       </Typography>
@@ -731,7 +744,6 @@ const Booking = () => {
                         </Typography>
                       </Stack>
                     )}
-
                     {policy.discountAmount > 0 && (
                       <Stack
                         direction="row"
@@ -746,9 +758,7 @@ const Booking = () => {
                         </Typography>
                       </Stack>
                     )}
-
                     <Divider sx={{ my: 1 }} />
-
                     <Stack
                       direction="row"
                       justifyContent="space-between"
@@ -767,7 +777,6 @@ const Booking = () => {
                     </Stack>
                   </Stack>
 
-                  {/* Nút chọn Coupon */}
                   <Box sx={{ mb: 3 }}>
                     <Button
                       variant="outlined"
@@ -804,13 +813,16 @@ const Booking = () => {
                     )}
                   </Box>
 
-                  {/* Tiền cọc */}
                   <Box
                     sx={{
-                      bgcolor: COLORS.depositBg,
+                      bgcolor:
+                        policy.depositAmount === 0
+                          ? "#e8f5e9"
+                          : COLORS.depositBg,
                       p: 2,
                       borderRadius: "4px",
                       mb: 3,
+                      transition: "all 0.3s",
                     }}
                   >
                     <Stack
@@ -819,14 +831,18 @@ const Booking = () => {
                       alignItems="center"
                     >
                       <Typography
-                        color="#b71c1c"
+                        color={
+                          policy.depositAmount === 0 ? "#2e7d32" : "#b71c1c"
+                        }
                         fontWeight="bold"
                         fontSize="0.95rem"
                       >
                         Tiền cọc ({policy.depositPercent}%)
                       </Typography>
                       <Typography
-                        color="#b71c1c"
+                        color={
+                          policy.depositAmount === 0 ? "#2e7d32" : "#b71c1c"
+                        }
                         variant="h6"
                         fontWeight="bold"
                       >
@@ -854,13 +870,14 @@ const Booking = () => {
                       borderRadius: "4px",
                       fontSize: "1rem",
                       boxShadow: "none",
-                      "&:hover": {
-                        bgcolor: "#311b92",
-                        boxShadow: "none",
-                      },
+                      "&:hover": { bgcolor: "#311b92", boxShadow: "none" },
                     }}
                   >
-                {loading ? <CircularProgress size={24} color="inherit" /> : "XÁC NHẬN ĐẶT PHÒNG"}
+                    {loading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      "XÁC NHẬN ĐẶT PHÒNG"
+                    )}
                   </Button>
 
                   <Stack
@@ -882,7 +899,79 @@ const Booking = () => {
         </Form>
       </Container>
 
-      {/* DIALOG MÃ GIẢM GIÁ (Giữ nguyên logic, chỉ chỉnh style xíu cho đồng bộ) */}
+      {/* DIALOG HIỆN MÃ QR KHI ĐẶT THÀNH CÔNG (CHO ONLINE) */}
+      <Dialog
+        open={qrDialogOpen}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "12px", textAlign: "center" } }}
+      >
+        <DialogTitle sx={{ fontWeight: "bold", color: COLORS.primary }}>
+          <CheckCircleIcon color="success" sx={{ fontSize: 40, mb: 1 }} />
+          <Typography variant="h5" fontWeight="bold">
+            Đặt Phòng Thành Công!
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Vui lòng thanh toán tiền cọc để hệ thống giữ phòng cho bạn.
+          </Typography>
+
+          <Box
+            sx={{
+              my: 3,
+              p: 2,
+              bgcolor: "#f9f9f9",
+              borderRadius: "8px",
+              border: `1px dashed ${COLORS.primary}`,
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+              color="error.main"
+            >
+              SỐ TIỀN CỌC:{" "}
+              {parseFloat(
+                createdBooking?.deposit_required || 0,
+              ).toLocaleString()}
+              đ
+            </Typography>
+            <img
+              src={`https://img.vietqr.io/image/MB-0866861876-compact2.png?amount=${createdBooking?.deposit_required}&addInfo=DatPhong%20${createdBooking?.booking_id}&accountName=HUE%20HOTEL`}
+              alt="QR Payment"
+              style={{ width: "100%", maxWidth: "220px", marginTop: "15px" }}
+            />
+            <Typography
+              variant="caption"
+              display="block"
+              sx={{ mt: 1, color: "text.secondary" }}
+            >
+              Nội dung: <b>DatPhong {createdBooking?.booking_id}</b>
+            </Typography>
+          </Box>
+
+          <Alert
+            severity="warning"
+            sx={{ fontSize: "0.8rem", textAlign: "left" }}
+          >
+            Hệ thống sẽ tự động hủy đơn sau <b>15 phút</b> nếu không nhận được
+            tiền cọc.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: "center" }}>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ bgcolor: COLORS.primary, fontWeight: "bold", py: 1.2 }}
+            onClick={() => navigate("/profile")}
+          >
+            XÁC NHẬN ĐÃ CHUYỂN KHOẢN
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DIALOG MÃ GIẢM GIÁ (Đã điền đầy đủ Code) */}
       <Dialog
         open={couponDialogOpen}
         onClose={() => setCouponDialogOpen(false)}
@@ -999,21 +1088,21 @@ const Booking = () => {
         </DialogActions>
       </Dialog>
 
-    <Snackbar
-      open={snackbar.open}
-      autoHideDuration={4000}
-      onClose={() => setSnackbar({ ...snackbar, open: false })}
-      anchorOrigin={{ vertical: "top", horizontal: "right" }}
-    >
-      <Alert
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        severity={snackbar.severity}
-        variant="filled"
-        sx={{ width: "100%" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

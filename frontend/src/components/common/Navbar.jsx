@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { Navbar, Container, Nav } from "react-bootstrap";
 import {
   Button,
@@ -19,12 +19,13 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { AuthContext } from "../../context/AuthContext";
+import ConfigService from "../../services/configService";
 
 // Đồng bộ Theme Colors
 const COLORS = {
-  primary: "#5e35b1", // Tím chủ đạo
+  primary: "#5e35b1",
   primaryDark: "#4527a0",
-  primaryLight: "#ede7f6", // Tím nhạt cho Avatar
+  primaryLight: "#ede7f6",
   border: "#e0e0e0",
   textMain: "#333333",
   textSecondary: "#666666",
@@ -32,25 +33,34 @@ const COLORS = {
 
 const Header = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Hook để nhận biết URL hiện tại
-
+  const location = useLocation();
   const { user, setUser } = useContext(AuthContext);
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const [hotelName, setHotelName] = useState("HUẾ HOTEL");
+
+  useEffect(() => {
+    const fetchHotelName = async () => {
+      try {
+        const name = await ConfigService.getConfigByKey("hotel_name");
+        if (name) setHotelName(name);
+      } catch (error) {
+        console.error("Lỗi tải tên khách sạn:", error);
+      }
+    };
+    fetchHotelName();
+  }, []);
 
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  // Hàm xử lý Đăng xuất
   const handleLogout = () => {
-    handleClose();
-    localStorage.removeItem("token"); // Xóa token khỏi trình duyệt
-    setUser(null); // Reset lại state user
-    navigate("/"); // Đá về trang chủ
+    localStorage.clear();
+    setUser(null);
+    navigate("/");
   };
 
-  // Hàm xác định style cho link đang active
   const getLinkStyle = (path) => {
     const isActive = location.pathname === path;
     return {
@@ -73,7 +83,7 @@ const Header = () => {
       style={{ borderBottom: `1px solid ${COLORS.border}` }}
     >
       <Container>
-        {/* LOGO */}
+        {/* ĐÃ SỬA: Hiển thị tên khách sạn lấy từ Database */}
         <Navbar.Brand
           as={Link}
           to="/"
@@ -84,13 +94,12 @@ const Header = () => {
             fontSize: "1.5rem",
           }}
         >
-          HUẾ HOTEL
+          {hotelName.toUpperCase()}
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="main-nav" />
 
         <Navbar.Collapse id="main-nav">
-          {/* MENU LINKS */}
           <Nav className="ms-auto me-4 align-items-center gap-3">
             <Nav.Link as={Link} to="/" style={getLinkStyle("/")}>
               Trang chủ
@@ -110,7 +119,6 @@ const Header = () => {
             </Nav.Link>
           </Nav>
 
-          {/* HIỂN THỊ DỰA VÀO TRẠNG THÁI ĐĂNG NHẬP */}
           {user ? (
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Typography
@@ -124,6 +132,7 @@ const Header = () => {
 
               <IconButton onClick={handleClick} size="small" sx={{ ml: 1 }}>
                 <Avatar
+                  src={user.avatar_url}
                   sx={{
                     width: 42,
                     height: 42,
@@ -132,11 +141,10 @@ const Header = () => {
                     fontWeight: "bold",
                   }}
                 >
-                  {user.full_name?.charAt(0).toUpperCase()}
+                  {!user.avatar_url && user.full_name?.charAt(0).toUpperCase()}
                 </Avatar>
               </IconButton>
 
-              {/* Menu thả xuống khi click vào Avatar */}
               <Menu
                 anchorEl={anchorEl}
                 open={open}
@@ -168,7 +176,6 @@ const Header = () => {
                 </Box>
                 <Divider sx={{ borderColor: COLORS.border }} />
 
-                {/* Phân quyền: Nếu là Admin/Lễ tân thì hiện nút vào Dashboard */}
                 {(user.role === "Admin" || user.role === "Receptionist") && (
                   <MenuItem
                     onClick={() => {
@@ -189,7 +196,6 @@ const Header = () => {
                   </MenuItem>
                 )}
 
-                {/* Nếu là Khách hàng thì hiện Profile / Lịch sử đặt phòng */}
                 {(user.role === "Customer" || !user.role) && (
                   <MenuItem
                     onClick={() => {
@@ -223,7 +229,6 @@ const Header = () => {
               </Menu>
             </Box>
           ) : (
-            // NẾU CHƯA ĐĂNG NHẬP THÌ HIỆN NÚT NÀY
             <Button
               variant="contained"
               disableElevation

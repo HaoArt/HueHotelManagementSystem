@@ -62,11 +62,15 @@ const Login = () => {
       ) {
         navigate("/dashboard", { replace: true });
       } else {
-        navigate(from, { replace: true });
+        // FIX LỖI TẠI ĐÂY: Nếu Khách hàng bị điều hướng nhầm vào dashboard, ép về Trang chủ
+        if (from.startsWith("/dashboard")) {
+          navigate("/", { replace: true });
+        } else {
+          navigate(from, { replace: true });
+        }
       }
     } catch (err) {
       setError(err);
-      // Tự động xóa lỗi sau 5 giây (5000 milliseconds)
       setTimeout(() => {
         setError("");
       }, 5000);

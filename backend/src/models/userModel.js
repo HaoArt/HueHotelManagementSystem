@@ -8,10 +8,10 @@ const User = {
     return rows[0];
   },
   create: async (userData) => {
-    const { full_name, email, phone, password_hash } = userData;
+    const { full_name, email, phone, password_hash, cccd_number } = userData;
     const [result] = await db.query(
-      "INSERT INTO users (full_name,email,phone,password_hash) VALUE (?,?,?,?)",
-      [full_name, email, phone, password_hash],
+      "INSERT INTO users (full_name,email,phone,password_hash,cccd_number) VALUE (?,?,?,?,?)",
+      [full_name, email, phone, password_hash, cccd_number],
     );
     return result.insertId;
   },
@@ -55,10 +55,10 @@ const User = {
     ]);
     return newScore;
   },
-  updateProfile: async (id, full_name, phone) => {
+  updateProfile: async (id, full_name, phone, avatar_url, cccd_number) => {
     return await db.query(
-      "UPDATE users SET full_name = ?, phone = ? WHERE id = ?",
-      [full_name, phone, id],
+      "UPDATE users SET full_name = ?, phone = ?, avatar_url = ?, cccd_number = ? WHERE id = ?",
+      [full_name, phone, avatar_url, cccd_number, id],
     );
   },
   getAllCustomers: async () => {
@@ -85,6 +85,21 @@ const User = {
       "UPDATE users SET total_spent = total_spent + ? WHERE id = ?",
       [amount, userId],
     );
+  },
+  getAllAccounts: async () => {
+    // Lấy tất cả user (Admin, Receptionist, Customer)
+    const [rows] = await db.query(
+      "SELECT id, full_name, email, phone, role, trust_score, status, created_at FROM users ORDER BY CASE role WHEN 'Admin' THEN 1 WHEN 'Receptionist' THEN 2 ELSE 3 END, created_at DESC",
+    );
+    return rows;
+  },
+  createInternalAccount: async (userData) => {
+    const { full_name, email, phone, password_hash, role } = userData;
+    const [result] = await db.query(
+      "INSERT INTO users (full_name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'Active')",
+      [full_name, email, phone, password_hash, role],
+    );
+    return result.insertId;
   },
 };
 

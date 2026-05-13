@@ -19,6 +19,8 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const surchargeRoutes = require("./routes/surchargeRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
+const configRoutes = require("./routes/configRoutes");
+
 
 const app = express();
 app.use(cors());
@@ -37,6 +39,8 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/audits", auditRoutes);
 app.use("/api/surcharges", surchargeRoutes);
 app.use("/api/destinations", destinationRoutes);
+app.use("/api/configs", configRoutes);
+
 
 app.use((err, req, res, next) => {
   console.error("Lỗi Middleware/Hệ thống:", err.message || err);

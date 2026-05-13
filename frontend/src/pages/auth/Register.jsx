@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
 import {
   TextField,
   Button,
@@ -9,10 +9,21 @@ import {
   Box,
   Alert,
   Paper,
+  InputAdornment,
+  IconButton,
+  Stack,
 } from "@mui/material";
-// THÊM ICON Ở ĐÂY:
-import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
+import {
+  ArrowBack,
+  Person,
+  Email,
+  Phone,
+  Badge as BadgeIcon,
+  Lock,
+  Visibility,
+  VisibilityOff,
+} from "@mui/icons-material";
 import AuthService from "../../services/authService";
 
 const Register = () => {
@@ -22,14 +33,18 @@ const Register = () => {
     fullName: "",
     email: "",
     phone: "",
+    cccd_number: "",
     password: "",
     confirmPassword: "",
   });
-  const [otp, setOtp] = useState("");
 
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
 
@@ -40,44 +55,76 @@ const Register = () => {
 
   const handlePreRegister = async (e) => {
     e.preventDefault();
+
+    // 1. Kiểm tra Email hợp lệ
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return setError(
+        "Định dạng email không hợp lệ (VD: nguyenvan@gmail.com).",
+      );
+    }
+
+    // 2. Kiểm tra Số điện thoại (Chuẩn Việt Nam: 10 số, đầu 03/05/07/08/09)
+    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+    if (!phoneRegex.test(formData.phone)) {
+      return setError(
+        "Số điện thoại không hợp lệ (Phải có 10 số và bắt đầu bằng 03, 05, 07, 08 hoặc 09).",
+      );
+    }
+
+    // 3. Kiểm tra CCCD (Chỉ chứa số, đúng 12 ký tự)
+    const cccdRegex = /^\d{12}$/;
+    if (!cccdRegex.test(formData.cccd_number)) {
+      return setError(
+        "Số CCCD phải bao gồm chính xác 12 chữ số (không chứa chữ cái).",
+      );
+    }
+
+    // 4. Kiểm tra độ mạnh Mật khẩu
+    // Tối thiểu 8 ký tự, ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      return setError(
+        "Mật khẩu yếu! Phải từ 8 ký tự, gồm chữ HOA, chữ thường, số và ký tự đặc biệt (@$!%*?&).",
+      );
+    }
+
+    // 5. Kiểm tra Xác nhận mật khẩu
     if (formData.password !== formData.confirmPassword) {
       return setError("Mật khẩu xác nhận không khớp!");
     }
 
     setLoading(true);
     try {
-      const payload = {
+      await AuthService.preRegister({
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
+        cccd_number: formData.cccd_number,
         password: formData.password,
-      };
-
-      await AuthService.preRegister(payload);
-      setSuccess("Mã OTP đã được gửi đến Email của bạn!");
+      });
+      setSuccess("Mã OTP đã được gửi đến Email của bạn.");
       setStep(2);
     } catch (err) {
-      setError(err);
-      setTimeout(() => setError(""), 5000);
+      setError(err || "Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOTP = async (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-
     try {
-      await AuthService.verifyAndCreate(formData.email, otp);
-      setSuccess("Tạo tài khoản thành công! Đang chuyển hướng...");
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+      await AuthService.verifyRegister({
+        email: formData.email,
+        otp_code: otp,
+      });
+      setSuccess("Đăng ký thành công! Đang chuyển hướng...");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setError(err);
-      setTimeout(() => setError(""), 5000);
+      setError(err || "Mã OTP không chính xác hoặc đã hết hạn.");
     } finally {
       setLoading(false);
     }
@@ -86,20 +133,25 @@ const Register = () => {
   return (
     <div className="vh-100 d-flex bg-light">
       <Row className="w-100 m-0">
+        {/* CỘT TRÁI: FORM ĐĂNG KÝ */}
         <Col
           lg={6}
           className="d-flex align-items-center justify-content-center p-4"
         >
           <Paper
             elevation={3}
-            sx={{ p: 5, borderRadius: 4, width: "100%", maxWidth: "500px" }}
+            sx={{
+              p: { xs: 3, sm: 4, md: 5 },
+              borderRadius: 4,
+              width: "100%",
+              maxWidth: "550px",
+            }}
           >
-            {/* NÚT QUAY LẠI TRANG CHỦ */}
-            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 1 }}>
               <Button
                 component={Link}
                 to="/"
-                startIcon={<ArrowBackIcon />}
+                startIcon={<ArrowBack />}
                 sx={{
                   color: "text.secondary",
                   textTransform: "none",
@@ -110,186 +162,249 @@ const Register = () => {
               </Button>
             </Box>
 
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              align="center"
+              color="#1a237e"
+              gutterBottom
+            >
+              {step === 1 ? "Đăng Ký" : "Xác Thực"}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              align="center"
+              sx={{ mb: 4 }}
+            >
+              {step === 1
+                ? "Tạo tài khoản để trải nghiệm dịch vụ đẳng cấp"
+                : `Chúng tôi đã gửi mã xác thực đến ${formData.email}`}
+            </Typography>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: "8px" }}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 3, borderRadius: "8px" }}>
+                {success}
+              </Alert>
+            )}
+
             {step === 1 ? (
-              <>
-                <Typography
-                  variant="h4"
-                  fontWeight="bold"
-                  align="center"
-                  color="#1a237e"
-                  gutterBottom
-                >
-                  Tạo Tài Khoản
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  align="center"
-                  sx={{ mb: 4 }}
-                >
-                  Đăng ký để trải nghiệm dịch vụ tốt nhất từ HuếHotel
-                </Typography>
-
-                {error && (
-                  <Alert
-                    severity="error"
-                    onClose={() => setError("")}
-                    sx={{ mb: 3 }}
-                  >
-                    {error}
-                  </Alert>
-                )}
-
-                <form onSubmit={handlePreRegister}>
+              <form onSubmit={handlePreRegister}>
+                <Stack spacing={2.5}>
+                  {/* HÀNG 1: HỌ TÊN (FULL) */}
                   <TextField
                     fullWidth
-                    label="Họ và tên"
+                    label="Họ và Tên"
                     name="fullName"
-                    variant="outlined"
-                    margin="normal"
                     value={formData.fullName}
                     onChange={handleChange}
                     required
-                  />
-                  <Row>
-                    <Col md={6}>
-                      <TextField
-                        fullWidth
-                        label="Số điện thoại"
-                        name="phone"
-                        variant="outlined"
-                        margin="normal"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        required
-                      />
-                    </Col>
-                    <Col md={6}>
-                      <TextField
-                        fullWidth
-                        label="Email"
-                        name="email"
-                        type="email"
-                        variant="outlined"
-                        margin="normal"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-                    </Col>
-                  </Row>
-                  <TextField
-                    fullWidth
-                    label="Mật khẩu"
-                    name="password"
-                    type="password"
-                    variant="outlined"
-                    margin="normal"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                  />
-                  <TextField
-                    fullWidth
-                    label="Xác nhận mật khẩu"
-                    name="confirmPassword"
-                    type="password"
-                    variant="outlined"
-                    margin="normal"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                  />
-
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="warning"
-                    size="large"
-                    disabled={loading}
-                    sx={{ mt: 4, mb: 2, py: 1.5, fontWeight: "bold" }}
-                  >
-                    {loading ? "ĐANG GỬI MÃ OTP..." : "ĐĂNG KÝ"}
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <Box textAlign="center">
-                <MarkEmailReadIcon
-                  sx={{ fontSize: 60, color: "#4caf50", mb: 2 }}
-                />
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  color="#1a237e"
-                  gutterBottom
-                >
-                  Xác thực Email
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 3 }}
-                >
-                  Vui lòng kiểm tra hộp thư <b>{formData.email}</b> và nhập mã
-                  OTP 6 số để hoàn tất.
-                </Typography>
-
-                {error && (
-                  <Alert
-                    severity="error"
-                    onClose={() => setError("")}
-                    sx={{ mb: 3 }}
-                  >
-                    {error}
-                  </Alert>
-                )}
-                {success && (
-                  <Alert severity="success" sx={{ mb: 3 }}>
-                    {success}
-                  </Alert>
-                )}
-
-                <form onSubmit={handleVerifyOTP}>
-                  <TextField
-                    fullWidth
-                    label="Nhập mã OTP"
-                    variant="outlined"
-                    margin="normal"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    inputProps={{
-                      maxLength: 6,
-                      style: {
-                        textAlign: "center",
-                        fontSize: "24px",
-                        letterSpacing: "10px",
-                      },
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Person color="action" />
+                        </InputAdornment>
+                      ),
                     }}
-                    required
                   />
-                  <Button
-                    type="submit"
+
+                  {/* HÀNG 2: EMAIL (FULL) */}
+                  <TextField
                     fullWidth
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    disabled={loading}
-                    sx={{ mt: 3, mb: 2, py: 1.5, fontWeight: "bold" }}
+                    label="Địa chỉ Email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Email color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  {/* HÀNG 3: ĐIỆN THOẠI & CCCD (CHIA ĐÔI) */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      gap: 2,
+                    }}
                   >
-                    {loading ? "ĐANG XÁC THỰC..." : "XÁC NHẬN MÃ OTP"}
-                  </Button>
-                  <Button
-                    variant="text"
-                    color="inherit"
-                    onClick={() => setStep(1)}
-                    disabled={loading}
+                    <TextField
+                      fullWidth
+                      label="Số điện thoại"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Phone color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Số CCCD (12 số)"
+                      name="cccd_number"
+                      value={formData.cccd_number}
+                      onChange={handleChange}
+                      inputProps={{ maxLength: 12 }}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <BadgeIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+
+                  {/* HÀNG 4: MẬT KHẨU & XÁC NHẬN (CHIA ĐÔI) */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      gap: 2,
+                    }}
                   >
-                    Quay lại
-                  </Button>
-                </form>
-              </Box>
+                    <TextField
+                      fullWidth
+                      label="Mật khẩu"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={handleChange}
+                      helperText="Từ 8 ký tự, có Hoa, thường, số, ký tự đặc biệt" // Thêm Helper Text gợi ý
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Lock color="action" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowPassword(!showPassword)}
+                              edge="end"
+                            >
+                              {showPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Xác nhận mật khẩu"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Lock color="action" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              edge="end"
+                            >
+                              {showConfirmPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                </Stack>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  type="submit"
+                  color="warning"
+                  size="large"
+                  disabled={loading}
+                  sx={{
+                    mt: 4,
+                    mb: 2,
+                    py: 1.5,
+                    fontWeight: "bold",
+                    borderRadius: 2,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {loading ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ NGAY"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerify}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Nhập mã OTP 6 số"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  inputProps={{
+                    maxLength: 6,
+                    style: {
+                      textAlign: "center",
+                      fontSize: "1.5rem",
+                      letterSpacing: "10px",
+                      fontWeight: "bold",
+                    },
+                  }}
+                  required
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  type="submit"
+                  color="warning"
+                  size="large"
+                  disabled={loading}
+                  sx={{ mt: 3, py: 1.5, fontWeight: "bold", borderRadius: 2 }}
+                >
+                  {loading ? "ĐANG XÁC THỰC..." : "XÁC NHẬN MÃ OTP"}
+                </Button>
+                <Button
+                  variant="text"
+                  color="inherit"
+                  onClick={() => setStep(1)}
+                  disabled={loading}
+                  sx={{ mt: 2, width: "100%", fontWeight: "bold" }}
+                >
+                  Quay lại
+                </Button>
+              </form>
             )}
 
             {step === 1 && (
@@ -299,7 +414,7 @@ const Register = () => {
                   to="/login"
                   style={{
                     fontWeight: "bold",
-                    color: "#1a237e",
+                    color: "#ff9800",
                     textDecoration: "none",
                   }}
                 >
@@ -310,6 +425,7 @@ const Register = () => {
           </Paper>
         </Col>
 
+        {/* CỘT PHẢI: HÌNH ẢNH */}
         <Col lg={6} className="d-none d-lg-block p-0">
           <Box
             sx={{
@@ -320,7 +436,39 @@ const Register = () => {
               height: "100%",
             }}
           >
-            <Box sx={{ height: "100%", bgcolor: "rgba(0, 0, 0, 0.4)" }} />
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                bgcolor: "rgba(26, 35, 126, 0.6)",
+              }}
+            >
+              <Typography
+                variant="h2"
+                color="white"
+                fontWeight="bold"
+                sx={{ color: "#fff", textAlign: "center", px: 4 }}
+              >
+                Tạo Dấu Ấn Riêng
+              </Typography>
+              <Typography
+                variant="h6"
+                color="white"
+                sx={{
+                  mt: 2,
+                  color: "#fff",
+                  opacity: 0.9,
+                  textAlign: "center",
+                  px: 4,
+                }}
+              >
+                Khám phá nét đẹp Cố đô Huế qua từng không gian kiến trúc tại
+                HuếHotel.
+              </Typography>
+            </Box>
           </Box>
         </Col>
       </Row>
