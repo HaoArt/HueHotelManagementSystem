@@ -39,12 +39,27 @@ import CouponService from "../../services/couponService";
 
 const COLORS = {
   primary: "#5e35b1",
-  headerBg: "#5e35b1",
+  navy: "#0b1b3f",
   teal: "#009688",
   orange: "#e65100",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
   textMain: "#1a1a1a",
+};
+
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminCouponsPage = () => {
@@ -191,61 +206,92 @@ const AdminCouponsPage = () => {
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
 
-  const inputStyle = { "& .MuiOutlinedInput-root": { borderRadius: "4px" } };
+  const inputStyle = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 1,
+      bgcolor: "rgba(255,255,255,0.95)",
+    },
+  };
 
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
         minHeight: "100vh",
-        overflowX: "hidden",
-        pb: 10,
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: { xs: "stretch", sm: "flex-start" },
           justifyContent: "space-between",
-          gap: 3,
-          mb: 4,
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "68%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: COLORS.textMain, letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Quản Lý Khuyến Mãi
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             Thiết lập các mã giảm giá (Coupon) cho khách hàng.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          disableElevation
-          sx={{
-            bgcolor: COLORS.orange,
-            "&:hover": { bgcolor: "#d84315" },
-            fontWeight: "bold",
-            borderRadius: "4px",
-            px: 3,
-            py: 1,
-          }}
-        >
-          TẠO MÃ MỚI
-        </Button>
+        <Stack direction="row" spacing={1.25} alignItems="center">
+          <Chip
+            label={`${coupons.length} coupon`}
+            sx={{
+              bgcolor: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(11,27,63,0.12)",
+              color: COLORS.navy,
+              fontWeight: 700,
+              borderRadius: 1,
+              px: 0.5,
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            disableElevation
+            sx={{
+              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
+              fontWeight: 700,
+              borderRadius: 1,
+              textTransform: "none",
+              px: 2.25,
+              py: 1,
+              boxShadow: "0 10px 20px rgba(230, 81, 0, 0.24)",
+              "&:hover": { boxShadow: "0 14px 24px rgba(230,81,0,0.32)" },
+            }}
+          >
+            Tạo mã mới
+          </Button>
+        </Stack>
       </Box>
 
       {error && (
@@ -258,31 +304,37 @@ const AdminCouponsPage = () => {
         component={Paper}
         elevation={0}
         sx={{
-          border: `1px solid ${COLORS.border}`,
+          ...glassCardSx,
+          border: "1px solid rgba(11,27,63,0.12)",
           overflowX: "auto",
-          borderRadius: "4px",
-          bgcolor: "white",
+          p: 0,
+          bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
         <Table sx={{ minWidth: 900 }}>
-          <TableHead sx={{ bgcolor: COLORS.headerBg }}>
+          <TableHead
+            sx={{
+              background:
+                "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: "bold", color: "white" }}>
+              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
                 Mã Coupon
               </TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "white" }}>
+              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
                 Giá trị giảm
               </TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "white" }}>
+              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
                 Thời hạn & Lượt dùng
               </TableCell>
               <TableCell
-                sx={{ fontWeight: "bold", color: "white", textAlign: "center" }}
+                sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em", textAlign: "center" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
-                sx={{ fontWeight: "bold", textAlign: "right", color: "white" }}
+                sx={{ fontWeight: 700, letterSpacing: "0.03em", textAlign: "right", color: "white" }}
               >
                 Thao tác
               </TableCell>
@@ -303,7 +355,17 @@ const AdminCouponsPage = () => {
                   key={item.id}
                   hover
                   sx={{
-                    "& td": { borderBottom: `1px solid ${COLORS.border}` },
+                    transition: "background-color 0.2s ease",
+                    "& td": {
+                      borderBottom: "1px solid rgba(11,27,63,0.08)",
+                      py: 1.5,
+                    },
+                    "&:nth-of-type(even)": {
+                      bgcolor: "rgba(11,27,63,0.018)",
+                    },
+                    "&:hover": {
+                      bgcolor: "rgba(0,150,136,0.07)",
+                    },
                   }}
                 >
                   <TableCell>
@@ -354,7 +416,7 @@ const AdminCouponsPage = () => {
                       label={item.status}
                       size="small"
                       color={item.status === "Active" ? "success" : "default"}
-                      sx={{ fontWeight: "bold", borderRadius: "4px" }}
+                      sx={{ fontWeight: 700, borderRadius: 1 }}
                     />
                   </TableCell>
                   <TableCell align="right">
@@ -369,7 +431,13 @@ const AdminCouponsPage = () => {
                           sx={{
                             color: COLORS.teal,
                             bgcolor: "rgba(0, 150, 136, 0.1)",
-                            borderRadius: "4px",
+                            borderRadius: 1,
+                            border: "1px solid rgba(0,150,136,0.2)",
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              bgcolor: "rgba(0,150,136,0.18)",
+                              transform: "translateY(-1px)",
+                            },
                           }}
                           size="small"
                         >
@@ -382,7 +450,13 @@ const AdminCouponsPage = () => {
                           sx={{
                             color: "#d32f2f",
                             bgcolor: "rgba(211, 47, 47, 0.1)",
-                            borderRadius: "4px",
+                            borderRadius: 1,
+                            border: "1px solid rgba(211,47,47,0.2)",
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              bgcolor: "rgba(211,47,47,0.18)",
+                              transform: "translateY(-1px)",
+                            },
                           }}
                           size="small"
                         >
@@ -407,10 +481,16 @@ const AdminCouponsPage = () => {
         }
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ fontWeight: "bold", bgcolor: COLORS.headerBg, color: "white" }}
+          sx={{ fontWeight: 800, bgcolor: COLORS.navy, color: "white" }}
         >
           {dialog.isEdit ? "Cập Nhật Mã Giảm Giá" : "Tạo Mã Giảm Giá Mới"}
         </DialogTitle>
@@ -555,9 +635,9 @@ const AdminCouponsPage = () => {
               setDialog({ open: false, isEdit: false, couponId: null })
             }
             sx={{
-              borderRadius: "4px",
+              borderRadius: 1,
               color: "text.secondary",
-              fontWeight: "bold",
+              fontWeight: 700,
             }}
           >
             Hủy
@@ -568,10 +648,12 @@ const AdminCouponsPage = () => {
             disableElevation
             disabled={isSubmitting}
             sx={{
-              borderRadius: "4px",
-              bgcolor: COLORS.teal,
-              "&:hover": { bgcolor: "#00796b" },
-              fontWeight: "bold",
+              borderRadius: 1,
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              "&:hover": { boxShadow: "0 12px 24px rgba(11,27,63,0.3)" },
+              fontWeight: 700,
+              textTransform: "none",
+              boxShadow: "0 8px 18px rgba(11,27,63,0.22)",
             }}
           >
             {isSubmitting ? (
@@ -596,9 +678,15 @@ const AdminCouponsPage = () => {
             onConfirm: null,
           })
         }
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", color: "#d32f2f" }}>
+        <DialogTitle sx={{ fontWeight: 800, color: "#d32f2f" }}>
           {confirmDialog.title}
         </DialogTitle>
         <DialogContent>
@@ -624,6 +712,7 @@ const AdminCouponsPage = () => {
             color="error"
             disableElevation
             disabled={isSubmitting}
+            sx={{ borderRadius: 1, fontWeight: 700, textTransform: "none" }}
           >
             Xác nhận xóa
           </Button>
@@ -639,7 +728,7 @@ const AdminCouponsPage = () => {
         <Alert
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%", borderRadius: "4px" }}
+          sx={{ width: "100%", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

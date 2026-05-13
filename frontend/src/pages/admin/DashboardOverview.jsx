@@ -44,6 +44,7 @@ import DashboardService from "../../services/dashboardService";
 const COLORS = {
   primary: "#5e35b1",
   teal: "#009688",
+  navy: "#0b1b3f",
   orange: "#ed6c02",
   error: "#d32f2f",
   border: "#e0e0e0",
@@ -55,6 +56,28 @@ const COLORS = {
     Dirty: "#ed6c02", // Cam
     Maintenance: "#d32f2f", // Đỏ
   },
+};
+
+const glassCardSx = {
+  p: { xs: 2.25, sm: 2.75, md: 3 },
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-4px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
+};
+
+const sectionTitleSx = {
+  fontWeight: 700,
+  color: COLORS.textMain,
+  letterSpacing: "-0.02em",
 };
 
 const DashboardOverview = () => {
@@ -194,78 +217,105 @@ const DashboardOverview = () => {
     chartView === "monthly" ? stats?.chartDataMonthly : stats?.chartDataYearly;
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: { xs: 2, sm: 3, md: 4 },
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
+      }}
+    >
       {/* HEADER */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 4,
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
-          gap: 2,
+          gap: { xs: 1.5, sm: 2 },
         }}
       >
-        <Box>
+        <Box sx={{ maxWidth: { xs: "100%", md: "70%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: COLORS.textMain, letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Bảng Điều Khiển
           </Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.75 }}>
             Tình hình hoạt động tổng quan tại Huế Hotel trong hôm nay.
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: { xs: "space-between", sm: "flex-start" },
+            width: { xs: "100%", sm: "auto" },
+            gap: 1.25,
+          }}
+        >
           <IconButton
             sx={{
-              bgcolor: "white",
-              border: `1px solid ${COLORS.border}`,
+              bgcolor: "rgba(255,255,255,0.8)",
+              border: "1px solid rgba(11,27,63,0.12)",
               borderRadius: "4px",
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: "rgba(255,255,255,0.96)",
+                transform: "translateY(-1px)",
+              },
             }}
           >
-            <NotificationsNoneIcon sx={{ color: COLORS.textMain }} />
+            <NotificationsNoneIcon sx={{ color: COLORS.navy }} />
           </IconButton>
           <Chip
             icon={<CalendarTodayIcon fontSize="small" />}
             label={currentDate}
             sx={{
-              bgcolor: "white",
-              border: `1px solid ${COLORS.border}`,
-              fontWeight: "bold",
+              bgcolor: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(11,27,63,0.12)",
+              fontWeight: 700,
               borderRadius: "4px",
-              px: 1,
+              px: 0.75,
+              py: 0.5,
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
             }}
           />
         </Box>
       </Box>
 
-      {/* ROW 1: SUMMARY CARDS BẰNG FLEXBOX */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
+      {/* ROW 1: SUMMARY CARDS */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: { xs: 1.75, sm: 2.25, md: 2.5 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(4, minmax(0, 1fr))",
+          },
+          alignItems: "stretch",
+        }}
+      >
         {summaryCards.map((card, index) => (
-          <Box
-            key={index}
-            sx={{
-              flex: {
-                xs: "1 1 100%",
-                sm: "1 1 calc(50% - 24px)",
-                md: "1 1 calc(25% - 24px)",
-              },
-              minWidth: 0,
-            }}
-          >
+          <Box key={index} sx={{ minWidth: 0, display: "flex" }}>
             <Card
               elevation={0}
               sx={{
-                p: 3,
-                borderRadius: "4px",
-                border: `1px solid ${COLORS.border}`,
+                ...glassCardSx,
                 display: "flex",
                 flexDirection: "column",
-                bgcolor: "white",
                 height: "100%",
+                width: "100%",
               }}
             >
               <Box
@@ -273,22 +323,29 @@ const DashboardOverview = () => {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  mb: 2,
+                  gap: 1.25,
+                  mb: 2.25,
                 }}
               >
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography
                     variant="body2"
-                    fontWeight="600"
+                    fontWeight={600}
                     color="text.secondary"
                     gutterBottom
+                    sx={{ letterSpacing: "0.01em" }}
                   >
                     {card.title}
                   </Typography>
                   <Typography
                     variant="h5"
                     fontWeight="900"
-                    sx={{ color: COLORS.textMain }}
+                    sx={{
+                      color: COLORS.navy,
+                      fontSize: { xs: "1.4rem", md: "1.55rem" },
+                      lineHeight: 1.2,
+                      wordBreak: "break-word",
+                    }}
                   >
                     {card.value}
                   </Typography>
@@ -297,9 +354,10 @@ const DashboardOverview = () => {
                   sx={{
                     bgcolor: card.iconBg,
                     color: card.iconColor,
-                    p: 1,
-                    borderRadius: "4px",
+                    p: 1.1,
+                    borderRadius: 2,
                     display: "flex",
+                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)",
                   }}
                 >
                   {card.icon}
@@ -309,7 +367,7 @@ const DashboardOverview = () => {
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 0.5,
+                  gap: 0.75,
                   mt: "auto",
                 }}
               >
@@ -317,7 +375,7 @@ const DashboardOverview = () => {
                 <Typography
                   variant="caption"
                   fontWeight="bold"
-                  sx={{ color: COLORS.teal }}
+                  sx={{ color: COLORS.teal, letterSpacing: "0.01em" }}
                 >
                   {card.trendText}
                 </Typography>
@@ -330,16 +388,15 @@ const DashboardOverview = () => {
       {/* ROW 2: CHART (TRÁI) & STATUS + GOALS (PHẢI) BẰNG FLEXBOX */}
       <Box
         sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          gap: 3,
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
+          gap: { xs: 1.75, sm: 2.25, md: 2.5 },
           alignItems: "stretch",
         }}
       >
-        {/* CỘT TRÁI: BIỂU ĐỒ DOANH THU (Tỷ lệ 2/3) */}
+        {/* CỘT TRÁI: BIỂU ĐỒ DOANH THU */}
         <Box
           sx={{
-            flex: { xs: "1 1 100%", md: 2 },
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
@@ -348,9 +405,7 @@ const DashboardOverview = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              borderRadius: "4px",
-              border: `1px solid ${COLORS.border}`,
+              ...glassCardSx,
               flexGrow: 1,
               display: "flex",
               flexDirection: "column",
@@ -362,17 +417,13 @@ const DashboardOverview = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                mb: 3,
+                mb: 2.5,
                 flexWrap: "wrap",
-                gap: 2,
+                gap: 1.5,
               }}
             >
               <Box>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  color={COLORS.textMain}
-                >
+                <Typography variant="h6" sx={sectionTitleSx}>
                   Biểu đồ Doanh thu
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -387,8 +438,11 @@ const DashboardOverview = () => {
                 sx={{
                   "& .MuiToggleButton-root": {
                     textTransform: "none",
-                    fontWeight: "bold",
-                    borderRadius: "4px",
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    px: 1.6,
+                    borderColor: "rgba(11,27,63,0.14)",
+                    color: COLORS.navy,
                   },
                   "& .Mui-selected": {
                     bgcolor: `${COLORS.teal} !important`,
@@ -402,12 +456,17 @@ const DashboardOverview = () => {
             </Box>
 
             <Box
-              sx={{ flexGrow: 1, minHeight: 350, width: "100%", minWidth: 0 }}
+              sx={{
+                flexGrow: 1,
+                minHeight: { xs: 280, sm: 320, md: 360 },
+                width: "100%",
+                minWidth: 0,
+              }}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={currentChartData || []}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient
@@ -433,18 +492,18 @@ const DashboardOverview = () => {
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#888", fontSize: 12 }}
+                    tick={{ fill: "#667085", fontSize: 12 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#888", fontSize: 12 }}
+                    tick={{ fill: "#667085", fontSize: 12 }}
                     tickFormatter={(value) => `${value / 1000000}M`}
                   />
                   <CartesianGrid
                     vertical={false}
-                    stroke="#f0f0f0"
+                    stroke="rgba(11, 27, 63, 0.08)"
                     strokeDasharray="3 3"
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -462,23 +521,21 @@ const DashboardOverview = () => {
           </Paper>
         </Box>
 
-        {/* CỘT PHẢI: PHÂN BỔ PHÒNG & MỤC TIÊU CA LÀM VIỆC (Tỷ lệ 1/3) */}
+        {/* CỘT PHẢI: PHÂN BỔ PHÒNG & MỤC TIÊU CA LÀM VIỆC */}
         <Box
           sx={{
-            flex: { xs: "1 1 100%", md: 1 },
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            gap: 3,
+            gap: { xs: 1.75, sm: 2.25, md: 2.5 },
+            height: "100%",
           }}
         >
           {/* WIDGET 1: TRẠNG THÁI PHÒNG */}
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              borderRadius: "4px",
-              border: `1px solid ${COLORS.border}`,
+              ...glassCardSx,
               flex: 1,
             }}
           >
@@ -487,15 +544,11 @@ const DashboardOverview = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                mb: 3,
+                mb: 2.5,
                 width: "100%",
               }}
             >
-              <Typography
-                variant="subtitle1"
-                fontWeight="bold"
-                color={COLORS.textMain}
-              >
+              <Typography variant="subtitle1" sx={sectionTitleSx}>
                 Phân bổ trạng thái
               </Typography>
               <Typography
@@ -505,6 +558,11 @@ const DashboardOverview = () => {
                   color: COLORS.teal,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
+                  transition: "transform 0.2s ease, color 0.2s ease",
+                  "&:hover": {
+                    color: "#00796d",
+                    transform: "translateX(2px)",
+                  },
                 }}
               >
                 Xem sơ đồ &rarr;
@@ -523,8 +581,9 @@ const DashboardOverview = () => {
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        mb: 0.5,
+                        mb: 0.7,
                         width: "100%",
+                        gap: 1,
                       }}
                     >
                       <Box
@@ -558,8 +617,8 @@ const DashboardOverview = () => {
                       sx={{
                         width: "100%",
                         height: 6,
-                        bgcolor: "#f0f0f0",
-                        borderRadius: "4px",
+                        bgcolor: "rgba(11, 27, 63, 0.08)",
+                        borderRadius: 5,
                         overflow: "hidden",
                       }}
                     >
@@ -568,8 +627,9 @@ const DashboardOverview = () => {
                           width: `${percentage}%`,
                           height: "100%",
                           bgcolor: dotColor,
-                          borderRadius: "4px",
+                          borderRadius: 5,
                           transition: "width 1s ease",
+                          boxShadow: `0 3px 10px ${dotColor}55`,
                         }}
                       />
                     </Box>
@@ -583,9 +643,7 @@ const DashboardOverview = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              borderRadius: "4px",
-              border: `1px solid ${COLORS.border}`,
+              ...glassCardSx,
               flex: 1,
               display: "flex",
               flexDirection: "column",
@@ -601,11 +659,7 @@ const DashboardOverview = () => {
               }}
             >
               <TrackChangesIcon color="primary" fontSize="small" />
-              <Typography
-                variant="subtitle1"
-                fontWeight="bold"
-                color={COLORS.textMain}
-              >
+              <Typography variant="subtitle1" sx={sectionTitleSx}>
                 Mục tiêu ca làm việc
               </Typography>
             </Box>
@@ -623,7 +677,7 @@ const DashboardOverview = () => {
                   sx={{
                     bgcolor: "rgba(237, 108, 2, 0.1)",
                     p: 1,
-                    borderRadius: "4px",
+                    borderRadius: 2,
                     color: COLORS.orange,
                   }}
                 >
@@ -680,11 +734,18 @@ const DashboardOverview = () => {
               variant="outlined"
               fullWidth
               sx={{
-                borderRadius: "4px",
+                borderRadius: 1,
                 textTransform: "none",
-                fontWeight: "bold",
-                color: COLORS.textMain,
-                borderColor: COLORS.border,
+                fontWeight: 700,
+                color: COLORS.navy,
+                borderColor: "rgba(11,27,63,0.16)",
+                backgroundColor: "rgba(255,255,255,0.58)",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  borderColor: COLORS.teal,
+                  backgroundColor: "rgba(0, 150, 136, 0.08)",
+                  transform: "translateY(-1px)",
+                },
               }}
             >
               Xem báo cáo chi tiết
