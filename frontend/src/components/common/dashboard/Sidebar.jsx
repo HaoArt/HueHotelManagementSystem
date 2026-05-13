@@ -37,59 +37,95 @@ const COLORS = {
   textMuted: "rgba(255, 255, 255, 0.75)",
 };
 
+// ĐÃ THÊM: Định nghĩa rõ quyền truy cập (roles) cho từng menu
 const menuItems = [
-  { text: "Tổng quan", icon: <DashboardIcon />, path: "/dashboard" },
   {
-    text: "Quản lý Đặt phòng",
+    text: "Tổng quan",
+    icon: <DashboardIcon />,
+    path: "/dashboard",
+    roles: ["Admin", "Receptionist"],
+  },
+  {
+    text: "Quản lý đơn đặt phòng",
     icon: <BookOnlineIcon />,
     path: "/dashboard/bookings",
+    roles: ["Admin", "Receptionist"],
   },
-  { text: "Sơ đồ Phòng", icon: <MeetingRoomIcon />, path: "/dashboard/rooms" },
+  {
+    text: "Sơ đồ Phòng",
+    icon: <MeetingRoomIcon />,
+    path: "/dashboard/rooms",
+    roles: ["Admin", "Receptionist"],
+  },
 
+  // CÁC CHỨC NĂNG CẤU HÌNH (Chỉ Admin mới được thấy)
   {
     text: "Phòng & Loại phòng",
     icon: <SettingsIcon />,
     path: "/dashboard/room-settings",
+    roles: ["Admin"],
   },
   {
     text: "Dịch vụ & Tiện ích",
     icon: <RoomServiceIcon />,
     path: "/dashboard/services",
+    roles: ["Admin"],
   },
   {
     text: "Phiếu giảm giá",
     icon: <DiscountIcon />,
     path: "/dashboard/coupon",
+    roles: ["Admin"],
   },
-  { text: "Khách hàng", icon: <PeopleIcon />, path: "/dashboard/customers" },
+  {
+    text: "Quản lý tài khoản",
+    icon: <PeopleIcon />,
+    path: "/dashboard/customers",
+    roles: ["Admin", "Receptionist"],
+  },
 
   {
     text: "Khách hàng liên hệ",
     icon: <ContactMailIcon />,
     path: "/dashboard/contacts",
+    roles: ["Admin", "Receptionist"],
   },
   {
     text: "Giá động theo mùa",
     icon: <PriceChangeIcon />,
     path: "/dashboard/pricing",
+    roles: ["Admin"],
+  },
+  {
+    text: "Cấu hình hệ thống",
+    icon: <SettingsIcon />,
+    path: "/dashboard/system-config",
+    roles: ["Admin"],
   },
   {
     text: "Nhật kí hệ thống",
     icon: <EditCalendarIcon />,
     path: "/dashboard/audit",
+    roles: ["Admin"],
   },
 ];
 
 const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
-  const { setUser } = useContext(AuthContext);
+  // ĐÃ SỬA: Lấy thêm thuộc tính 'user' từ AuthContext để check role
+  const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.clear();
     setUser(null);
-    navigate("/login");
+    navigate("/");
   };
+
+  // TỰ ĐỘNG LỌC MENU DỰA TRÊN ROLE CỦA USER ĐANG ĐĂNG NHẬP
+  const allowedMenuItems = menuItems.filter((item) =>
+    item.roles.includes(user?.role),
+  );
 
   const drawerContent = (
     <Box
@@ -102,7 +138,6 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         overflow: "hidden",
       }}
     >
-      {/* HEADER LOGO ĐÃ THU GỌN CHIỀU CAO */}
       <Toolbar
         sx={{
           minHeight: "48px !important",
@@ -112,7 +147,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         }}
       >
         <Typography
-          variant="h6" // Giảm từ h5 xuống h6
+          variant="h6"
           fontWeight="900"
           sx={{ letterSpacing: "1px", color: "white" }}
         >
@@ -122,7 +157,6 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
       <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", mb: 1 }} />
 
-      {/* DANH SÁCH MENU */}
       <List
         sx={{
           flexGrow: 1,
@@ -138,15 +172,11 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           },
         }}
       >
-        {menuItems.map((item) => {
+        {allowedMenuItems.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
-            <ListItem
-              key={item.text}
-              disablePadding
-              sx={{ mb: 0.25 }} // Giảm margin bottom để thu gọn khoảng cách
-            >
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
                 component={Link}
                 to={item.path}
@@ -163,7 +193,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                     color: "white",
                     "& .MuiListItemIcon-root": { color: "white" },
                   },
-                  py: 0.8, // Giảm padding dọc (top, bottom)
+                  py: 0.8,
                   px: 2,
                   transition: "all 0.2s ease-in-out",
                 }}
@@ -171,7 +201,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                 <ListItemIcon
                   sx={{
                     color: isActive ? COLORS.accent : COLORS.textMuted,
-                    minWidth: "36px", // Giảm khoảng cách giữa icon và chữ một chút
+                    minWidth: "36px",
                     transition: "color 0.2s ease",
                   }}
                 >
@@ -181,7 +211,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                   primary={item.text}
                   primaryTypographyProps={{
                     fontWeight: isActive ? "bold" : "500",
-                    fontSize: "0.9rem", // Thu nhỏ font-size chút xíu
+                    fontSize: "0.9rem",
                     whiteSpace: "nowrap",
                   }}
                 />
@@ -191,7 +221,6 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         })}
       </List>
 
-      {/* NÚT ĐĂNG XUẤT */}
       <Box sx={{ p: 2, pt: 1 }}>
         <ListItem disablePadding>
           <ListItemButton
@@ -201,7 +230,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
               bgcolor: "#d32f2f",
               color: "#ffffff",
               "&:hover": { bgcolor: "#b71c1c" },
-              py: 1, // Giảm độ dày nút
+              py: 1,
               px: 2,
             }}
           >

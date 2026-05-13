@@ -134,7 +134,7 @@ const AdminRoomsPage = () => {
         ]);
         setRooms(resRooms.data || resRooms);
         setServicesList(resServices.data || []);
-        await fetchPendingOrders(); // Lấy ngay lúc vừa load xong
+        await fetchPendingOrders();
       } catch (err) {
         setError(err);
       } finally {
@@ -142,11 +142,12 @@ const AdminRoomsPage = () => {
       }
     };
     initData();
-
-    // THÊM CƠ CHẾ POLLING: TỰ ĐỘNG QUÉT SERVER MỖI 15 GIÂY TÌM YÊU CẦU MỚI
     const interval = setInterval(() => {
       fetchPendingOrders();
-    }, 15000);
+      RoomService.getRooms()
+        .then((res) => setRooms(res.data || res))
+        .catch((e) => console.log("Lỗi quét ngầm phòng:", e));
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -261,11 +262,16 @@ const AdminRoomsPage = () => {
     const folioRes = await FolioService.getFolio(bookingId);
     const servicesUsed = folioRes.data?.services || [];
     setFolioData(servicesUsed);
+    const dynamicRoomTotal = folioRes.data?.roomTotal || roomTotalAmount;
     const totalService = servicesUsed.reduce(
       (sum, item) => sum + parseFloat(item.total_price),
       0,
     );
-    setTotalFolioAmount(parseFloat(roomTotalAmount) + totalService);
+    setTotalFolioAmount(parseFloat(dynamicRoomTotal) + totalService);
+    setCurrentBooking((prev) => ({
+      ...prev,
+      total_amount: dynamicRoomTotal,
+    }));
   };
 
   const handleRoomClick = async (room) => {
@@ -1213,18 +1219,41 @@ const AdminRoomsPage = () => {
                   confirmColor: "success",
                   onConfirm: async () => {
                     try {
+                      // 1. Gọi API Check-out
                       await BookingService.checkOutBooking(currentBooking.id);
                       setSnackbar({
                         open: true,
                         message: "Check-out thành công!",
                         severity: "success",
                       });
+
+                      // 2. Kích hoạt tải PDF hóa đơn (Sửa lỗi số 3 - không in được hóa đơn ở sơ đồ phòng)
+                      const blobData = await BookingService.downloadInvoice(
+                        currentBooking.id,
+                      );
+                      const url = window.URL.createObjectURL(
+                        new Blob([blobData]),
+                      );
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.setAttribute(
+                        "download",
+                        `Invoice-HueHotel-${currentBooking.id}.pdf`,
+                      );
+                      document.body.appendChild(link);
+                      link.click();
+                      link.parentNode.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+
+                      // 3. Đóng popup và làm mới
                       setOccupiedDialog({ open: false, room: null });
                       fetchRoomsOnly();
                     } catch (error) {
                       setSnackbar({
                         open: true,
-                        message: "Lỗi: " + error,
+                        message:
+                          "Lỗi: " +
+                          (error.response?.data?.message || error.toString()),
                         severity: "error",
                       });
                     } finally {

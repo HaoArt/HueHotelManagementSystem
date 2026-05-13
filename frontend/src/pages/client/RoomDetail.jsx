@@ -14,6 +14,8 @@ import {
   Stack,
   Avatar,
   Rating,
+  Dialog,
+  IconButton,
 } from "@mui/material";
 
 // Icons
@@ -29,31 +31,24 @@ import AcUnitIcon from "@mui/icons-material/AcUnit";
 import CoffeeMakerIcon from "@mui/icons-material/CoffeeMaker";
 import BathtubIcon from "@mui/icons-material/Bathtub";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-
-// Swiper (Hiệu ứng Slide ảnh)
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Autoplay, Navigation } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
-import "swiper/css/navigation";
+import AppsIcon from "@mui/icons-material/Apps";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { AuthContext } from "../../context/AuthContext";
 import RoomTypeService from "../../services/roomTypeService";
 
-// Theme Colors theo thiết kế
+// Theme Colors
 const COLORS = {
-  primary: "#5e35b1", // Tím đậm
-  primaryLight: "#ede7f6", // Tím nhạt cho nền icon
+  primary: "#5e35b1",
+  primaryLight: "#ede7f6",
   border: "#e0e0e0",
   textMain: "#333",
-  textTitle:"#fff",
   textSecondary: "#666",
   bgLight: "#f8f9fa",
 };
 
-// Hình ảnh dự phòng độ phân giải cao (1920px) khi link ảnh bị lỗi
 const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=80";
+  "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=100";
 
 const RoomDetail = () => {
   const { id } = useParams();
@@ -65,6 +60,9 @@ const RoomDetail = () => {
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // State quản lý việc mở Dialog xem toàn bộ ảnh
+  const [openGallery, setOpenGallery] = useState(false);
 
   useEffect(() => {
     const fetchRoomDetail = async () => {
@@ -130,12 +128,7 @@ const RoomDetail = () => {
         </Alert>
         <Button
           variant="outlined"
-          sx={{
-            mt: 3,
-            color: COLORS.primary,
-            borderColor: COLORS.primary,
-            borderRadius: "4px",
-          }}
+          sx={{ mt: 3, color: COLORS.primary, borderColor: COLORS.primary }}
           onClick={() => navigate("/rooms")}
         >
           Quay lại danh sách phòng
@@ -144,15 +137,74 @@ const RoomDetail = () => {
     );
   }
 
-  // Khởi tạo mảng hình ảnh cho Slider (Nâng cấp độ phân giải lên 1920px)
-  const imagesList =
+  // ==========================================
+  // 1. HÀM TỐI ƯU ẢNH CLOUDINARY (XÓA BỎ LỖI MỜ ẢNH)
+  // ==========================================
+  const optimizeImageUrl = (url) => {
+    if (!url) return FALLBACK_IMAGE;
+    // Chèn tham số w_1920, q_100 để ép Cloudinary xuất ảnh nét căng
+    if (url.includes("cloudinary.com") && !url.includes("/upload/w_")) {
+      return url.replace("/upload/", "/upload/w_1920,q_100,f_auto/");
+    }
+    return url;
+  };
+
+  // Cần ít nhất 5 ảnh để lấp đầy Lưới ảnh (Grid)
+  const baseImages =
     room.images && room.images.length > 0
-      ? room.images.map((img) => img.image_url)
-      : [
-          room.image_url || FALLBACK_IMAGE,
-          "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1920&q=80",
-          "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=80",
-        ];
+      ? room.images.map((img) => optimizeImageUrl(img.image_url))
+      : [optimizeImageUrl(room.image_url)];
+
+  const defaultFillers = [
+    "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1920&q=100",
+    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=100",
+    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1920&q=100",
+    "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=100",
+  ];
+
+  // Trộn ảnh thực tế và ảnh dự phòng nếu phòng không đủ 5 ảnh
+  const imagesList = [...baseImages, ...defaultFillers].slice(
+    0,
+    Math.max(5, baseImages.length),
+  );
+
+  // ==========================================
+  // 2. TẠO THẺ CHIP ĐỘNG DỰA VÀO TÊN PHÒNG
+  // ==========================================
+  const getDynamicChips = (roomName = "") => {
+    const chips = [];
+    const nameLower = roomName.toLowerCase();
+
+    if (nameLower.includes("suite") || nameLower.includes("vip")) {
+      chips.push({ label: "SUITE CAO CẤP", color: COLORS.primary });
+    } else if (nameLower.includes("deluxe") || nameLower.includes("premium")) {
+      chips.push({ label: "PREMIUM", color: COLORS.primary });
+    } else if (nameLower.includes("family") || nameLower.includes("gia đình")) {
+      chips.push({ label: "GIA ĐÌNH", color: "#2e7d32" });
+    } else {
+      chips.push({ label: "TIÊU CHUẨN", color: "#1976d2" });
+    }
+
+    if (nameLower.includes("city") || nameLower.includes("thành phố")) {
+      chips.push({ label: "🏙 Hướng Thành Phố", color: "rgba(0,0,0,0.6)" });
+    } else if (nameLower.includes("river") || nameLower.includes("sông")) {
+      chips.push({ label: "🏞 Hướng Sông Hương", color: "rgba(0,0,0,0.6)" });
+    } else if (nameLower.includes("couple")) {
+      chips.push({ label: "💕 Lãng Mạn", color: "rgba(0,0,0,0.6)" });
+    }
+    return chips;
+  };
+
+  const dynamicChips = getDynamicChips(room.type_name || room.name);
+
+  // ==========================================
+  // 3. TẠO LOẠI GIƯỜNG ĐỘNG
+  // ==========================================
+  const getBedInfo = (capacity) => {
+    if (capacity >= 4) return "2 Giường Đôi cỡ lớn";
+    if (capacity === 1) return "1 Giường Đơn";
+    return "1 Giường King cỡ lớn";
+  };
 
   return (
     <Box sx={{ bgcolor: COLORS.bgLight, minHeight: "100vh", pb: 10, pt: 4 }}>
@@ -185,117 +237,164 @@ const RoomDetail = () => {
           </Typography>
         </Breadcrumbs>
 
-        {/* HERO IMAGE BANNER SỬ DỤNG SWIPER SLIDER */}
-        <Box
-          sx={{
-            position: "relative",
-            height: { xs: "300px", md: "450px" },
-            borderRadius: "8px",
-            overflow: "hidden",
-            mb: 4,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-            bgcolor: "#000", // Nền đen đề phòng ảnh tải chậm
-          }}
-        >
-          <Swiper
-            modules={[Pagination, Autoplay, Navigation]}
-            pagination={{ clickable: true }}
-            navigation
-            autoplay={{ delay: 3500, disableOnInteraction: false }}
-            loop={true}
-            style={{ width: "100%", height: "100%" }}
+        {/* TIÊU ĐỀ PHÒNG */}
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="h3"
+            fontWeight="900"
+            color={COLORS.textMain}
+            sx={{ mb: 2, fontSize: { xs: "2rem", md: "2.5rem" } }}
           >
-            {imagesList.map((url, idx) => (
-              <SwiperSlide key={idx} style={{ width: "100%", height: "100%" }}>
-                <Box
-                  sx={{ width: "100%", height: "100%", position: "relative" }}
-                >
-                  {/* CẬP NHẬT: Dùng thẻ img để ảnh nét hơn và bắt lỗi vỡ ảnh */}
-                  <img
-                    src={url}
-                    alt={`slide-${idx}`}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                    onError={(e) => {
-                      // Nếu link ảnh bị lỗi 404 (vỡ ảnh), tự động thế bằng ảnh dự phòng
-                      e.target.onerror = null;
-                      e.target.src = FALLBACK_IMAGE;
-                    }}
-                  />
-                  {/* CẬP NHẬT: Lớp phủ Gradient đen trong suốt */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </Box>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {/* Khối Text nổi đè lên trên Slider */}
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              zIndex: 10,
-              p: { xs: 3, md: 5 },
-              pointerEvents: "none",
-            }}
-          >
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            {room.type_name || room.name}
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            {dynamicChips.map((chip, index) => (
               <Chip
-                label="PREMIUM"
+                key={index}
+                label={chip.label}
                 size="small"
                 sx={{
-                  bgcolor: COLORS.primary,
+                  bgcolor: chip.color,
                   color: "white",
                   fontWeight: "bold",
-                  fontSize: "0.7rem",
-                  borderRadius: "4px",
-                }}
-              />
-              <Chip
-                label="🏞 Hướng Sông Hương"
-                size="small"
-                sx={{
-                  bgcolor: "rgba(0,0,0,0.5)",
-                  color: "white",
                   fontSize: "0.75rem",
                   borderRadius: "4px",
                 }}
               />
-            </Stack>
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-              color="white"
-              sx={{ mb: 1, fontSize: { xs: "2rem", md: "3rem" },color:"white" }}
+            ))}
+          </Stack>
+        </Box>
+
+        {/* ============================================================== */}
+        {/* LƯỚI ẢNH (IMAGE GRID) - PHONG CÁCH AIRBNB THAY CHO SWIPER */}
+        {/* ============================================================== */}
+        <Box sx={{ position: "relative", mb: 5 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: 1.5,
+              height: { xs: 280, md: 500 },
+              borderRadius: "16px",
+              overflow: "hidden",
+            }}
+          >
+            {/* Ảnh To Nhất (Bên trái) */}
+            <Box
+              sx={{ overflow: "hidden", cursor: "pointer", height: "100%" }}
+              onClick={() => setOpenGallery(true)}
             >
-              {room.type_name || room.name}
-            </Typography>
-            <Typography
-              variant="body1"
+              <Box
+                component="img"
+                src={imagesList[0]}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transition: "transform 0.5s ease",
+                  "&:hover": { transform: "scale(1.05)" },
+                }}
+              />
+            </Box>
+
+            {/* 4 Ảnh Nhỏ (Bên phải - Chỉ hiện trên PC) */}
+            <Box
               sx={{
-                color: "rgba(255,255,255,0.9)",
-                maxWidth: "600px",
-                fontSize: "1.1rem",
+                display: { xs: "none", md: "grid" },
+                gridTemplateColumns: "1fr 1fr",
+                gridTemplateRows: "1fr 1fr",
+                gap: 1.5,
+                height: "100%",
               }}
             >
-              Trải nghiệm không gian nghỉ dưỡng hoàng gia đương đại với tầm nhìn
-              tuyệt mỹ ra dòng sông Hương thơ mộng.
+              {imagesList.slice(1, 5).map((img, idx) => (
+                <Box
+                  key={idx}
+                  sx={{ overflow: "hidden", cursor: "pointer", height: "100%" }}
+                  onClick={() => setOpenGallery(true)}
+                >
+                  <Box
+                    component="img"
+                    src={img}
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      transition: "transform 0.5s ease",
+                      "&:hover": { transform: "scale(1.05)" },
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Nút mở Dialog Gallery */}
+          <Button
+            variant="contained"
+            startIcon={<AppsIcon />}
+            onClick={() => setOpenGallery(true)}
+            sx={{
+              position: "absolute",
+              bottom: 24,
+              right: 24,
+              bgcolor: "white",
+              color: "black",
+              fontWeight: "bold",
+              textTransform: "none",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              "&:hover": { bgcolor: "#f5f5f5" },
+            }}
+          >
+            Hiển thị tất cả ảnh
+          </Button>
+        </Box>
+
+        {/* DIALOG TOÀN MÀN HÌNH ĐỂ XEM ẢNH */}
+        <Dialog
+          fullScreen
+          open={openGallery}
+          onClose={() => setOpenGallery(false)}
+        >
+          <Box
+            sx={{
+              p: 2,
+              display: "flex",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              bgcolor: "white",
+              zIndex: 10,
+              borderBottom: "1px solid #eee",
+            }}
+          >
+            <IconButton onClick={() => setOpenGallery(false)}>
+              <CloseIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+              Thư viện ảnh của {room.type_name || room.name}
             </Typography>
           </Box>
-        </Box>
+          <Container maxWidth="md" sx={{ py: 4 }}>
+            <Stack spacing={4}>
+              {imagesList.map((img, idx) => (
+                <Box
+                  component="img"
+                  key={idx}
+                  src={img}
+                  sx={{
+                    width: "100%",
+                    borderRadius: "12px",
+                    objectFit: "cover",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                  }}
+                />
+              ))}
+            </Stack>
+          </Container>
+        </Dialog>
+        {/* KẾT THÚC LƯỚI ẢNH VÀ DIALOG */}
 
         <Row className="g-5">
           {/* CỘT TRÁI: THÔNG TIN CHI TIẾT */}
@@ -305,7 +404,7 @@ const RoomDetail = () => {
               elevation={0}
               sx={{
                 p: 3,
-                borderRadius: "8px",
+                borderRadius: "12px",
                 border: `1px solid ${COLORS.border}`,
                 display: "flex",
                 flexWrap: "wrap",
@@ -313,13 +412,12 @@ const RoomDetail = () => {
                 mb: 5,
               }}
             >
-              {/* Diện tích */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box
                   sx={{
                     width: 48,
                     height: 48,
-                    borderRadius: "4px",
+                    borderRadius: "8px",
                     bgcolor: COLORS.primaryLight,
                     display: "flex",
                     justifyContent: "center",
@@ -343,18 +441,17 @@ const RoomDetail = () => {
                     fontWeight="bold"
                     color={COLORS.textMain}
                   >
-                    {room.area || "45"} m²
+                    {room.area || "25"} m²
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Sức chứa */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box
                   sx={{
                     width: 48,
                     height: 48,
-                    borderRadius: "4px",
+                    borderRadius: "8px",
                     bgcolor: COLORS.primaryLight,
                     display: "flex",
                     justifyContent: "center",
@@ -378,18 +475,17 @@ const RoomDetail = () => {
                     fontWeight="bold"
                     color={COLORS.textMain}
                   >
-                    {room.capacity || 2} Người lớn, 1 Trẻ em
+                    Tối đa {room.capacity || 2} Khách
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Loại giường */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box
                   sx={{
                     width: 48,
                     height: 48,
-                    borderRadius: "4px",
+                    borderRadius: "8px",
                     bgcolor: COLORS.primaryLight,
                     display: "flex",
                     justifyContent: "center",
@@ -413,7 +509,7 @@ const RoomDetail = () => {
                     fontWeight="bold"
                     color={COLORS.textMain}
                   >
-                    1 Giường King cỡ lớn
+                    {getBedInfo(room.capacity)}
                   </Typography>
                 </Box>
               </Box>
@@ -447,20 +543,7 @@ const RoomDetail = () => {
                 sx={{ lineHeight: 1.8 }}
               >
                 {room.description ||
-                  "Phòng Premium Deluxe Hướng Sông là sự kết hợp tinh tế giữa nét đẹp văn hóa cung đình Huế và thiết kế nội thất hiện đại tối giản. Với cửa sổ kính sát trần, du khách có thể chiêm ngưỡng trọn vẹn vẻ đẹp lãng mạn của sông Hương từ lúc bình minh sương mù giăng lối đến khi hoàng hôn rực rỡ buông xuống."}
-              </Typography>
-              <Typography
-                variant="body1"
-                color={COLORS.textSecondary}
-                paragraph
-                sx={{ lineHeight: 1.8 }}
-              >
-                Nội thất được làm từ gỗ tự nhiên cao cấp, kết hợp với các điểm
-                nhấn màu tím hoàng gia (Imperial Purple) trên nền trắng tinh
-                khôi, tạo nên một không gian nghỉ ngơi sang trọng nhưng vẫn vô
-                cùng ấm cúng và gần gũi. Phòng tắm không gian mở với bồn tắm nằm
-                đá cẩm thạch và vòi sen đứng mang lại trải nghiệm thư giãn tuyệt
-                đối.
+                  `Phòng ${room.type_name || room.name} mang đến cho bạn không gian lưu trú lý tưởng với đầy đủ các tiện ích tiêu chuẩn 5 sao. Thiết kế hài hòa giữa nét truyền thống và sự tiện nghi hiện đại sẽ giúp kỳ nghỉ của bạn trở nên trọn vẹn.`}
               </Typography>
             </Box>
 
@@ -472,7 +555,7 @@ const RoomDetail = () => {
                   fontWeight="bold"
                   color={COLORS.primary}
                 >
-                  Tiện nghi phòng
+                  Tiện nghi nổi bật
                 </Typography>
                 <Box
                   sx={{
@@ -488,23 +571,23 @@ const RoomDetail = () => {
               <Row className="g-4">
                 {[
                   {
-                    label: "Wi-Fi tốc độ cao miễn phí",
+                    label: "Wi-Fi tốc độ cao",
                     icon: <WifiIcon color="success" />,
                   },
                   {
-                    label: "Smart TV 55 inch",
+                    label: "Smart TV giải trí",
                     icon: <TvIcon color="success" />,
                   },
                   {
-                    label: "Ban công riêng",
+                    label: "Ban công riêng biệt",
                     icon: <BalconyIcon color="success" />,
                   },
                   {
-                    label: "Điều hòa trung tâm",
+                    label: "Điều hòa 2 chiều",
                     icon: <AcUnitIcon color="success" />,
                   },
                   {
-                    label: "Máy pha cà phê Espresso",
+                    label: "Bàn làm việc",
                     icon: <CoffeeMakerIcon color="success" />,
                   },
                   {
@@ -567,7 +650,7 @@ const RoomDetail = () => {
                     size="small"
                   />
                   <Typography variant="body2" color="text.secondary">
-                    ({reviews.length} đánh giá)
+                    ({reviews.length})
                   </Typography>
                 </Box>
               </Box>
@@ -580,7 +663,7 @@ const RoomDetail = () => {
                       elevation={0}
                       sx={{
                         p: 3,
-                        borderRadius: "8px",
+                        borderRadius: "12px",
                         border: `1px solid ${COLORS.border}`,
                         bgcolor: "white",
                       }}
@@ -617,10 +700,9 @@ const RoomDetail = () => {
                               variant="caption"
                               color="text.secondary"
                             >
-                              Kỳ nghỉ gia đình •{" "}
+                              Khách lưu trú •{" "}
                               {new Date(review.created_at).toLocaleDateString(
                                 "vi-VN",
-                                { month: "long", year: "numeric" },
                               )}
                             </Typography>
                           </Box>
@@ -646,7 +728,7 @@ const RoomDetail = () => {
                     textAlign: "center",
                     py: 4,
                     bgcolor: "white",
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     border: `1px solid ${COLORS.border}`,
                   }}
                 >
@@ -656,17 +738,17 @@ const RoomDetail = () => {
             </Box>
           </Col>
 
-          {/* CỘT PHẢI: BOOKING CARD (Sticky) */}
+          {/* CỘT PHẢI: BOOKING CARD */}
           <Col lg={4}>
             <Paper
               elevation={0}
               sx={{
                 p: { xs: 3, md: 4 },
-                borderRadius: "8px",
+                borderRadius: "12px",
                 position: "sticky",
                 top: 100,
                 border: `1px solid ${COLORS.border}`,
-                boxShadow: "none",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.04)",
                 bgcolor: "white",
               }}
             >
@@ -711,8 +793,8 @@ const RoomDetail = () => {
                   direction="row"
                   sx={{
                     border: `1px solid ${COLORS.border}`,
-                    borderTopLeftRadius: "4px",
-                    borderTopRightRadius: "4px",
+                    borderTopLeftRadius: "8px",
+                    borderTopRightRadius: "8px",
                   }}
                 >
                   <Box
@@ -751,8 +833,8 @@ const RoomDetail = () => {
                     p: 2,
                     border: `1px solid ${COLORS.border}`,
                     borderTop: "none",
-                    borderBottomLeftRadius: "4px",
-                    borderBottomRightRadius: "4px",
+                    borderBottomLeftRadius: "8px",
+                    borderBottomRightRadius: "8px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
@@ -767,7 +849,7 @@ const RoomDetail = () => {
                       KHÁCH
                     </Typography>
                     <Typography variant="body2">
-                      {room.capacity || 2} Người lớn, 0 Trẻ em
+                      Tối đa {room.capacity || 2} Người
                     </Typography>
                   </Box>
                   <KeyboardArrowDownIcon color="action" />
@@ -784,7 +866,7 @@ const RoomDetail = () => {
                   bgcolor: COLORS.primary,
                   fontWeight: "bold",
                   fontSize: "1rem",
-                  borderRadius: "4px",
+                  borderRadius: "8px",
                   textTransform: "none",
                   mb: 2,
                   "&:hover": { bgcolor: "#4527a0" },
@@ -792,14 +874,13 @@ const RoomDetail = () => {
               >
                 ĐẶT PHÒNG NGAY
               </Button>
-
               <Typography
                 variant="caption"
                 display="block"
                 textAlign="center"
                 color="text.secondary"
               >
-                Bạn sẽ không bị trừ tiền ngay bây giờ
+                Bạn sẽ không bị trừ tiền ngay lúc này
               </Typography>
             </Paper>
           </Col>

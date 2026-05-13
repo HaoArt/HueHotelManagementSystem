@@ -10,6 +10,8 @@ const pdfService = require("../services/pdfService");
 const Surcharge = require("../models/surchargeModel");
 const db = require("../config/db");
 const Service = require("../models/serviceModel");
+const SystemConfig = require("../models/configModel");
+const emailService = require("../utils/emailService");
 
 exports.createBooking = async (req, res) => {
   try {
@@ -24,6 +26,14 @@ exports.createBooking = async (req, res) => {
     } = req.body;
     const user_id = req.user.id || req.user.userId;
     const user = await User.findById(user_id);
+
+    const configs = await SystemConfig.getAll();
+    const depositConfig = configs.find(
+      (c) => c.config_key === "deposit_percent",
+    );
+    const baseDepositRate = depositConfig
+      ? parseFloat(depositConfig.config_value) / 100
+      : 0.3;
 
     const leadTimeDays = Math.ceil(
       (new Date(check_in) - new Date()) / (1000 * 60 * 60 * 24),
@@ -235,7 +245,7 @@ exports.createBooking = async (req, res) => {
       hold_until = holdTime;
     } else {
       // Nếu khách thanh toán Online Lễ tết ép cọc 50%, bình thường cọc 30%
-      let depositRate = isHighSeason ? 0.5 : 0.3;
+      let depositRate = isHighSeason ? 0.5 : baseDepositRate;
       deposit_amount = finalTotalAmount * depositRate;
       initial_status = "Pending";
 
@@ -439,6 +449,14 @@ exports.checkOut = async (req, res) => {
         message: "Trạng thái không hợp lệ để Check-out",
       });
 
+    const configs = await SystemConfig.getAll();
+    const checkOutConfig = configs.find(
+      (c) => c.config_key === "check_out_time",
+    );
+    const checkOutHour = checkOutConfig
+      ? parseInt(checkOutConfig.config_value.split(":")[0])
+      : 12;
+
     const today = new Date();
     const expectedCheckOut = new Date(booking.check_out_date);
 
@@ -462,7 +480,7 @@ exports.checkOut = async (req, res) => {
 
     const todayForLateCheck = new Date();
     const expectedCheckOutDay = new Date(booking.check_out_date);
-    expectedCheckOutDay.setHours(12, 0, 0, 0);
+    expectedCheckOutDay.setHours(checkOutHour, 0, 0, 0);
     if (
       todayForLateCheck.toDateString() === expectedCheckOutDay.toDateString() &&
       todayForLateCheck > expectedCheckOutDay
@@ -577,14 +595,14 @@ exports.changeRoom = async (req, res) => {
   }
 };
 
-exports.cancelBooking = async (req, rs) => {
+exports.cancelBooking = async (req, res) => {
   try {
     const { id } = req.params;
     const booking = await Booking.getById(id);
     if (!booking) {
       return res.status(404).json({
         status: "error",
-        message: "Không tìm thấy thông tin đặt phòng!",
+        message: "Không tìm thấy thông diễn đặt phòng!",
       });
     }
     if (booking.status !== "Pending" && booking.status !== "Confirmed") {
@@ -592,14 +610,23 @@ exports.cancelBooking = async (req, rs) => {
         .status(400)
         .json({ message: "Trạng thái đơn không hợp lệ để hủy!" });
     }
+
+    const configs = await SystemConfig.getAll();
+    const checkInConfig = configs.find((c) => c.config_key === "check_in_time");
+    const checkInHour = checkInConfig
+      ? parseInt(checkInConfig.config_value.split(":")[0])
+      : 14;
+
     const now = new Date();
     const checkInDate = new Date(booking.check_in_date);
-    checkInDate.setHours(14, 0, 0, 0);
+    checkInDate.setHours(checkInHour, 0, 0, 0);
     const diffTime = checkInDate.getTime() - now.getTime();
     const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+
     let penaltyMessage =
       "Hủy phòng thành công. Trạng thái phòng đã được giải phóng.";
     let penaltyAmount = 0;
+
     if (diffHours < 24) {
       await User.updateTrustScore(booking.user_id, -20);
       penaltyAmount = parseFloat(booking.deposit_amount || 0);
@@ -609,19 +636,38 @@ exports.cancelBooking = async (req, rs) => {
       await User.updateTrustScore(booking.user_id, -10);
       penaltyAmount = parseFloat(booking.deposit_amount || 0) * 0.5;
       penaltyMessage = "Hủy phòng trước 48h. Bạn bị phạt 50% số tiền đã cọc.";
+    } else {
+      await User.updateTrustScore(booking.user_id, -5);
+      penaltyAmount = 0;
+      penaltyMessage =
+        "Hủy phòng sớm. Bạn được hoàn 100% tiền cọc, hệ thống trừ 5 điểm tín nhiệm tài khoản để hạn chế spam giữ chỗ.";
     }
+
     await Booking.updateStatus(id, "Cancelled");
     await Room.updateStatus(booking.room_id, "Available");
 
     const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const actionUserId = req.user?.id || req.user?.userId || booking.user_id;
+
     await Audit.logAction(
-      req.user.id,
+      actionUserId,
       "CANCEL_BOOKING",
       id,
       { status: "Pending/Confirmed" },
       { status: "Cancelled", penalty: penaltyAmount },
       clientIp,
     );
+
+    // GỌI HÀM GỬI EMAIL THÔNG BÁO HỦY PHÒNG (Sửa lỗi số 1)
+    const user = await User.findById(booking.user_id);
+    if (user && user.email) {
+      await emailService.sendCancellationEmail(
+        user.email,
+        user.full_name,
+        id,
+        penaltyAmount,
+      );
+    }
 
     res.status(200).json({
       status: "OK",
@@ -630,6 +676,7 @@ exports.cancelBooking = async (req, rs) => {
       refund_amount: parseFloat(booking.deposit_amount || 0) - penaltyAmount,
     });
   } catch (error) {
+    console.error("Lỗi Cancel:", error);
     return res.status(500).json({ status: "error", message: "Lỗi server!" });
   }
 };
@@ -642,38 +689,51 @@ exports.downloadInvoice = async (req, res) => {
     if (!booking)
       return res.status(404).json({ message: "Không thấy đơn hàng" });
 
+    const checkInDate = new Date(booking.check_in_date);
+    const checkOutDate = new Date(booking.check_out_date);
+    let totalDays = Math.ceil(
+      Math.abs(checkOutDate - checkInDate) / (1000 * 60 * 60 * 24),
+    );
+    if (totalDays === 0) totalDays = 1;
+
     const invoiceData = {
       booking_id: booking.id,
-      full_name: booking.full_name,
-      check_in: booking.check_in_date,
-      check_out: booking.check_out_date,
-      room_number: booking.room_number,
-      base_price: booking.base_price,
-      total_days: Math.ceil(
-        Math.abs(
-          new Date(booking.check_out_date) - new Date(booking.check_in_date),
-        ) /
-          (1000 * 60 * 60 * 24),
-      ),
-      surcharge: parseFloat(booking.surcharge_amount || 0),
+      full_name: booking.full_name || "Khách vãng lai", // Đã fix lấy từ bảng users
+      check_in: checkInDate,
+      check_out: checkOutDate,
+      room_number: booking.room_number || "---",
+      base_price: parseFloat(booking.base_price || 0),
+      total_days: totalDays,
       discount: parseFloat(booking.discount_amount || 0),
-      total_amount: parseFloat(booking.total_amount),
+      total_amount: parseFloat(booking.total_amount || 0),
     };
 
-    // Thiết lập Header để trình duyệt hiểu đây là file PDF
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=Invoice-HueHotel-${id}.pdf`,
     );
 
-    pdfService.generateInvoicePDF(
-      (chunk) => res.write(chunk),
-      () => res.end(),
-      invoiceData,
-    );
+    // Bọc trong try-catch riêng để tránh crash server nếu pdfService có vấn đề
+    try {
+      pdfService.generateInvoicePDF(
+        (chunk) => res.write(chunk),
+        () => res.end(),
+        invoiceData,
+      );
+    } catch (pdfError) {
+      console.error("Lỗi sâu bên trong PDFService:", pdfError);
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ status: "error", message: "Lỗi thư viện tạo PDF" });
+      }
+    }
   } catch (error) {
-    return res.status(500).json({ status: "error", message: "Lỗi server" });
+    console.error("Lỗi Controller downloadInvoice:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ status: "error", message: "Lỗi server" });
+    }
   }
 };
 exports.getUserBookings = async (req, res) => {
@@ -765,10 +825,24 @@ exports.confirmDeposit = async (req, res) => {
         .json({ message: "Chỉ xác nhận đơn đang chờ thanh toán" });
 
     await Booking.updateStatus(id, "Confirmed");
+
+    // GỌI HÀM GỬI EMAIL XÁC NHẬN CỌC (Sửa lỗi số 1)
+    const user = await User.findById(booking.user_id);
+    if (user && user.email) {
+      const emailService = require("../services/emailService");
+      await emailService.sendDepositConfirmationEmail(
+        user.email,
+        user.full_name,
+        id,
+        booking.deposit_amount,
+      );
+    }
+
     res
       .status(200)
       .json({ status: "OK", message: "Đã xác nhận tiền cọc thành công!" });
   } catch (error) {
+    console.error("Lỗi confirmDeposit:", error);
     res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };

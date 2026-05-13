@@ -41,5 +41,6 @@ router.put("/:id/checkin", verifyToken, bookingController.checkIn);
 router.put("/:id/confirm", verifyToken, bookingController.confirmDeposit);
 router.patch("/:id/cancel", verifyToken, bookingController.cancelBooking);
 router.get("/admin/all", verifyToken, bookingController.getAllBookingsAdmin);
+router.get("/:id/invoice", verifyToken, bookingController.downloadInvoice);
 
 module.exports = router;

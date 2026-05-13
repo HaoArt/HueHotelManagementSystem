@@ -6,7 +6,7 @@ const emailService = require("../utils/emailService");
 
 exports.preRegister = async (req, res) => {
   try {
-    const { full_name, email, phone, password } = req.body;
+    const { full_name, email, phone, password, cccd_number } = req.body;
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res
@@ -24,6 +24,7 @@ exports.preRegister = async (req, res) => {
       password_hash,
       otp_code,
       otp_expiry,
+      cccd_number,
     });
 
     await emailService.sendEmailOtp(email, otp_code);
@@ -60,6 +61,7 @@ exports.verifyAndCreate = async (req, res) => {
       email: pendingUser.email,
       phone: pendingUser.phone,
       password_hash: pendingUser.password_hash,
+      cccd_number: pendingUser.cccd_number,
     });
     await PendingUser.delete(email);
     return res

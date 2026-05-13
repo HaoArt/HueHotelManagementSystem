@@ -14,22 +14,23 @@ import {
 import { useLocation } from "react-router-dom";
 import RoomTypeService from "../../services/roomTypeService";
 import SearchBar from "../../components/specific/SearchBar";
-
-// Import Component RoomCard
 import RoomCard from "../../components/specific/RoomCard";
 
-// Icons cho Badge
-import StarIcon from "@mui/icons-material/Star";
+// ==========================================
+// IMPORT THÊM CÁC ICON Ý NGHĨA CHO BADGE
+// ==========================================
 import DiamondIcon from "@mui/icons-material/Diamond";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
 const COLORS = {
-  primary: "#4a148c",
+  primary: "#5e35b1", // Đồng bộ màu tím Huế Hotel
   bgLight: "#f8f9fa",
   border: "#e0e0e0",
   textMain: "#333",
   textSecondary: "#666",
-  chipPopular: "#e3f2fd",
-  chipLuxury: "#00695c",
 };
 
 const Rooms = () => {
@@ -45,7 +46,6 @@ const Rooms = () => {
     setError("");
     try {
       const data = await RoomTypeService.getAllRoomTypes();
-      // Mặc định lưu danh sách gốc từ API trả về
       setRoomTypes(data.data || data);
     } catch (err) {
       setError(err.message || "Có lỗi xảy ra khi tải danh sách phòng.");
@@ -61,8 +61,6 @@ const Rooms = () => {
       const response = await RoomTypeService.searchRoomTypes(searchData);
       const results = response.data || response;
       setRoomTypes(results);
-
-      // Đưa trạng thái sắp xếp về mặc định khi tìm kiếm mới
       setSortBy("Đề xuất");
 
       if (results.length === 0) {
@@ -77,7 +75,6 @@ const Rooms = () => {
     }
   };
 
-  // Lắng nghe thay đổi khi Load trang lần đầu hoặc nhận data từ Homepage
   useEffect(() => {
     if (location.state && location.state.initialSearchData) {
       handleSearch(location.state.initialSearchData);
@@ -86,11 +83,10 @@ const Rooms = () => {
     }
   }, [location.state]);
 
-  // LOGIC SẮP XẾP: Lắng nghe sự thay đổi của sortBy
   useEffect(() => {
     if (roomTypes.length === 0) return;
 
-    let sortedArray = [...roomTypes]; // Tạo một mảng copy để không làm biến đổi state gốc trực tiếp
+    let sortedArray = [...roomTypes];
 
     if (sortBy === "Giá tăng dần") {
       sortedArray.sort(
@@ -101,43 +97,64 @@ const Rooms = () => {
         (a, b) => parseFloat(b.base_price) - parseFloat(a.base_price),
       );
     } else {
-      // Nếu là "Đề xuất", sắp xếp lại theo ID (Hoặc em có thể tự tùy chỉnh tiêu chí "Đề xuất")
       sortedArray.sort((a, b) => a.id - b.id);
     }
 
-    // Cập nhật lại mảng đã sắp xếp vào State
     setRoomTypes(sortedArray);
   }, [sortBy]);
-  // Chú ý: Chỉ cho chạy lại useEffect này khi biến sortBy thay đổi,
-  // không đưa roomTypes vào dependency array để tránh vòng lặp vô hạn (Infinite Loop).
 
-  // Hàm mô phỏng tạo mô tả ngắn dựa trên tên phòng để UI đẹp như thiết kế
-  const generateDescription = (roomName) => {
-    if (roomName.toLowerCase().includes("suite"))
-      return "Đỉnh cao của sự sang trọng với phòng khách riêng biệt, thiết kế hoàng gia đương đại và đặc quyền...";
-    if (roomName.toLowerCase().includes("river"))
-      return "Tận hưởng khung cảnh lãng mạn của dòng sông Hương trong không gian rộng rãi, thoáng đãng v...";
-    return "Không gian nghỉ dưỡng tinh tế với tầm nhìn bao quát thành phố, trang bị nội thất hiện đại và bồn...";
-  };
+  // ==========================================
+  // HÀM TẠO BADGE CÓ Ý NGHĨA DỰA VÀO TÊN PHÒNG
+  // ==========================================
+  const getBadge = (room) => {
+    const roomName = (room.type_name || room.name || "").toLowerCase();
 
-  // Hàm random badge (Phổ biến/Cao cấp) cho đẹp UI giống thiết kế
-  const getBadge = (index, roomName) => {
-    if (roomName.toLowerCase().includes("suite")) {
+    if (roomName.includes("suite") || roomName.includes("vip")) {
       return {
         label: "Cao cấp",
         icon: <DiamondIcon fontSize="small" />,
-        bgcolor: COLORS.chipLuxury,
+        bgcolor: "#00695c", // Xanh ngọc sang trọng
         color: "#fff",
       };
     }
-    if (index === 0 && sortBy === "Đề xuất") {
+    if (roomName.includes("deluxe") || roomName.includes("premium")) {
       return {
-        label: "Phổ biến",
-        icon: <StarIcon fontSize="small" sx={{ color: "#1976d2" }} />,
-        bgcolor: COLORS.chipPopular,
-        color: "#1976d2",
+        label: "Được yêu thích",
+        icon: <ThumbUpIcon fontSize="small" sx={{ color: "#d84315" }} />,
+        bgcolor: "#fbe9e7", // Cam nhạt
+        color: "#d84315", // Cam đậm
       };
     }
+    if (roomName.includes("family") || roomName.includes("gia đình")) {
+      return {
+        label: "Gia đình",
+        icon: <FamilyRestroomIcon fontSize="small" sx={{ color: "#2e7d32" }} />,
+        bgcolor: "#e8f5e9", // Xanh lá nhạt
+        color: "#2e7d32",
+      };
+    }
+    if (roomName.includes("couple")) {
+      return {
+        label: "Dành cho cặp đôi",
+        icon: <FavoriteIcon fontSize="small" sx={{ color: "#c2185b" }} />,
+        bgcolor: "#fce4ec", // Hồng nhạt
+        color: "#c2185b",
+      };
+    }
+
+    // Nếu là phòng Standard hoặc giá dưới 500k thì gắn nhãn Tiết kiệm
+    if (
+      roomName.includes("standard") ||
+      parseFloat(room.base_price) <= 500000
+    ) {
+      return {
+        label: "Tiết kiệm",
+        icon: <LocalOfferIcon fontSize="small" sx={{ color: "#1565c0" }} />,
+        bgcolor: "#e3f2fd", // Xanh dương nhạt
+        color: "#1565c0",
+      };
+    }
+
     return null;
   };
 
@@ -147,7 +164,7 @@ const Rooms = () => {
       <Box
         sx={{
           height: { xs: "40vh", md: "50vh" },
-          backgroundImage: `linear-gradient(to bottom, rgba(74, 20, 140, 0.47), rgba(49, 27, 146, 0.18)), url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")`,
+          backgroundImage: `linear-gradient(to bottom, rgba(94, 53, 177, 0.6), rgba(69, 39, 160, 0.3)), url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=1920")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
@@ -163,12 +180,13 @@ const Rooms = () => {
           <Typography
             variant="h3"
             component="h1"
-            fontWeight="800"
+            fontWeight="900"
             letterSpacing={2}
             gutterBottom
             sx={{
               textTransform: "uppercase",
-              fontSize: { xs: "2rem", md: "3rem" },
+              fontSize: { xs: "2rem", md: "3.5rem" },
+              textShadow: "0 4px 20px rgba(0,0,0,0.5)",
             }}
           >
             Hệ Thống Phòng Nghỉ
@@ -181,7 +199,8 @@ const Rooms = () => {
               mx: "auto",
               fontWeight: 400,
               opacity: 0.9,
-              lineHeight: 1.5,
+              lineHeight: 1.6,
+              textShadow: "0 2px 10px rgba(0,0,0,0.5)",
             }}
           >
             Tận hưởng không gian lưu trú đẳng cấp và tìm kiếm chốn tôn nghiêm
@@ -206,9 +225,10 @@ const Rooms = () => {
               position: { lg: "sticky" },
               top: 100,
               bgcolor: "white",
-              borderRadius: "8px",
+              borderRadius: "12px",
               p: 0,
               border: `1px solid ${COLORS.border}`,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
             }}
           >
             <SearchBar onSearch={handleSearch} isSidebar={true} />
@@ -222,35 +242,47 @@ const Rooms = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                mb: 3,
+                mb: 4,
                 borderBottom: `1px solid ${COLORS.border}`,
                 pb: 2,
               }}
             >
-              <Typography variant="body1" color={COLORS.textMain}>
-                Hiển thị{" "}
-                <Box component="span" fontWeight="bold">
+              <Typography
+                variant="body1"
+                color={COLORS.textMain}
+                sx={{ fontSize: "1.1rem" }}
+              >
+                Đã tìm thấy{" "}
+                <Box component="span" fontWeight="900" color={COLORS.primary}>
                   {roomTypes.length}
                 </Box>{" "}
                 phòng phù hợp
               </Typography>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body2" color={COLORS.textSecondary}>
-                  Sắp xếp:
+                <Typography
+                  variant="body2"
+                  color={COLORS.textSecondary}
+                  fontWeight="bold"
+                >
+                  Sắp xếp theo:
                 </Typography>
-                <FormControl variant="standard" sx={{ minWidth: 100 }}>
+                <FormControl variant="standard" sx={{ minWidth: 120 }}>
                   <Select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     disableUnderline
                     sx={{
-                      fontSize: "0.9rem",
-                      fontWeight: "500",
+                      fontSize: "0.95rem",
+                      fontWeight: "bold",
                       color: COLORS.primary,
+                      bgcolor: "rgba(94, 53, 177, 0.08)",
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: "8px",
                     }}
                   >
-                    <MenuItem value="Đề xuất">Đề xuất</MenuItem>
+                    <MenuItem value="Đề xuất">Mặc định</MenuItem>
                     <MenuItem value="Giá tăng dần">Giá tăng dần</MenuItem>
                     <MenuItem value="Giá giảm dần">Giá giảm dần</MenuItem>
                   </Select>
@@ -263,7 +295,7 @@ const Rooms = () => {
                 <CircularProgress sx={{ color: COLORS.primary }} />
               </Box>
             ) : error ? (
-              <Alert severity="warning" sx={{ mb: 4, borderRadius: "4px" }}>
+              <Alert severity="warning" sx={{ mb: 4, borderRadius: "8px" }}>
                 {error}
               </Alert>
             ) : (
@@ -271,18 +303,19 @@ const Rooms = () => {
                 sx={{
                   display: "grid",
                   gap: 3,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
                 }}
               >
-                {/* SỬ DỤNG COMPONENT ROOMCARD */}
-                {roomTypes.map((room, index) => {
-                  const badge = getBadge(index, room.type_name);
+                {/* SỬ DỤNG COMPONENT ROOMCARD VÀ TRUYỀN DỮ LIỆU ĐỘNG */}
+                {roomTypes.map((room) => {
+                  const badge = getBadge(room); // Gọi hàm getBadge mới
                   return (
                     <RoomCard
                       key={room.id}
                       room={room}
                       badge={badge}
-                      description={generateDescription(room.type_name)}
+                      // Ưu tiên lấy description thật từ DB, không có mới dùng thẻ rỗng
+                      description={room.description || ""}
                     />
                   );
                 })}

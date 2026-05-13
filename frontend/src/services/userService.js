@@ -43,6 +43,32 @@ const UserService = {
       throw error.response?.data?.message || "Lỗi khi cấp lại mật khẩu";
     }
   },
+  getAllAccounts: async () => {
+    try {
+      const response = await api.get("/users/admin/accounts");
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || "Lỗi tải danh sách tài khoản";
+    }
+  },
+  createAccount: async (data) => {
+    try {
+      const response = await api.post("/users/admin/accounts", data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || "Lỗi khi tạo tài khoản mới";
+    }
+  },
+  getUserByPhone: async (phone) => {
+    try {
+      const response = await api.get(
+        `/users/admin/search-phone?phone=${phone}`,
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || "Lỗi tải thông tin khách hàng";
+    }
+  },
 };
 
 export default UserService;

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import {
   Typography,
@@ -11,6 +12,9 @@ import {
   CardContent,
   Stack,
   Button,
+  Divider,
+  Paper,
+  Avatar,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SearchBar from "../../components/specific/SearchBar";
@@ -35,6 +39,7 @@ import "swiper/css/pagination";
 import couponService from "../../services/couponService";
 import RoomTypeService from "../../services/roomTypeService";
 import reviewService from "../../services/reviewService";
+import ConfigService from "../../services/configService";
 
 // Theme Colors
 const COLORS = {
@@ -113,6 +118,8 @@ const Home = () => {
   const [topRooms, setTopRooms] = useState([]);
   const [topReviews, setTopReviews] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [checkInTime, setCheckInTime] = useState("14:00");
+  const [checkOutTime, setCheckOutTime] = useState("12:00");
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -142,6 +149,11 @@ const Home = () => {
         setCoupons(couponRes.data || []);
         setTopRooms(roomsRes.data || []);
         setTopReviews(reviewsRes.data || []);
+
+        const checkIn = await ConfigService.getConfigByKey("check_in_time");
+        if (checkIn) setCheckInTime(checkIn);
+        const checkOut = await ConfigService.getConfigByKey("check_out_time");
+        if (checkOut) setCheckOutTime(checkOut);
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
         setSnackbar({
@@ -240,7 +252,7 @@ const Home = () => {
                   Check-in
                 </Typography>
                 <Typography variant="body1" fontWeight="800">
-                  14:00 PM
+                  {checkInTime}
                 </Typography>
               </Box>
             </Stack>
@@ -269,7 +281,7 @@ const Home = () => {
                   Check-out
                 </Typography>
                 <Typography variant="body1" fontWeight="800">
-                  12:00 PM
+                  {checkOutTime}
                 </Typography>
               </Box>
             </Stack>
@@ -478,197 +490,241 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* 5. TIỆN NGHI ĐẲNG CẤP */}
-      <Box sx={{ py: { xs: 6, md: 10 }, bgcolor: COLORS.bgLight }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: "white" }}>
         <Container maxWidth="lg">
           <Box textAlign="center" mb={6}>
-            <Typography variant="h4" fontWeight="bold" color={COLORS.primary}>
-              Tiện nghi đẳng cấp
+            <Typography variant="h4" fontWeight="900" color={COLORS.primary}>
+              Dịch Vụ & Tiện Ích
             </Typography>
-            <Typography color="text.secondary" mt={1}>
-              Tất cả những gì bạn cần cho kỳ nghỉ hoàn hảo
+            <Divider
+              sx={{
+                width: 60,
+                mx: "auto",
+                my: 2,
+                borderColor: COLORS.secondary,
+                borderWidth: 3,
+                borderRadius: 2,
+              }}
+            />
+            <Typography color="text.secondary">
+              Mọi tiện nghi đẳng cấp nhất đã sẵn sàng cho kỳ nghỉ của bạn.
             </Typography>
           </Box>
 
+          {/* DÙNG FLEXBOX CHIA ĐỀU 4 CỘT */}
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                md: "repeat(4, 1fr)",
-              },
-              gap: 3,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 4,
+              justifyContent: "center",
             }}
           >
             {facilities.map((item, index) => (
-              <Card
+              <Paper
                 key={index}
                 elevation={0}
                 sx={{
-                  borderRadius: "12px",
+                  flex: {
+                    xs: "1 1 100%",
+                    sm: "1 1 calc(50% - 32px)",
+                    md: "1 1 calc(25% - 32px)",
+                  },
+                  p: 4,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: "16px",
+                  textAlign: "center",
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    borderColor: COLORS.secondary,
+                    transform: "translateY(-8px)",
+                    boxShadow: "0 12px 24px rgba(0,0,0,0.05)",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    color: COLORS.secondary,
+                    mb: 3,
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  {React.cloneElement(item.icon, { sx: { fontSize: 56 } })}
+                </Box>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  color={COLORS.textMain}
+                  gutterBottom
+                >
+                  {item.title}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ lineHeight: 1.6 }}
+                >
+                  {item.desc}
+                </Typography>
+              </Paper>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ========================================== */}
+      {/* 6. THƯ VIỆN ẢNH (BỐ CỤC COLLAGE NGHỆ THUẬT)  */}
+      {/* ========================================== */}
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: COLORS.bgLight }}>
+        <Container maxWidth="lg">
+          <Box textAlign="center" mb={6}>
+            <Typography variant="h4" fontWeight="900" color={COLORS.primary}>
+              Không Gian Huế Hotel
+            </Typography>
+            <Divider
+              sx={{
+                width: 60,
+                mx: "auto",
+                my: 2,
+                borderColor: COLORS.secondary,
+                borderWidth: 3,
+                borderRadius: 2,
+              }}
+            />
+            <Typography color="text.secondary">
+              Vẻ đẹp giao thoa giữa nét cổ kính và hơi thở hiện đại.
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Hàng 1: 1 Ảnh To (Trái) - 1 Ảnh Nhỏ (Phải) */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: { xs: "wrap", md: "nowrap" },
+                gap: 2,
+              }}
+            >
+              <Box
+                sx={{
+                  flex: { xs: "1 1 100%", md: 2 },
+                  height: { xs: 250, md: 350 },
+                  borderRadius: "16px",
                   overflow: "hidden",
                   position: "relative",
-                  height: 320,
                   "&:hover img": { transform: "scale(1.05)" },
                 }}
               >
                 <Box
                   component="img"
-                  src={item.img}
-                  alt={item.title}
+                  src={
+                    gallery[0]?.img ||
+                    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800"
+                  }
                   sx={{
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    transition: "transform 0.5s ease",
+                    transition: "transform 0.6s ease",
                   }}
                 />
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-end",
-                    p: 3,
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="white"
-                    sx={{ mb: 1 }}
-                  >
-                    {item.title}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="rgba(255,255,255,0.8)"
-                    sx={{ ...twoLineClampSx }}
-                  >
-                    {item.desc}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    position: "absolute",
-                    bottom: 16,
-                    right: 16,
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    bgcolor: COLORS.primary,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  {React.cloneElement(item.icon, { fontSize: "small" })}
-                </Box>
-              </Card>
-            ))}
-          </Box>
-        </Container>
-      </Box>
-
-      {/* 6. THƯ VIỆN ẢNH */}
-      <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: "white" }}>
-        <Container maxWidth="lg">
-          <Box textAlign="center" mb={6}>
-            <Typography variant="h4" fontWeight="bold" color={COLORS.primary}>
-              Thư viện ảnh khách sạn
-            </Typography>
-            <Typography color="text.secondary" mt={1}>
-              Khám phá không gian và tiện nghi của chúng tôi
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                md: "repeat(4, 1fr)",
-              },
-              gap: 2,
-            }}
-          >
-            {gallery.map((item, index) => (
+              </Box>
               <Box
-                key={index}
                 sx={{
-                  width: "100%",
-                  height: 240,
-                  borderRadius: "12px",
+                  flex: { xs: "1 1 100%", md: 1 },
+                  height: { xs: 250, md: 350 },
+                  borderRadius: "16px",
                   overflow: "hidden",
                   position: "relative",
-                  cursor: "pointer",
+                  "&:hover img": { transform: "scale(1.05)" },
                 }}
               >
                 <Box
                   component="img"
-                  src={item.img}
-                  alt={item.title}
+                  src={
+                    gallery[1]?.img ||
+                    "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800"
+                  }
                   sx={{
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    transition: "0.4s",
+                    transition: "transform 0.6s ease",
                   }}
                 />
+              </Box>
+            </Box>
+
+            {/* Hàng 2: 3 Ảnh Nhỏ Bằng Nhau */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: { xs: "wrap", md: "nowrap" },
+                gap: 2,
+              }}
+            >
+              {gallery.slice(2, 5).map((item, index) => (
                 <Box
+                  key={index}
                   sx={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
-                    opacity: 1,
-                    display: "flex",
-                    alignItems: "flex-end",
+                    flex: 1,
+                    minWidth: { xs: "100%", sm: "calc(33.33% - 16px)" },
+                    height: 250,
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    position: "relative",
+                    "&:hover img": { transform: "scale(1.05)" },
                   }}
                 >
-                  <Typography
+                  <Box
+                    component="img"
+                    src={item.img}
+                    alt={item.title}
                     sx={{
-                      color: "#fff",
-                      p: 2,
-                      fontWeight: "bold",
-                      fontSize: "1rem",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      transition: "transform 0.6s ease",
                     }}
-                  >
-                    {item.title}
-                  </Typography>
+                  />
                 </Box>
-              </Box>
-            ))}
+              ))}
+            </Box>
           </Box>
         </Container>
       </Box>
 
       {/* 7. KHÁCH HÀNG NÓI GÌ */}
-      <Box sx={{ py: { xs: 6, md: 10 }, bgcolor: COLORS.bgLight }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: COLORS.bgLight }}>
         <Container maxWidth="lg">
-          <Typography
-            variant="h4"
-            textAlign="center"
-            fontWeight="bold"
-            color={COLORS.primary}
-            mb={6}
-          >
-            Khách Hàng Nói Gì
-          </Typography>
+          {/* Tiêu đề dùng Flexbox căn giữa */}
+          <Box display="flex" flexDirection="column" alignItems="center" mb={7}>
+            <Typography
+              variant="h4"
+              fontWeight="900"
+              color={COLORS.primary}
+              textTransform="uppercase"
+            >
+              Khách Hàng Nói Gì
+            </Typography>
+            <Box
+              sx={{
+                width: 60,
+                height: 4,
+                bgcolor: COLORS.secondary,
+                mt: 2,
+                borderRadius: 2,
+              }}
+            />
+          </Box>
 
           {loading ? (
             <Box display="flex" justifyContent="center" py={5}>
               <CircularProgress sx={{ color: COLORS.primary }} />
             </Box>
           ) : (
-            <Box sx={{ maxWidth: "1000px", mx: "auto" }}>
+            <Box sx={{ maxWidth: "1000px", mx: "auto", pb: 4 }}>
               {topReviews.length > 0 ? (
                 <Swiper
                   modules={[EffectCoverflow, Pagination, Autoplay]}
@@ -681,9 +737,17 @@ const Home = () => {
                     900: { slidesPerView: 2 },
                     1200: { slidesPerView: 3 },
                   }}
+                  // Cấu hình Coverflow 3D mượt mà hơn
+                  coverflowEffect={{
+                    rotate: 15,
+                    stretch: 0,
+                    depth: 150,
+                    modifier: 1.5,
+                    slideShadows: false,
+                  }}
                   loop={topReviews.length > 3}
                   autoplay={{ delay: 4000, disableOnInteraction: false }}
-                  pagination={{ clickable: true }}
+                  pagination={{ clickable: true, dynamicBullets: true }}
                 >
                   {topReviews.map((item, index) => (
                     <SwiperSlide
@@ -691,21 +755,41 @@ const Home = () => {
                       style={{
                         height: "auto",
                         display: "flex",
-                        paddingBottom: "40px",
+                        paddingBottom: "50px",
+                        paddingTop: "10px", // Nhường chút không gian cho thẻ nảy lên
                       }}
                     >
                       <Card
                         elevation={0}
                         sx={{
-                          borderRadius: "16px",
-                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: "24px",
+                          border: "none",
+                          boxShadow: "0 10px 40px rgba(0,0,0,0.06)", // Bóng đổ siêu mượt
                           height: "100%",
                           width: "100%",
-                          textAlign: "center",
-                          p: 4,
                           bgcolor: "white",
+                          display: "flex",
+                          flexDirection: "column",
+                          p: 4,
+                          position: "relative",
+                          overflow: "hidden", // Giữ watermark không tràn ra ngoài
+                          transition: "transform 0.3s ease",
+                          "&:hover": { transform: "translateY(-8px)" }, // Hiệu ứng nảy khi hover
                         }}
                       >
+                        {/* Dấu ngoặc kép làm Watermark chìm */}
+                        <FormatQuoteIcon
+                          sx={{
+                            position: "absolute",
+                            top: 10,
+                            left: 10,
+                            fontSize: 100,
+                            color: COLORS.primary,
+                            opacity: 0.04, // Làm mờ đi
+                            zIndex: 0,
+                          }}
+                        />
+
                         <CardContent
                           sx={{
                             p: 0,
@@ -713,52 +797,77 @@ const Home = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
+                            zIndex: 1, // Đè lên trên Watermark
+                            "&:last-child": { pb: 0 },
                           }}
                         >
-                          <FormatQuoteIcon
-                            sx={{ fontSize: 40, color: COLORS.gold, mb: 1 }}
+                          {/* Avatar */}
+                          <Avatar
+                            src={
+                              item.avatar_url ||
+                              `https://ui-avatars.com/api/?name=${item.customer_name || item.full_name}&background=1a237e&color=fff`
+                            }
+                            sx={{
+                              width: 75,
+                              height: 75,
+                              boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+                              border: "3px solid white",
+                              mb: 2,
+                            }}
                           />
 
-                          <Box my={1} display="flex" justifyContent="center">
+                          <Box mb={2} display="flex" justifyContent="center">
                             <Rating
                               value={Number(item.rating) || 5}
                               readOnly
                               size="small"
                               precision={0.5}
-                              sx={{ color: COLORS.gold }}
+                              sx={{ color: COLORS.secondary }}
                             />
                           </Box>
 
                           <Typography
-                            variant="body2"
+                            variant="body1"
                             sx={{
                               ...threeLineClampSx,
-                              minHeight: 60,
+                              minHeight: 80,
                               fontStyle: "italic",
-                              color: COLORS.textSecondary,
+                              color: "#475569",
+                              textAlign: "center",
+                              lineHeight: 1.7,
                               mb: 3,
                             }}
                           >
                             "{item.comment}"
                           </Typography>
 
-                          <Typography
-                            fontWeight="bold"
-                            color={COLORS.primary}
-                            sx={{ mt: "auto", fontSize: "1rem" }}
+                          {/* Thông tin chốt ở dưới đáy thẻ */}
+                          <Box
+                            sx={{
+                              mt: "auto",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                            }}
                           >
-                            {item.customer_name || item.full_name}
-                          </Typography>
+                            <Typography
+                              fontWeight="bold"
+                              color={COLORS.primary}
+                              sx={{ fontSize: "1.05rem" }}
+                            >
+                              {item.customer_name || item.full_name}
+                            </Typography>
 
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ mt: 0.5 }}
-                          >
-                            {new Date(item.created_at).toLocaleDateString(
-                              "vi-VN",
-                            )}
-                          </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ mt: 0.5, fontWeight: "500" }}
+                            >
+                              {new Date(item.created_at).toLocaleDateString(
+                                "vi-VN",
+                              )}
+                            </Typography>
+                          </Box>
                         </CardContent>
                       </Card>
                     </SwiperSlide>

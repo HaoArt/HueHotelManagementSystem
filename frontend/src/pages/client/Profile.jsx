@@ -30,8 +30,11 @@ import {
   Select,
   MenuItem,
   Grid,
+  Badge,
+  Tooltip,
 } from "@mui/material";
 
+// Icons
 import FilterListIcon from "@mui/icons-material/FilterList";
 import MailIcon from "@mui/icons-material/Mail";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -41,6 +44,9 @@ import RoomServiceIcon from "@mui/icons-material/RoomService";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import LinearProgress from "@mui/material/LinearProgress";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import BadgeIcon from "@mui/icons-material/Badge"; // ĐÃ THÊM ICON THẺ ĐỊNH DANH
 
 import { AuthContext } from "../../context/AuthContext";
 import AuthService from "../../services/authService";
@@ -95,7 +101,13 @@ const Profile = () => {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
 
   const [editModal, setEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ full_name: "", phone: "" });
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    phone: "",
+    cccd_number: "",
+    avatar_url: "",
+  });
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
 
   const [passwordModal, setPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -146,11 +158,12 @@ const Profile = () => {
       setEditForm({
         full_name: userInfo?.full_name || "",
         phone: userInfo?.phone || "",
+        cccd_number: userInfo?.cccd_number || "",
+        avatar_url: userInfo?.avatar_url || "",
       });
       setBookings(bookingsRes.data || bookingsRes || []);
       setAvailableServices(servicesRes.data || servicesRes || []);
     } catch (err) {
-      console.error("LỖI Ở PHẦN TẢI DỮ LIỆU HỒ SƠ:", err);
       setGlobalError("Có lỗi xảy ra ở phần tải dữ liệu hồ sơ và lịch sử.");
     } finally {
       setLoading(false);
@@ -160,6 +173,50 @@ const Profile = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setSelectedAvatarFile(file);
+    setEditForm((prev) => ({ ...prev, avatar_url: URL.createObjectURL(file) }));
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append("full_name", editForm.full_name);
+      formData.append("phone", editForm.phone || "");
+      formData.append("cccd_number", editForm.cccd_number || "");
+
+      if (selectedAvatarFile) formData.append("avatar", selectedAvatarFile);
+      else formData.append("avatar_url", profileData?.avatar_url || "");
+
+      const res = await UserService.updateProfile(formData);
+
+      setGlobalSuccess("Cập nhật hồ sơ thành công!");
+      setEditModal(false);
+
+      if (res.data) {
+        setUser((prev) => ({
+          ...prev,
+          full_name: res.data.full_name,
+          avatar_url: res.data.avatar_url,
+        }));
+      }
+
+      setSelectedAvatarFile(null);
+      fetchData();
+    } catch (err) {
+      setGlobalError(
+        err.response?.data?.message ||
+          "Có lỗi xảy ra ở phần cập nhật thông tin cá nhân.",
+      );
+      setEditModal(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleOpenDetails = async (booking) => {
     try {
@@ -172,7 +229,6 @@ const Profile = () => {
       });
       setOrderForm({ serviceId: "", quantity: 1 });
     } catch (err) {
-      console.error(err);
       setGlobalError("Không thể tải chi tiết hóa đơn dịch vụ.");
     } finally {
       setIsSubmitting(false);
@@ -196,11 +252,8 @@ const Profile = () => {
         folioData: folioRes.data?.services || folioRes.data || [],
       }));
       setOrderForm({ serviceId: "", quantity: 1 });
-
-      // ĐÃ THÊM: Tải lại danh sách Booking ở ngoài để Update số tiền
       fetchData();
     } catch (err) {
-      console.error(err);
       setGlobalError("Lỗi khi gọi thêm dịch vụ.");
     } finally {
       setIsSubmitting(false);
@@ -218,11 +271,8 @@ const Profile = () => {
         ...prev,
         folioData: folioRes.data?.services || folioRes.data || [],
       }));
-
-      // ĐÃ THÊM: Tải lại danh sách Booking ở ngoài để Update số tiền
       fetchData();
     } catch (err) {
-      console.error(err);
       setGlobalError("Không thể hủy dịch vụ này (Có thể lễ tân đã phục vụ).");
     } finally {
       setIsSubmitting(false);
@@ -237,26 +287,10 @@ const Profile = () => {
       setReviewModal({ open: false, bookingId: null, roomName: "" });
       fetchData();
     } catch (err) {
-      console.error("LỖI Ở PHẦN GỬI ĐÁNH GIÁ:", err);
-      setGlobalError("Có lỗi xảy ra ở phần gửi đánh giá.");
+      setGlobalError(
+        err.response?.data?.message || "Có lỗi xảy ra ở phần gửi đánh giá.",
+      );
       setReviewModal({ ...reviewModal, open: false });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateProfile = async () => {
-    try {
-      setIsSubmitting(true);
-      await UserService.updateProfile(editForm);
-      setGlobalSuccess("Cập nhật hồ sơ thành công!");
-      setEditModal(false);
-      setUser((prev) => ({ ...prev, full_name: editForm.full_name }));
-      fetchData();
-    } catch (err) {
-      console.error("LỖI Ở PHẦN CẬP NHẬT HỒ SƠ:", err);
-      setGlobalError("Có lỗi xảy ra ở phần cập nhật thông tin cá nhân.");
-      setEditModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -280,8 +314,9 @@ const Profile = () => {
         confirm_password: "",
       });
     } catch (err) {
-      console.error("LỖI Ở PHẦN ĐỔI MẬT KHẨU:", err);
-      setGlobalError("Có lỗi xảy ra ở phần đổi mật khẩu.");
+      setGlobalError(
+        err.response?.data?.message || "Có lỗi xảy ra ở phần đổi mật khẩu.",
+      );
       setPasswordModal(false);
     } finally {
       setIsSubmitting(false);
@@ -481,7 +516,8 @@ const Profile = () => {
                   mb: 2,
                 }}
               >
-                {profileData?.full_name?.charAt(0).toUpperCase()}
+                {!profileData?.avatar_url &&
+                  profileData?.full_name?.charAt(0).toUpperCase()}
               </Avatar>
               <Typography
                 variant="h6"
@@ -489,11 +525,21 @@ const Profile = () => {
                 color={COLORS.textMain}
               >
                 {profileData?.full_name}
+                {profileData?.cccd_number && (
+                  <Tooltip title="Tài khoản đã xác minh danh tính">
+                    <VerifiedIcon
+                      color="success"
+                      sx={{ ml: 1, fontSize: 18, verticalAlign: "middle" }}
+                    />
+                  </Tooltip>
+                )}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Thành viên từ{" "}
                 {new Date(profileData?.created_at || Date.now()).getFullYear()}
               </Typography>
+
+              {/* ĐÃ CẬP NHẬT: Thêm dòng hiển thị số CCCD */}
               <Stack spacing={1.5} sx={{ mb: 3, textAlign: "left" }}>
                 <Box
                   sx={{
@@ -516,10 +562,26 @@ const Profile = () => {
                 >
                   <PhoneIcon fontSize="small" />
                   <Typography variant="body2">
-                    {profileData?.phone || "Chưa cập nhật"}
+                    {profileData?.phone || "Chưa cập nhật SĐT"}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    color: COLORS.textSecondary,
+                  }}
+                >
+                  <BadgeIcon fontSize="small" />
+                  <Typography variant="body2">
+                    {profileData?.cccd_number
+                      ? `CCCD: ${profileData.cccd_number}`
+                      : "Chưa cập nhật CCCD"}
                   </Typography>
                 </Box>
               </Stack>
+
               <Divider sx={{ mb: 3 }} />
               <Stack
                 direction="row"
@@ -577,7 +639,7 @@ const Profile = () => {
                     "&:hover": { bgcolor: "#004d40", boxShadow: "none" },
                   }}
                 >
-                  Sửa thông tin
+                  Sửa thông tin / Cập nhật CCCD
                 </Button>
                 <Button
                   fullWidth
@@ -641,7 +703,7 @@ const Profile = () => {
               </Box>
             ) : (
               <Stack spacing={3}>
-                {bookings.map((booking, index) => (
+                {bookings.map((booking) => (
                   <Paper
                     key={booking.id}
                     elevation={0}
@@ -770,7 +832,6 @@ const Profile = () => {
                             { month: "short", day: "numeric", year: "numeric" },
                           )}
                         </Typography>
-
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Button
                             variant="outlined"
@@ -828,7 +889,6 @@ const Profile = () => {
                                   : "none",
                             }}
                           >
-                            {/* ĐÃ FIX: Chuyển từ booking.total_amount sang booking.grand_total để hiển thị tổng hóa đơn đã tính cả dịch vụ */}
                             {Number(
                               booking.grand_total || booking.total_amount || 0,
                             ).toLocaleString("vi-VN")}
@@ -844,7 +904,144 @@ const Profile = () => {
           </Box>
         </Box>
 
+        {/* ======================================================= */}
+        {/* MODAL SỬA THÔNG TIN */}
+        {/* ======================================================= */}
+        <Dialog
+          open={editModal}
+          onClose={() => setEditModal(false)}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: "12px" } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "bold",
+              color: COLORS.primary,
+              pt: 3,
+              textAlign: "center",
+            }}
+          >
+            Hồ Sơ Cá Nhân
+          </DialogTitle>
+          <DialogContent sx={{ pb: 1 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                mb: 3,
+                mt: 1,
+              }}
+            >
+              <Badge
+                overlap="circular"
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                badgeContent={
+                  <IconButton
+                    component="label"
+                    sx={{
+                      bgcolor: COLORS.primary,
+                      color: "white",
+                      "&:hover": { bgcolor: "#311b92" },
+                      width: 32,
+                      height: 32,
+                    }}
+                  >
+                    <PhotoCameraIcon sx={{ fontSize: 18 }} />
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleAvatarSelect}
+                    />
+                  </IconButton>
+                }
+              >
+                <Avatar
+                  src={editForm.avatar_url}
+                  sx={{ width: 90, height: 90, bgcolor: "#2c3e50" }}
+                >
+                  {!editForm.avatar_url &&
+                    editForm.full_name?.charAt(0).toUpperCase()}
+                </Avatar>
+              </Badge>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 1 }}
+              >
+                Thay đổi ảnh đại diện
+              </Typography>
+            </Box>
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Họ và Tên"
+              value={editForm.full_name}
+              onChange={(e) =>
+                setEditForm({ ...editForm, full_name: e.target.value })
+              }
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Số điện thoại"
+              value={editForm.phone}
+              onChange={(e) =>
+                setEditForm({ ...editForm, phone: e.target.value })
+              }
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Số Căn cước công dân"
+              value={editForm.cccd_number}
+              disabled={!!profileData?.cccd_number}
+              onChange={(e) =>
+                setEditForm({ ...editForm, cccd_number: e.target.value })
+              }
+              inputProps={{ maxLength: 12 }}
+              helperText={
+                profileData?.cccd_number
+                  ? "🔒 Thông tin đã được xác thực, không thể thay đổi."
+                  : "Nhập 12 số CCCD để định danh bảo vệ tài khoản."
+              }
+              sx={{
+                mt: 2,
+                bgcolor: profileData?.cccd_number ? "#f5f5f5" : "transparent",
+              }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3, justifyContent: "center" }}>
+            <Button
+              onClick={() => setEditModal(false)}
+              color="inherit"
+              sx={{ fontWeight: "bold", mr: 1 }}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleUpdateProfile}
+              disabled={isSubmitting}
+              variant="contained"
+              disableElevation
+              sx={{ bgcolor: COLORS.primary, fontWeight: "bold", px: 4 }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "LƯU THAY ĐỔI"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ======================================================= */}
         {/* MODAL CHI TIẾT HÓA ĐƠN VÀ ORDER DỊCH VỤ */}
+        {/* ======================================================= */}
         <Dialog
           disableScrollLock={true}
           open={detailModal.open}
@@ -869,23 +1066,20 @@ const Profile = () => {
             </Typography>
             {getStatusChip(detailModal.booking?.status)}
           </DialogTitle>
-
           <DialogContent sx={{ p: 3 }}>
-            {/* THAY THẾ GRID BẰNG STACK (FLEXBOX) ĐỂ ÉP 2 CỘT LUÔN SONG SONG */}
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={3}
               alignItems="stretch"
             >
-              {/* CỘT TRÁI: HÓA ĐƠN DỊCH VỤ */}
               <Box
                 sx={{
                   flex:
                     detailModal.booking?.status === "Checked_out" ||
                     detailModal.booking?.status === "Cancelled"
                       ? 1
-                      : 1.5, // Cột trái chiếm 1.5 phần không gian (khoảng 60%)
-                  minWidth: 0, // Chống vỡ layout khi nội dung dài
+                      : 1.5,
+                  minWidth: 0,
                 }}
               >
                 <Paper
@@ -910,8 +1104,6 @@ const Profile = () => {
                     Dịch vụ đã sử dụng / đang gọi
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
-
-                  {/* KHU VỰC DANH SÁCH CÓ THỂ CUỘN ĐỘC LẬP */}
                   <Box
                     sx={{
                       flexGrow: 1,
@@ -1020,10 +1212,7 @@ const Profile = () => {
                       )}
                     </List>
                   </Box>
-
                   <Divider sx={{ my: 2 }} />
-
-                  {/* PHẦN TỔNG TIỀN GHIM Ở CUỐI CỘT */}
                   <Stack spacing={1}>
                     <Box
                       sx={{ display: "flex", justifyContent: "space-between" }}
@@ -1094,10 +1283,7 @@ const Profile = () => {
                           fontWeight="bold"
                           color={COLORS.textMain}
                         >
-                          TỔNG HÓA ĐƠN:
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          (Tiền phòng + Dịch vụ - Cọc)
+                          TỔNG CỘNG:
                         </Typography>
                       </Box>
                       <Typography
@@ -1133,7 +1319,7 @@ const Profile = () => {
                         borderRadius: "4px",
                         border: `1px solid ${COLORS.border}`,
                         bgcolor: "white",
-                        height: "100%", // Kéo dãn chiều cao bằng cột bên trái
+                        height: "100%",
                         display: "flex",
                         flexDirection: "column",
                       }}
@@ -1150,7 +1336,6 @@ const Profile = () => {
                         Gọi thêm dịch vụ
                       </Typography>
                       <Divider sx={{ mb: 3 }} />
-
                       <FormControl
                         fullWidth
                         size="small"
@@ -1178,7 +1363,6 @@ const Profile = () => {
                           ))}
                         </Select>
                       </FormControl>
-
                       <TextField
                         fullWidth
                         type="number"
@@ -1197,8 +1381,6 @@ const Profile = () => {
                           "& .MuiOutlinedInput-root": { borderRadius: "4px" },
                         }}
                       />
-
-                      {/* Đẩy nút bấm xuống sát đáy để cân bằng với cột bên trái */}
                       <Button
                         fullWidth
                         variant="contained"
@@ -1219,7 +1401,6 @@ const Profile = () => {
                           "YÊU CẦU DỊCH VỤ"
                         )}
                       </Button>
-
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -1235,7 +1416,6 @@ const Profile = () => {
                 )}
             </Stack>
           </DialogContent>
-
           <DialogActions
             sx={{
               p: 2,
@@ -1261,8 +1441,9 @@ const Profile = () => {
           </DialogActions>
         </Dialog>
 
-        {/* CÁC MODAL CŨ GIỮ NGUYÊN BÊN TRONG NÀY */}
-        {/* MODAL ĐÁNH GIÁ TRẢI NGHIỆM */}
+        {/* ======================================================= */}
+        {/* MODAL ĐÁNH GIÁ VÀ MODAL ĐỔI MẬT KHẨU */}
+        {/* ======================================================= */}
         <Dialog
           open={reviewModal.open}
           onClose={() => setReviewModal({ ...reviewModal, open: false })}
@@ -1335,64 +1516,6 @@ const Profile = () => {
           </DialogActions>
         </Dialog>
 
-        {/* MODAL SỬA THÔNG TIN */}
-        <Dialog
-          open={editModal}
-          onClose={() => setEditModal(false)}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: "12px" } }}
-        >
-          <DialogTitle
-            sx={{ fontWeight: "bold", color: COLORS.primary, pt: 3 }}
-          >
-            Sửa thông tin
-          </DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Họ và Tên"
-              value={editForm.full_name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, full_name: e.target.value })
-              }
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Số điện thoại"
-              value={editForm.phone}
-              onChange={(e) =>
-                setEditForm({ ...editForm, phone: e.target.value })
-              }
-            />
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button
-              onClick={() => setEditModal(false)}
-              color="inherit"
-              sx={{ fontWeight: "bold" }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleUpdateProfile}
-              disabled={isSubmitting}
-              variant="contained"
-              disableElevation
-              sx={{ bgcolor: COLORS.primary, fontWeight: "bold" }}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "LƯU THAY ĐỔI"
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* MODAL ĐỔI MẬT KHẨU */}
         <Dialog
           open={passwordModal}
           onClose={() => setPasswordModal(false)}

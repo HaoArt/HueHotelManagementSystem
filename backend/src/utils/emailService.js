@@ -77,3 +77,48 @@ exports.sendContactReplyEmail = async (
   };
   return await transporter.sendMail(mailOptions);
 };
+exports.sendDepositConfirmationEmail = async (
+  userEmail,
+  userName,
+  bookingId,
+  depositAmount,
+) => {
+  const mailOptions = {
+    from: '"HuếHotel System" <huehotel.admin@gmail.com>',
+    to: userEmail,
+    subject: `[Xác nhận] Thanh toán cọc thành công đơn #${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color: #2e7d32;">Thanh toán thành công!</h2>
+        <p>Kính chào ${userName},</p>
+        <p>HuếHotel đã nhận được số tiền cọc <b>${depositAmount.toLocaleString("vi-VN")} VNĐ</b> cho đơn đặt phòng #${bookingId}.</p>
+        <p>Đơn hàng của bạn đã chuyển sang trạng thái <b>Đã xác nhận (Confirmed)</b>. Chúng tôi đã giữ phòng cho bạn.</p>
+        <p>Hẹn gặp lại bạn tại HuếHotel!</p>
+      </div>
+    `,
+  };
+  return await transporter.sendMail(mailOptions);
+};
+
+exports.sendCancellationEmail = async (
+  userEmail,
+  userName,
+  bookingId,
+  penaltyAmount,
+) => {
+  const mailOptions = {
+    from: '"HuếHotel System" <huehotel.admin@gmail.com>',
+    to: userEmail,
+    subject: `[Thông báo] Hủy đơn đặt phòng #${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color: #d32f2f;">Xác nhận Hủy đặt phòng</h2>
+        <p>Kính chào ${userName},</p>
+        <p>Đơn đặt phòng #${bookingId} của bạn đã được hủy thành công trên hệ thống.</p>
+        ${penaltyAmount > 0 ? `<p style="color: red;">Theo chính sách hủy phòng trễ, bạn bị giữ lại <b>${penaltyAmount.toLocaleString("vi-VN")} VNĐ</b> phí phạt hủy phòng.</p>` : "<p>Bạn được hoàn 100% tiền cọc. Tiền sẽ được hoàn về tài khoản của bạn trong 3-5 ngày làm việc.</p>"}
+        <p>Hy vọng sẽ được phục vụ bạn trong những dịp tới.</p>
+      </div>
+    `,
+  };
+  return await transporter.sendMail(mailOptions);
+};

@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useMemo } from "react";
@@ -48,12 +49,14 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 import BookingService from "../../services/bookingService";
 import RoomService from "../../services/roomService";
+import FolioService from "../../services/folioService";
+// IMPORT THÊM USERSERVICE
+import UserService from "../../services/userService";
 
-// Đồng bộ Theme Colors theo giao diện mới
 const COLORS = {
-  headerBg: "#5e35b1", // Xanh tím đậm cho Header Bảng
-  teal: "#009688", // Nút Làm mới, Tab Active, Icon View
-  orange: "#e65100", // Nút Khách Walk-in
+  headerBg: "#5e35b1",
+  teal: "#009688",
+  orange: "#e65100",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
 };
@@ -69,6 +72,7 @@ const AdminBookingsPage = () => {
   const [detailDialog, setDetailDialog] = useState({
     open: false,
     booking: null,
+    dynamicRoomTotal: null,
   });
 
   const [snackbar, setSnackbar] = useState({
@@ -97,24 +101,30 @@ const AdminBookingsPage = () => {
     note: "",
   });
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const res = await BookingService.getAllBookingsAdmin();
       setBookings(res.data || res);
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.message || "Lỗi khi lấy danh sách đơn",
-        severity: "error",
-      });
+      if (!isBackground) {
+        setSnackbar({
+          open: true,
+          message: err.response?.data?.message || "Lỗi khi lấy danh sách đơn",
+          severity: "error",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchBookings();
+    const interval = setInterval(() => {
+      fetchBookings(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const filteredBookings = useMemo(() => {
@@ -122,12 +132,20 @@ const AdminBookingsPage = () => {
       const searchStr =
         `${b.id} ${b.user_name} ${b.user_phone} ${b.room_number}`.toLowerCase();
       const matchesSearch = searchStr.includes(searchTerm.toLowerCase());
-      const matchesTab = tabValue === "All" || b.status === tabValue;
+
+      let matchesTab = false;
+      if (tabValue === "All") {
+        matchesTab = true;
+      } else if (tabValue === "Checked_out") {
+        matchesTab = b.status === "Checked_out" || b.status === "Cancelled";
+      } else {
+        matchesTab = b.status === tabValue;
+      }
+
       return matchesSearch && matchesTab;
     });
   }, [bookings, searchTerm, tabValue]);
 
-  // Cập nhật lại màu sắc Status Chip chuẩn theo hình ảnh
   const getStatusChip = (status) => {
     switch (status) {
       case "Pending":
@@ -291,8 +309,66 @@ const AdminBookingsPage = () => {
     });
   };
 
-  const handleViewDetails = (booking) => {
-    setDetailDialog({ open: true, booking });
+  const handleCheckOut = (id) => {
+    setConfirmDialog({
+      open: true,
+      title: "Thực hiện Check-out",
+      message: `Tiến hành tính tiền và Check-out cho đơn #${id}? Hệ thống sẽ xuất hóa đơn PDF ngay sau đó.`,
+      confirmColor: "success",
+      onConfirm: async () => {
+        try {
+          setIsSubmitting(true);
+          await BookingService.checkOutBooking(id);
+          setSnackbar({
+            open: true,
+            message: `Check-out thành công đơn #${id}`,
+            severity: "success",
+          });
+          fetchBookings();
+
+          const blobData = await BookingService.downloadInvoice(id);
+          const url = window.URL.createObjectURL(new Blob([blobData]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", `Invoice-HueHotel-${id}.pdf`);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          setSnackbar({
+            open: true,
+            message:
+              err.response?.data?.message || err.toString() || "Lỗi Check-out",
+            severity: "error",
+          });
+        } finally {
+          setIsSubmitting(false);
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+        }
+      },
+    });
+  };
+
+  const handleViewDetails = async (booking) => {
+    try {
+      setIsSubmitting(true);
+      const folioRes = await FolioService.getFolio(booking.id);
+      const dynamicRoomTotal = folioRes.data?.roomTotal || booking.total_amount;
+      setDetailDialog({
+        open: true,
+        booking: booking,
+        dynamicRoomTotal: dynamicRoomTotal,
+      });
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Không thể lấy chi tiết tài chính hiện tại",
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOpenWalkIn = async () => {
@@ -307,6 +383,28 @@ const AdminBookingsPage = () => {
         message: "Lỗi tải danh sách phòng",
         severity: "error",
       });
+    }
+  };
+
+  // TỰ ĐỘNG LẤY TÊN KHÁCH KHI LỄ TÂN NHẬP XONG SĐT
+  const handlePhoneBlur = async () => {
+    if (walkInForm.phone && walkInForm.phone.length >= 9) {
+      try {
+        const res = await UserService.getUserByPhone(walkInForm.phone);
+        if (res.data) {
+          setWalkInForm((prev) => ({
+            ...prev,
+            full_name: res.data.full_name,
+          }));
+          setSnackbar({
+            open: true,
+            message: `Tự động tải thông tin khách hàng cũ: ${res.data.full_name}`,
+            severity: "info",
+          });
+        }
+      } catch (err) {
+        // Không làm gì nếu không tìm thấy (Khách mới)
+      }
     }
   };
 
@@ -614,26 +712,46 @@ const AdminBookingsPage = () => {
                         justifyContent="flex-end"
                       >
                         {b.status === "Pending" && (
-                          <>
-                            <Tooltip title="Xác nhận đã nhận cọc">
-                              <IconButton
-                                color="warning"
-                                onClick={() => handleConfirm(b.id)}
-                                sx={{ bgcolor: "rgba(237, 108, 2, 0.1)" }}
-                              >
-                                <CheckCircleIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Hủy đơn">
-                              <IconButton
-                                color="error"
-                                onClick={() => handleCancel(b.id)}
-                                sx={{ bgcolor: "rgba(211, 47, 47, 0.1)" }}
-                              >
-                                <CancelIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </>
+                          <Button
+                            variant="contained"
+                            color="warning"
+                            size="small"
+                            onClick={() => handleConfirm(b.id)}
+                            sx={{
+                              fontWeight: "bold",
+                              borderRadius: "4px",
+                              boxShadow: "none",
+                            }}
+                          >
+                            XÁC NHẬN CỌC
+                          </Button>
+                        )}
+                        {(b.status === "Pending" ||
+                          b.status === "Confirmed") && (
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() => handleCancel(b.id)}
+                            sx={{ fontWeight: "bold", borderRadius: "4px" }}
+                          >
+                            HỦY ĐƠN
+                          </Button>
+                        )}
+                        {b.status === "Checked_in" && (
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            onClick={() => handleCheckOut(b.id)}
+                            sx={{
+                              fontWeight: "bold",
+                              borderRadius: "4px",
+                              boxShadow: "none",
+                            }}
+                          >
+                            CHECK-OUT
+                          </Button>
                         )}
                         {b.status === "Confirmed" && (
                           <Button
@@ -672,7 +790,6 @@ const AdminBookingsPage = () => {
         </TableContainer>
       </Paper>
 
-      {/* =============================================================== */}
       {/* DIALOG: XÁC NHẬN CHUNG (CONFIRM) */}
       <Dialog
         disableScrollLock={true}
@@ -714,7 +831,6 @@ const AdminBookingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* =============================================================== */}
       {/* SNACKBAR THÔNG BÁO NỔI */}
       <Snackbar
         open={snackbar.open}
@@ -732,12 +848,17 @@ const AdminBookingsPage = () => {
         </Alert>
       </Snackbar>
 
-      {/* =============================================================== */}
-      {/* DIALOG: XEM CHI TIẾT ĐƠN HÀNG (GIỮ NGUYÊN) */}
+      {/* DIALOG: XEM CHI TIẾT ĐƠN HÀNG */}
       <Dialog
         disableScrollLock={true}
         open={detailDialog.open}
-        onClose={() => setDetailDialog({ open: false, booking: null })}
+        onClose={() =>
+          setDetailDialog({
+            open: false,
+            booking: null,
+            dynamicRoomTotal: null,
+          })
+        }
         maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: "4px", bgcolor: "#f8f9fa" } }}
@@ -901,7 +1022,8 @@ const AdminBookingsPage = () => {
                         </Typography>
                         <Typography variant="body2" fontWeight="bold">
                           {parseFloat(
-                            detailDialog.booking.total_amount,
+                            detailDialog.dynamicRoomTotal ||
+                              detailDialog.booking.total_amount,
                           ).toLocaleString()}{" "}
                           đ
                         </Typography>
@@ -943,7 +1065,10 @@ const AdminBookingsPage = () => {
                           fontWeight="bold"
                         >
                           {(
-                            parseFloat(detailDialog.booking.total_amount) -
+                            parseFloat(
+                              detailDialog.dynamicRoomTotal ||
+                                detailDialog.booking.total_amount,
+                            ) -
                             parseFloat(
                               detailDialog.booking.discount_amount || 0,
                             )
@@ -1019,7 +1144,13 @@ const AdminBookingsPage = () => {
               sx={{ p: 3, bgcolor: "white", borderTop: "1px solid #e0e0e0" }}
             >
               <Button
-                onClick={() => setDetailDialog({ open: false, booking: null })}
+                onClick={() =>
+                  setDetailDialog({
+                    open: false,
+                    booking: null,
+                    dynamicRoomTotal: null,
+                  })
+                }
                 variant="contained"
                 color="primary"
                 sx={{ px: 4, boxShadow: "none" }}
@@ -1031,147 +1162,268 @@ const AdminBookingsPage = () => {
         )}
       </Dialog>
 
-      {/* =============================================================== */}
       {/* DIALOG: TẠO ĐƠN KHÁCH WALK-IN */}
       <Dialog
         disableScrollLock={true}
         open={walkInDialog}
         onClose={() => setWalkInDialog(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{ sx: { borderRadius: "12px", bgcolor: "#f8fafc" } }}
       >
         <DialogTitle
-          sx={{ bgcolor: COLORS.orange, color: "white", fontWeight: "bold" }}
+          sx={{
+            bgcolor: COLORS.orange,
+            color: "white",
+            fontWeight: "bold",
+            textAlign: "center",
+            py: 2,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
         >
-          Làm thủ tục nhận phòng trực tiếp (Walk-in)
+          LÀM THỦ TỤC NHẬN PHÒNG TRỰC TIẾP (WALK-IN)
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Khách sẽ được <b>Check-in ngay lập tức</b>. Hãy chắc chắn bạn đã thu
-            tiền mặt hoặc quẹt thẻ của khách tại quầy.
+
+        <DialogContent sx={{ pt: 3, pb: 2 }}>
+          <Alert
+            severity="info"
+            sx={{ mb: 3, borderRadius: "8px", border: "1px solid #bae6fd" }}
+          >
+            Hệ thống tự động điền tên nếu SĐT đã tồn tại. Khách sẽ được{" "}
+            <b>Check-in ngay</b> sau khi hoàn tất.
           </Alert>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Họ tên khách (*)"
-                value={walkInForm.full_name}
-                onChange={(e) =>
-                  setWalkInForm({ ...walkInForm, full_name: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Số điện thoại (*)"
-                value={walkInForm.phone}
-                onChange={(e) =>
-                  setWalkInForm({ ...walkInForm, phone: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Chọn phòng trống (*)</InputLabel>
-                <Select
-                  value={walkInForm.room_id}
-                  label="Chọn phòng trống (*)"
-                  onChange={(e) =>
-                    setWalkInForm({ ...walkInForm, room_id: e.target.value })
-                  }
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              bgcolor: "white",
+            }}
+          >
+            <Grid container spacing={3}>
+              {/* CỘT 1: SỐ ĐIỆN THOẠI */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
                 >
-                  {availableRooms.map((r) => (
-                    <MenuItem key={r.id} value={r.id}>
-                      Phòng {r.room_number} - {r.type_name}
+                  Số điện thoại liên hệ (*)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={walkInForm.phone}
+                  onChange={(e) =>
+                    setWalkInForm({ ...walkInForm, phone: e.target.value })
+                  }
+                  onBlur={handlePhoneBlur}
+                  placeholder="Gõ SĐT khách..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* CỘT 2: HỌ TÊN KHÁCH */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Họ tên khách hàng (*)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={walkInForm.full_name}
+                  onChange={(e) =>
+                    setWalkInForm({ ...walkInForm, full_name: e.target.value })
+                  }
+                  placeholder="Nhập họ và tên..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* HÀNG 2: CHỌN PHÒNG (CHIẾM 100% CHIỀU RỘNG) */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Chọn phòng trống (*)
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={walkInForm.room_id}
+                    displayEmpty
+                    onChange={(e) =>
+                      setWalkInForm({ ...walkInForm, room_id: e.target.value })
+                    }
+                  >
+                    <MenuItem value="" disabled>
+                      -- Chọn phòng còn trống --
                     </MenuItem>
-                  ))}
-                  {availableRooms.length === 0 && (
-                    <MenuItem disabled>Hết phòng trống!</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
+                    {availableRooms.map((r) => (
+                      <MenuItem key={r.id} value={r.id}>
+                        Phòng {r.room_number} - {r.type_name}
+                      </MenuItem>
+                    ))}
+                    {availableRooms.length === 0 && (
+                      <MenuItem disabled>Hết phòng trống!</MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* HÀNG 3: NGÀY NHẬN (LOCKED) */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Ngày nhận phòng (Hôm nay)
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  value={walkInForm.check_in}
+                  disabled
+                  sx={{ bgcolor: "#f1f5f9" }}
+                />
+              </Grid>
+
+              {/* HÀNG 3: NGÀY TRẢ DỰ KIẾN */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Ngày trả phòng dự kiến (*)
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  value={walkInForm.check_out}
+                  onChange={(e) =>
+                    setWalkInForm({ ...walkInForm, check_out: e.target.value })
+                  }
+                  error={
+                    new Date(walkInForm.check_in) >=
+                    new Date(walkInForm.check_out)
+                  }
+                />
+              </Grid>
+
+              {/* HÀNG 4: TIỀN ĐÃ THU */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Tiền mặt/Chuyển khoản đã thu (VNĐ)
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="number"
+                  size="small"
+                  value={walkInForm.deposit_amount}
+                  onChange={(e) =>
+                    setWalkInForm({
+                      ...walkInForm,
+                      deposit_amount: e.target.value,
+                    })
+                  }
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">đ</InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* HÀNG 4: GHI CHÚ */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
+                  Ghi chú (Yêu cầu thêm)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={walkInForm.note}
+                  onChange={(e) =>
+                    setWalkInForm({ ...walkInForm, note: e.target.value })
+                  }
+                  placeholder="Ví dụ: Khách ở tầng cao..."
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label="Ngày Check-in"
-                InputLabelProps={{ shrink: true }}
-                value={walkInForm.check_in}
-                disabled
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label="Ngày Check-out dự kiến (*)"
-                InputLabelProps={{ shrink: true }}
-                value={walkInForm.check_out}
-                onChange={(e) =>
-                  setWalkInForm({ ...walkInForm, check_out: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Tiền mặt/Quẹt thẻ đã thu (VNĐ)"
-                value={walkInForm.deposit_amount}
-                onChange={(e) =>
-                  setWalkInForm({
-                    ...walkInForm,
-                    deposit_amount: e.target.value,
-                  })
-                }
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">đ</InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={2}
-                label="Ghi chú thêm"
-                value={walkInForm.note}
-                onChange={(e) =>
-                  setWalkInForm({ ...walkInForm, note: e.target.value })
-                }
-              />
-            </Grid>
-          </Grid>
+          </Paper>
         </DialogContent>
-        <DialogActions sx={{ p: 3, borderTop: "1px solid #eee" }}>
+
+        <DialogActions
+          sx={{
+            p: 3,
+            bgcolor: "white",
+            borderTop: "1px solid #e2e8f0",
+            justifyContent: "space-between",
+          }}
+        >
           <Button
             onClick={() => setWalkInDialog(false)}
             color="inherit"
-            sx={{ textTransform: "none" }}
+            sx={{ fontWeight: "bold", textTransform: "none" }}
           >
             Hủy bỏ
           </Button>
           <Button
             onClick={handleSubmitWalkIn}
             variant="contained"
+            disabled={isSubmitting}
             sx={{
               fontWeight: "bold",
               bgcolor: COLORS.orange,
+              px: 4,
+              py: 1,
               textTransform: "none",
+              "&:hover": { bgcolor: "#d84315", boxShadow: "none" },
               boxShadow: "none",
-              "&:hover": { bgcolor: "#d84315" },
             }}
-            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              "XÁC NHẬN VÀ GIAO PHÒNG"
+              "XÁC NHẬN & GIAO PHÒNG"
             )}
           </Button>
         </DialogActions>

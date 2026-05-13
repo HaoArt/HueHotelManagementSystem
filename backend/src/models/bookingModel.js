@@ -62,10 +62,11 @@ const Booking = {
   },
   getById: async (id) => {
     const [rows] = await db.query(
-      `SELECT b.*, r.room_number, rt.base_price, rt.type_name 
+      `SELECT b.*, r.room_number, rt.base_price, rt.type_name, u.full_name, u.phone, u.email 
        FROM bookings b 
-       JOIN rooms r ON b.room_id = r.id 
+       LEFT JOIN rooms r ON b.room_id = r.id 
        JOIN room_types rt ON b.room_type_id = rt.id 
+       LEFT JOIN users u ON b.user_id = u.id
        WHERE b.id = ?`,
       [id],
     );
