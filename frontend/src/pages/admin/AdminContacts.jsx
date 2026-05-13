@@ -34,11 +34,26 @@ import api from "../../services/api"; // Lấy instance api để gọi hàm rea
 
 const COLORS = {
   primary: "#5e35b1",
-  headerBg: "#5e35b1",
+  navy: "#0b1b3f",
   teal: "#009688",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
   textMain: "#1a1a1a",
+};
+
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminContacts = () => {
@@ -177,7 +192,14 @@ const AdminContacts = () => {
 
   if (loading && contacts.length === 0) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
@@ -186,52 +208,71 @@ const AdminContacts = () => {
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
         minHeight: "100vh",
-        overflowX: "hidden",
-        pb: 10,
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: { xs: "stretch", sm: "flex-start" },
           justifyContent: "space-between",
-          gap: 3,
-          mb: 4,
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "68%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: COLORS.textMain, letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
             gutterBottom
           >
             Hộp Thư Liên Hệ
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Tiếp nhận, xử lý và phản hồi trực tiếp qua Email của khách hàng.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<RefreshIcon />}
-          onClick={fetchContacts}
-          disableElevation
-          sx={{
-            bgcolor: COLORS.teal,
-            "&:hover": { bgcolor: "#00796b" },
-            fontWeight: "bold",
-            borderRadius: "4px",
-            px: 3,
-            py: 1,
-          }}
-        >
-          LÀM MỚI
-        </Button>
+        <Stack direction="row" spacing={1.25} alignItems="center">
+          <Chip
+            label={`${contacts.length} liên hệ`}
+            sx={{
+              bgcolor: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(11,27,63,0.12)",
+              color: COLORS.navy,
+              fontWeight: 700,
+              borderRadius: 1,
+              px: 0.5,
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchContacts}
+            disableElevation
+            sx={{
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              boxShadow: "0 10px 22px rgba(11, 27, 63, 0.24)",
+              fontWeight: 700,
+              textTransform: "none",
+              borderRadius: 1,
+              px: 2.25,
+              py: 1,
+              "&:hover": { boxShadow: "0 14px 26px rgba(11, 27, 63, 0.32)" },
+            }}
+          >
+            Làm mới
+          </Button>
+        </Stack>
       </Box>
 
       {error && (
@@ -243,10 +284,10 @@ const AdminContacts = () => {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "4px",
-          border: `1px solid ${COLORS.border}`,
+          ...glassCardSx,
+          border: "1px solid rgba(11,27,63,0.12)",
           overflow: "hidden",
-          bgcolor: "white",
+          bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
         <TableContainer sx={{ maxHeight: "75vh", overflowX: "auto" }}>
@@ -255,27 +296,33 @@ const AdminContacts = () => {
               <TableRow>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   THỜI GIAN
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   NGƯỜI GỬI
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                     width: "25%",
                   }}
                 >
@@ -283,18 +330,22 @@ const AdminContacts = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   TRẠNG THÁI
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                     textAlign: "right",
                   }}
                 >
@@ -317,8 +368,19 @@ const AdminContacts = () => {
                     key={item.id}
                     hover
                     sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
-                      bgcolor: item.status === "New" ? "#ffebee" : "inherit",
+                      transition: "background-color 0.2s ease",
+                      "& td": {
+                        borderBottom: "1px solid rgba(11,27,63,0.08)",
+                        py: 1.5,
+                      },
+                      bgcolor: item.status === "New" ? "rgba(211,47,47,0.05)" : "inherit",
+                      "&:nth-of-type(even)": {
+                        backgroundColor:
+                          item.status === "New" ? "rgba(211,47,47,0.05)" : "rgba(11,27,63,0.015)",
+                      },
+                      "&:hover": {
+                        bgcolor: "rgba(0,150,136,0.06)",
+                      },
                     }}
                   >
                     <TableCell>
@@ -394,7 +456,13 @@ const AdminContacts = () => {
                               sx={{
                                 color: "#1976d2",
                                 bgcolor: "rgba(25, 118, 210, 0.1)",
-                                borderRadius: "4px",
+                                border: "1px solid rgba(25,118,210,0.2)",
+                                borderRadius: 1,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  bgcolor: "rgba(25,118,210,0.16)",
+                                  transform: "translateY(-1px)",
+                                },
                               }}
                               size="small"
                             >
@@ -408,7 +476,13 @@ const AdminContacts = () => {
                             sx={{
                               color: COLORS.teal,
                               bgcolor: "rgba(0, 150, 136, 0.1)",
-                              borderRadius: "4px",
+                              border: "1px solid rgba(0,150,136,0.2)",
+                              borderRadius: 1,
+                              transition: "all 0.2s ease",
+                              "&:hover": {
+                                bgcolor: "rgba(0, 150, 136, 0.18)",
+                                transform: "translateY(-1px)",
+                              },
                             }}
                             size="small"
                           >
@@ -421,7 +495,13 @@ const AdminContacts = () => {
                             sx={{
                               color: "#d32f2f",
                               bgcolor: "rgba(211, 47, 47, 0.1)",
-                              borderRadius: "4px",
+                              border: "1px solid rgba(211,47,47,0.2)",
+                              borderRadius: 1,
+                              transition: "all 0.2s ease",
+                              "&:hover": {
+                                bgcolor: "rgba(211, 47, 47, 0.18)",
+                                transform: "translateY(-1px)",
+                              },
                             }}
                             size="small"
                           >
@@ -445,10 +525,16 @@ const AdminContacts = () => {
         onClose={() => setDetailDialog({ open: false, data: null })}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ bgcolor: COLORS.headerBg, color: "white", fontWeight: "bold" }}
+          sx={{ bgcolor: COLORS.navy, color: "white", fontWeight: 800 }}
         >
           Chi tiết tin nhắn
         </DialogTitle>
@@ -506,7 +592,7 @@ const AdminContacts = () => {
               sx={{
                 p: 2,
                 bgcolor: "#f9f9f9",
-                borderRadius: "4px",
+                borderRadius: 1,
                 border: `1px solid ${COLORS.border}`,
                 minHeight: "150px",
               }}
@@ -527,9 +613,14 @@ const AdminContacts = () => {
             variant="contained"
             disableElevation
             sx={{
-              bgcolor: COLORS.primary,
-              fontWeight: "bold",
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              fontWeight: 700,
+              borderRadius: 1,
               textTransform: "none",
+              boxShadow: "0 10px 20px rgba(11,27,63,0.24)",
+              "&:hover": {
+                boxShadow: "0 14px 26px rgba(11,27,63,0.32)",
+              },
             }}
           >
             ĐÓNG
@@ -544,13 +635,19 @@ const AdminContacts = () => {
         onClose={() => setReplyDialog({ open: false, data: null, message: "" })}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
           sx={{
-            bgcolor: "#1976d2",
+            background: "linear-gradient(135deg, #0b1b3f 0%, #1976d2 100%)",
             color: "white",
-            fontWeight: "bold",
+            fontWeight: 800,
             display: "flex",
             alignItems: "center",
             gap: 1,
@@ -574,6 +671,12 @@ const AdminContacts = () => {
               setReplyDialog({ ...replyDialog, message: e.target.value })
             }
             autoFocus
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 1,
+                bgcolor: "rgba(255,255,255,0.94)",
+              },
+            }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
@@ -591,7 +694,15 @@ const AdminContacts = () => {
             color="primary"
             disableElevation
             disabled={isSending}
-            sx={{ fontWeight: "bold" }}
+            sx={{
+              fontWeight: 700,
+              borderRadius: 1,
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              boxShadow: "0 10px 20px rgba(11,27,63,0.2)",
+              "&:hover": {
+                boxShadow: "0 14px 26px rgba(11,27,63,0.28)",
+              },
+            }}
           >
             {isSending ? (
               <CircularProgress size={24} color="inherit" />
@@ -607,9 +718,16 @@ const AdminContacts = () => {
         disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            minWidth: 350,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", color: "error.main" }}>
+        <DialogTitle sx={{ fontWeight: 800, color: "error.main" }}>
           {confirmDialog.title}
         </DialogTitle>
         <DialogContent>
@@ -627,6 +745,7 @@ const AdminContacts = () => {
             variant="contained"
             color="error"
             disableElevation
+            sx={{ borderRadius: 1, fontWeight: 700, textTransform: "none" }}
           >
             Xác nhận
           </Button>
@@ -644,7 +763,7 @@ const AdminContacts = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

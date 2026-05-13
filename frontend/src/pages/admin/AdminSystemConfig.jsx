@@ -17,13 +17,34 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
-import ConfigService from "../../services/configService"; // Dùng service đã sửa
+import ConfigService from "../../services/configService"; 
 
+// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY
 const COLORS = {
   primary: "#5e35b1",
+  navy: "#0b1b3f",
   teal: "#009688",
+  orange: "#e65100",
+  error: "#d32f2f",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
+  textMain: "#1a1a1a",
+};
+
+// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminSystemConfig = () => {
@@ -70,7 +91,7 @@ const AdminSystemConfig = () => {
       await ConfigService.updateConfigs(settings);
       setSnackbar({
         open: true,
-        message: "Cấu hình hệ thống đã được cập nhật!",
+        message: "Cấu hình hệ thống đã được cập nhật thành công!",
         severity: "success",
       });
     } catch (err) {
@@ -86,94 +107,117 @@ const AdminSystemConfig = () => {
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-        <CircularProgress color="primary" />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+        <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
 
   return (
-    <Box sx={{ p: 4, bgcolor: COLORS.bgLight, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        p: { xs: 2, sm: 3, md: 4 },
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
+        pb: 10,
+      }}
+    >
+      {/* HEADER ĐỒNG BỘ MỚI */}
       <Box
         sx={{
-          mb: 4,
           display: "flex",
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
+          flexWrap: "wrap",
           justifyContent: "space-between",
-          alignItems: "flex-start",
         }}
       >
-        <Box>
+        <Box sx={{ maxWidth: { xs: "100%", md: "68%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: "#1a1a1a", letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Cấu Hình Hệ Thống
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             Quản lý thông tin vận hành, quy định đặt phòng và chính sách cọc.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSave}
-          disabled={isSubmitting}
-          sx={{
-            bgcolor: COLORS.teal,
-            "&:hover": { bgcolor: "#00796b" },
-            fontWeight: "bold",
-            px: 4,
-            py: 1.2,
-            boxShadow: "none",
-          }}
-        >
-          {isSubmitting ? (
-            <CircularProgress size={24} color="inherit" />
-          ) : (
-            "LƯU THAY ĐỔI"
-          )}
-        </Button>
+        
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={isSubmitting}
+            disableElevation
+            sx={{
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", // Nút gradient đồng bộ
+              fontWeight: 700,
+              borderRadius: 1,
+              textTransform: "none",
+              px: 3,
+              py: 1.2,
+              boxShadow: "0 10px 20px rgba(11,27,63,0.2)",
+              "&:hover": { boxShadow: "0 12px 24px rgba(11,27,63,0.28)" },
+            }}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "LƯU THAY ĐỔI"
+            )}
+          </Button>
+        </Box>
       </Box>
 
+      {/* CONTAINER FORM GLASSMORPHISM */}
       <Paper
         elevation={0}
         sx={{
-          p: 4,
-          borderRadius: "8px",
-          border: `1px solid ${COLORS.border}`,
-          bgcolor: "white",
+          ...glassCardSx,
+          p: { xs: 3, md: 4 },
+          border: "1px solid rgba(11,27,63,0.12)",
         }}
       >
         <Stack spacing={4}>
           <Box>
             <Typography
               variant="h6"
-              fontWeight="bold"
+              fontWeight="800"
               sx={{
-                color: COLORS.primary,
-                mb: 1,
+                color: COLORS.navy,
+                mb: 2,
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
+                letterSpacing: "-0.02em"
               }}
             >
-              <SettingsSuggestIcon /> Thông tin cơ bản & Chính sách
+              <SettingsSuggestIcon sx={{ color: COLORS.teal }} /> 
+              Thông tin cơ bản & Chính sách
             </Typography>
-            <Divider sx={{ mb: 3 }} />
+            <Divider sx={{ mb: 4, borderColor: "rgba(11,27,63,0.1)" }} />
 
             <Grid container spacing={4}>
               {configs.map((config) => (
                 <Grid item xs={12} md={6} key={config.id}>
                   <Typography
                     variant="body2"
-                    fontWeight="bold"
-                    sx={{ mb: 1, color: "#333" }}
+                    fontWeight="700"
+                    sx={{ mb: 1, color: COLORS.navy }}
                   >
                     {config.display_name}
                   </Typography>
                   <TextField
                     fullWidth
-                    size="small"
+                    size="medium"
                     value={config.config_value}
                     onChange={(e) =>
                       handleChange(config.config_key, e.target.value)
@@ -184,8 +228,24 @@ const AdminSystemConfig = () => {
                       // Tự động thêm đơn vị % nếu là trường đặt cọc
                       endAdornment:
                         config.config_key === "deposit_percent" ? (
-                          <InputAdornment position="end">%</InputAdornment>
+                          <InputAdornment position="end">
+                            <Typography fontWeight="bold" color="text.secondary">%</Typography>
+                          </InputAdornment>
                         ) : null,
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        bgcolor: "rgba(255,255,255,0.9)", // Nền trắng nhẹ cho ô input
+                        borderRadius: 1,
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          bgcolor: "#fff"
+                        },
+                        "&.Mui-focused": {
+                          bgcolor: "#fff",
+                          boxShadow: "0 0 0 2px rgba(0, 150, 136, 0.2)" // Viền xanh teal khi focus
+                        }
+                      }
                     }}
                   />
                 </Grid>
@@ -204,7 +264,7 @@ const AdminSystemConfig = () => {
         <Alert
           variant="filled"
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

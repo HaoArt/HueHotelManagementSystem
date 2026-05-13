@@ -54,11 +54,28 @@ import FolioService from "../../services/folioService";
 import UserService from "../../services/userService";
 
 const COLORS = {
-  headerBg: "#5e35b1",
+  primary: "#5e35b1",
+  navy: "#0b1b3f",
   teal: "#009688",
   orange: "#e65100",
+  error: "#d32f2f",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
+};
+
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminBookingsPage = () => {
@@ -155,8 +172,8 @@ const AdminBookingsPage = () => {
             sx={{
               bgcolor: "#fff3e0",
               color: "#ed6c02",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -168,8 +185,8 @@ const AdminBookingsPage = () => {
             sx={{
               bgcolor: "#e3f2fd",
               color: "#1976d2",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -181,8 +198,8 @@ const AdminBookingsPage = () => {
             sx={{
               bgcolor: "#e8f5e9",
               color: "#2e7d32",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -194,8 +211,8 @@ const AdminBookingsPage = () => {
             sx={{
               bgcolor: "#f5f5f5",
               color: "#333",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -206,10 +223,10 @@ const AdminBookingsPage = () => {
             label="Đã hủy"
             sx={{
               bgcolor: "white",
-              color: "#d32f2f",
-              border: "1px solid #d32f2f",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              color: COLORS.error,
+              border: `1px solid ${COLORS.error}`,
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -461,7 +478,14 @@ const AdminBookingsPage = () => {
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
@@ -469,69 +493,86 @@ const AdminBookingsPage = () => {
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
         minHeight: "100vh",
-        overflowX: "hidden",
-        pb: 10,
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
       {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          gap: 3,
-          mb: 4,
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "68%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: "#001529", letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Quản Lý Đặt Phòng
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             Điều phối Check-in, Check-out và xác nhận thanh toán
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
+          <Chip
+            label={`${filteredBookings.length} đơn hiển thị`}
+            sx={{
+              bgcolor: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(11,27,63,0.12)",
+              color: COLORS.navy,
+              fontWeight: 700,
+              borderRadius: 1,
+              px: 0.5,
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+            }}
+          />
           <Button
             variant="contained"
             onClick={handleOpenWalkIn}
             startIcon={<AddCircleIcon />}
             sx={{
-              bgcolor: COLORS.orange,
-              "&:hover": { bgcolor: "#d84315" },
-              fontWeight: "bold",
-              borderRadius: "4px",
-              px: 3,
+              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
+              fontWeight: 700,
+              borderRadius: 1,
+              textTransform: "none",
+              px: 2.25,
               py: 1,
-              boxShadow: "none",
+              boxShadow: "0 10px 20px rgba(230, 81, 0, 0.24)",
+              "&:hover": { boxShadow: "0 14px 24px rgba(230,81,0,0.32)" },
             }}
           >
-            KHÁCH WALK-IN
+            Khách Walk-in
           </Button>
           <Button
             variant="contained"
             onClick={fetchBookings}
             sx={{
-              bgcolor: COLORS.teal,
-              "&:hover": { bgcolor: "#00796b" },
-              fontWeight: "bold",
-              borderRadius: "4px",
-              px: 3,
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              fontWeight: 700,
+              borderRadius: 1,
+              textTransform: "none",
+              px: 2.25,
               py: 1,
-              boxShadow: "none",
+              boxShadow: "0 10px 22px rgba(11, 27, 63, 0.24)",
+              "&:hover": { boxShadow: "0 14px 26px rgba(11, 27, 63, 0.32)" },
             }}
           >
-            LÀM MỚI
+            Làm mới
           </Button>
-        </Box>
+        </Stack>
       </Box>
 
       {error && (
@@ -543,12 +584,12 @@ const AdminBookingsPage = () => {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "4px",
-          border: `1px solid ${COLORS.border}`,
+          ...glassCardSx,
+          border: "1px solid rgba(11,27,63,0.12)",
           overflow: "hidden",
         }}
       >
-        <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "white" }}>
+        <Box sx={{ borderBottom: "1px solid rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.84)" }}>
           <Tabs
             value={tabValue}
             onChange={(e, val) => setTabValue(val)}
@@ -556,14 +597,17 @@ const AdminBookingsPage = () => {
             scrollButtons="auto"
             sx={{
               "& .MuiTab-root": {
-                fontWeight: "bold",
+                fontWeight: 700,
                 textTransform: "none",
-                fontSize: "1rem",
+                fontSize: "0.94rem",
+                borderRadius: 1,
+                minHeight: 46,
               },
               "& .Mui-selected": { color: `${COLORS.teal} !important` },
               "& .MuiTabs-indicator": {
                 backgroundColor: COLORS.teal,
-                height: 3,
+                height: 4,
+                borderRadius: 999,
               },
             }}
           >
@@ -591,7 +635,7 @@ const AdminBookingsPage = () => {
           </Tabs>
         </Box>
 
-        <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0", bgcolor: "white" }}>
+        <Box sx={{ p: 2, borderBottom: "1px solid rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.86)" }}>
           <TextField
             fullWidth
             placeholder="Tìm theo Mã đơn, Tên khách, SĐT hoặc Số phòng..."
@@ -604,41 +648,49 @@ const AdminBookingsPage = () => {
                 </InputAdornment>
               ),
               sx: {
-                borderRadius: "4px",
-                bgcolor: "white",
-                "& fieldset": { borderColor: COLORS.border },
+                borderRadius: 1,
+                bgcolor: "rgba(255,255,255,0.95)",
+                "& fieldset": { borderColor: "rgba(11,27,63,0.18)" },
+                "&:hover fieldset": { borderColor: "rgba(0,150,136,0.38)" },
+                "&.Mui-focused fieldset": { borderColor: COLORS.teal },
               },
             }}
             size="small"
           />
         </Box>
 
-        <TableContainer sx={{ bgcolor: "white", overflowX: "auto" }}>
+        <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
           <Table sx={{ minWidth: 900 }}>
-            <TableHead sx={{ bgcolor: COLORS.headerBg }}>
+            <TableHead
+              sx={{
+                background:
+                  "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
+              }}
+            >
               <TableRow>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Mã
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Khách hàng
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Phòng
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Lịch trình
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Tài chính
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
                   Trạng thái
                 </TableCell>
                 <TableCell
                   sx={{
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                     textAlign: "right",
                   }}
                 >
@@ -661,7 +713,17 @@ const AdminBookingsPage = () => {
                     key={b.id}
                     hover
                     sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
+                      transition: "background-color 0.2s ease",
+                      "& td": {
+                        borderBottom: "1px solid rgba(11,27,63,0.08)",
+                        py: 1.5,
+                      },
+                      "&:nth-of-type(even)": {
+                        bgcolor: "rgba(11,27,63,0.018)",
+                      },
+                      "&:hover": {
+                        bgcolor: "rgba(0,150,136,0.07)",
+                      },
                     }}
                   >
                     <TableCell fontWeight="bold">#{b.id}</TableCell>
@@ -718,9 +780,10 @@ const AdminBookingsPage = () => {
                             size="small"
                             onClick={() => handleConfirm(b.id)}
                             sx={{
-                              fontWeight: "bold",
-                              borderRadius: "4px",
+                              fontWeight: 700,
+                              borderRadius: 1,
                               boxShadow: "none",
+                              textTransform: "none",
                             }}
                           >
                             XÁC NHẬN CỌC
@@ -733,7 +796,7 @@ const AdminBookingsPage = () => {
                             color="error"
                             size="small"
                             onClick={() => handleCancel(b.id)}
-                            sx={{ fontWeight: "bold", borderRadius: "4px" }}
+                            sx={{ fontWeight: 700, borderRadius: 1, textTransform: "none" }}
                           >
                             HỦY ĐƠN
                           </Button>
@@ -745,9 +808,10 @@ const AdminBookingsPage = () => {
                             size="small"
                             onClick={() => handleCheckOut(b.id)}
                             sx={{
-                              fontWeight: "bold",
-                              borderRadius: "4px",
+                              fontWeight: 700,
+                              borderRadius: 1,
                               boxShadow: "none",
+                              textTransform: "none",
                             }}
                           >
                             CHECK-OUT
@@ -761,9 +825,10 @@ const AdminBookingsPage = () => {
                             startIcon={<PlayArrowIcon />}
                             onClick={() => handleCheckIn(b.id)}
                             sx={{
-                              fontWeight: "bold",
-                              borderRadius: "4px",
+                              fontWeight: 700,
+                              borderRadius: 1,
                               boxShadow: "none",
+                              textTransform: "none",
                             }}
                           >
                             CHECK-IN
@@ -775,6 +840,13 @@ const AdminBookingsPage = () => {
                             sx={{
                               color: COLORS.teal,
                               bgcolor: "rgba(0, 150, 136, 0.1)",
+                              border: "1px solid rgba(0,150,136,0.2)",
+                              borderRadius: 1,
+                              transition: "all 0.2s ease",
+                              "&:hover": {
+                                bgcolor: "rgba(0, 150, 136, 0.18)",
+                                transform: "translateY(-1px)",
+                              },
                             }}
                           >
                             <VisibilityIcon />
@@ -795,7 +867,14 @@ const AdminBookingsPage = () => {
         disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            minWidth: 350,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
           sx={{
@@ -842,7 +921,7 @@ const AdminBookingsPage = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>
@@ -861,13 +940,20 @@ const AdminBookingsPage = () => {
         }
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px", bgcolor: "#f8f9fa" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            bgcolor: "#f8f9fa",
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         {detailDialog.booking && (
           <>
             <DialogTitle
               sx={{
-                bgcolor: "#5e35b1",
+                bgcolor: COLORS.navy,
                 color: "white",
                 display: "flex",
                 justifyContent: "space-between",
@@ -886,9 +972,10 @@ const AdminBookingsPage = () => {
                     elevation={0}
                     sx={{
                       p: 3,
-                      borderRadius: "4px",
-                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      border: "1px solid rgba(11,27,63,0.1)",
                       height: "100%",
+                      bgcolor: "rgba(255,255,255,0.92)",
                     }}
                   >
                     <Stack
@@ -986,11 +1073,12 @@ const AdminBookingsPage = () => {
                     elevation={0}
                     sx={{
                       p: 3,
-                      borderRadius: "4px",
-                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      border: "1px solid rgba(11,27,63,0.1)",
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
+                      bgcolor: "rgba(255,255,255,0.92)",
                     }}
                   >
                     <Stack
@@ -1082,7 +1170,7 @@ const AdminBookingsPage = () => {
                       sx={{
                         p: 2,
                         bgcolor: "#fff3e0",
-                        borderRadius: "4px",
+                        borderRadius: 1,
                         mb: 3,
                       }}
                     >
@@ -1125,7 +1213,7 @@ const AdminBookingsPage = () => {
                         flexGrow: 1,
                         p: 2,
                         bgcolor: "#f5f5f5",
-                        borderRadius: "4px",
+                        borderRadius: 1,
                         fontStyle: detailDialog.booking.note
                           ? "normal"
                           : "italic",
@@ -1169,13 +1257,20 @@ const AdminBookingsPage = () => {
         onClose={() => setWalkInDialog(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "12px", bgcolor: "#f8fafc" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            bgcolor: "#f8fafc",
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
+          },
+        }}
       >
         <DialogTitle
           sx={{
-            bgcolor: COLORS.orange,
+            background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
             color: "white",
-            fontWeight: "bold",
+            fontWeight: 800,
             textAlign: "center",
             py: 2,
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
@@ -1187,7 +1282,7 @@ const AdminBookingsPage = () => {
         <DialogContent sx={{ pt: 3, pb: 2 }}>
           <Alert
             severity="info"
-            sx={{ mb: 3, borderRadius: "8px", border: "1px solid #bae6fd" }}
+            sx={{ mb: 3, borderRadius: 1, border: "1px solid #bae6fd" }}
           >
             Hệ thống tự động điền tên nếu SĐT đã tồn tại. Khách sẽ được{" "}
             <b>Check-in ngay</b> sau khi hoàn tất.
@@ -1197,7 +1292,7 @@ const AdminBookingsPage = () => {
             elevation={0}
             sx={{
               p: 4,
-              borderRadius: "12px",
+              borderRadius: 1,
               border: "1px solid #e2e8f0",
               bgcolor: "white",
             }}
@@ -1402,7 +1497,7 @@ const AdminBookingsPage = () => {
           <Button
             onClick={() => setWalkInDialog(false)}
             color="inherit"
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
           >
             Hủy bỏ
           </Button>
@@ -1411,13 +1506,14 @@ const AdminBookingsPage = () => {
             variant="contained"
             disabled={isSubmitting}
             sx={{
-              fontWeight: "bold",
-              bgcolor: COLORS.orange,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
               px: 4,
               py: 1,
+              borderRadius: 1,
               textTransform: "none",
-              "&:hover": { bgcolor: "#d84315", boxShadow: "none" },
-              boxShadow: "none",
+              "&:hover": { boxShadow: "0 12px 24px rgba(230,81,0,0.28)" },
+              boxShadow: "0 10px 20px rgba(230,81,0,0.2)",
             }}
           >
             {isSubmitting ? (
