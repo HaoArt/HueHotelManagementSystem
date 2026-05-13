@@ -11,7 +11,11 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Chip,
+  IconButton,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 // Icons
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
@@ -25,19 +29,25 @@ import DiscountIcon from "@mui/icons-material/Discount";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ContactMailIcon from "@mui/icons-material/ContactMail";
 import PriceChangeIcon from "@mui/icons-material/PriceChange";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { AuthContext } from "../../../context/AuthContext";
 
-const drawerWidth = 280;
+const drawerWidth = 284;
+const collapsedDrawerWidth = 92;
 
+// BẢNG MÀU VÀ THIẾT KẾ CỦA RIÊNG HÀO (GIỮ NGUYÊN 100%)
 const COLORS = {
-  sidebarBg: "#2b1977",
-  activeBg: "rgba(255, 255, 255, 0.12)",
-  accent: "#4db6ac",
+  sidebarBg:
+    "linear-gradient(180deg, rgba(11,27,63,0.94) 0%, rgba(14,34,76,0.92) 52%, rgba(10,22,51,0.95) 100%)",
+  activeBg:
+    "linear-gradient(90deg, rgba(0,150,136,0.26) 0%, rgba(255,255,255,0.16) 100%)",
+  activeGlow: "rgba(0, 150, 136, 0.42)",
+  accent: "#009688",
   textMain: "#ffffff",
-  textMuted: "rgba(255, 255, 255, 0.75)",
+  textMuted: "rgba(235, 242, 255, 0.8)",
 };
 
-// ĐÃ THÊM: Định nghĩa rõ quyền truy cập (roles) cho từng menu
 const menuItems = [
   {
     text: "Tổng quan",
@@ -57,8 +67,6 @@ const menuItems = [
     path: "/dashboard/rooms",
     roles: ["Admin", "Receptionist"],
   },
-
-  // CÁC CHỨC NĂNG CẤU HÌNH (Chỉ Admin mới được thấy)
   {
     text: "Phòng & Loại phòng",
     icon: <SettingsIcon />,
@@ -83,7 +91,6 @@ const menuItems = [
     path: "/dashboard/customers",
     roles: ["Admin", "Receptionist"],
   },
-
   {
     text: "Khách hàng liên hệ",
     icon: <ContactMailIcon />,
@@ -110,11 +117,22 @@ const menuItems = [
   },
 ];
 
-const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
-  // ĐÃ SỬA: Lấy thêm thuộc tính 'user' từ AuthContext để check role
+// NHẬN isCollapsed VÀ setIsCollapsed TỪ COMPONENT CHA (DashboardLayout)
+const Sidebar = ({
+  mobileOpen,
+  handleDrawerToggle,
+  isCollapsed,
+  setIsCollapsed,
+}) => {
   const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const muiTheme = useTheme();
+
+  const isCompactScreen = useMediaQuery(muiTheme.breakpoints.down("lg"));
+
+  // Tính toán trạng thái thu gọn cuối cùng để hiển thị
+  const currentCollapsed = isCollapsed || isCompactScreen;
 
   const handleLogout = () => {
     localStorage.clear();
@@ -122,47 +140,140 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     navigate("/");
   };
 
-  // TỰ ĐỘNG LỌC MENU DỰA TRÊN ROLE CỦA USER ĐANG ĐĂNG NHẬP
   const allowedMenuItems = menuItems.filter((item) =>
     item.roles.includes(user?.role),
   );
 
+  const toggleDesktopCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   const drawerContent = (
     <Box
       sx={{
-        bgcolor: COLORS.sidebarBg,
+        background: COLORS.sidebarBg,
         height: "100%",
         color: COLORS.textMain,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        position: "relative",
+        backdropFilter: "blur(14px)",
+        borderRight: "1px solid rgba(255,255,255,0.08)",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: -120,
+          right: -60,
+          width: 220,
+          height: 220,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(0,150,136,0.3) 0%, rgba(0,150,136,0) 70%)",
+          pointerEvents: "none",
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          left: -70,
+          bottom: -90,
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%)",
+          pointerEvents: "none",
+        },
       }}
     >
       <Toolbar
         sx={{
-          minHeight: "48px !important",
-          mt: 2,
-          mb: 1,
-          justifyContent: "center",
+          minHeight: "68px !important",
+          mt: 1.75,
+          mb: 0.75,
+          px: currentCollapsed ? 1.25 : 2.25,
+          justifyContent: currentCollapsed ? "center" : "space-between",
+          alignItems: "center",
+          transition: "padding 0.24s ease",
         }}
       >
-        <Typography
-          variant="h6"
-          fontWeight="900"
-          sx={{ letterSpacing: "1px", color: "white" }}
-        >
-          HUẾ HOTEL
-        </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <Typography
+            variant="subtitle1"
+            fontWeight={800}
+            sx={{
+              letterSpacing: "0.06em",
+              color: "white",
+              lineHeight: 1.1,
+              fontSize: currentCollapsed ? "0.95rem" : "1.02rem",
+              textAlign: currentCollapsed ? "center" : "left",
+            }}
+          >
+            {currentCollapsed ? "HH" : "HUE HOTEL"}
+          </Typography>
+          {!currentCollapsed && (
+            <Typography
+              variant="caption"
+              sx={{ color: COLORS.textMuted, letterSpacing: "0.04em" }}
+            >
+              Management Suite
+            </Typography>
+          )}
+        </Box>
+        {!currentCollapsed && (
+          <Chip
+            label={user?.role || "Admin"}
+            size="small"
+            sx={{
+              height: 24,
+              fontWeight: 700,
+              color: "#d7fff8",
+              bgcolor: "rgba(0,150,136,0.2)",
+              border: "1px solid rgba(0,150,136,0.35)",
+            }}
+          />
+        )}
       </Toolbar>
 
-      <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", mb: 1 }} />
+      {!isCompactScreen && (
+        <Box
+          sx={{
+            px: currentCollapsed ? 0.5 : 1,
+            mb: 0.8,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <IconButton
+            onClick={toggleDesktopCollapse}
+            size="small"
+            sx={{
+              color: "rgba(255,255,255,0.86)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              backgroundColor: "rgba(255,255,255,0.08)",
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.16)",
+              },
+            }}
+          >
+            {currentCollapsed ? (
+              <ChevronRightIcon fontSize="small" />
+            ) : (
+              <ChevronLeftIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Box>
+      )}
+
+      <Divider sx={{ bgcolor: "rgba(255,255,255,0.14)", mb: 1 }} />
 
       <List
         sx={{
           flexGrow: 1,
-          px: 2,
+          px: currentCollapsed ? 0.9 : 1.5,
           overflowY: "auto",
           overflowX: "hidden",
+          transition: "padding 0.24s ease",
           "&::-webkit-scrollbar": {
             width: "4px",
           },
@@ -176,74 +287,139 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           const isActive = location.pathname === item.path;
 
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.25 }}>
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.4 }}>
               <ListItemButton
                 component={Link}
                 to={item.path}
                 onClick={handleDrawerToggle}
                 sx={{
-                  borderRadius: "6px",
+                  minHeight: 44,
+                  borderRadius: "14px",
                   bgcolor: isActive ? COLORS.activeBg : "transparent",
                   color: isActive ? "white" : COLORS.textMuted,
-                  borderLeft: isActive
-                    ? `4px solid ${COLORS.accent}`
-                    : "4px solid transparent",
+                  border: "1px solid",
+                  borderColor: isActive
+                    ? "rgba(255,255,255,0.24)"
+                    : "transparent",
+                  justifyContent: currentCollapsed ? "center" : "flex-start",
                   "&:hover": {
-                    bgcolor: "rgba(255, 255, 255, 0.08)",
+                    bgcolor: "rgba(255, 255, 255, 0.11)",
                     color: "white",
-                    "& .MuiListItemIcon-root": { color: "white" },
+                    transform: currentCollapsed
+                      ? "translateY(-1px)"
+                      : "translateX(3px)",
+                    "& .MuiListItemIcon-root": {
+                      color: "white",
+                      transform: "scale(1.07)",
+                    },
                   },
-                  py: 0.8,
-                  px: 2,
-                  transition: "all 0.2s ease-in-out",
+                  ...(isActive && {
+                    boxShadow: `inset 0 0 0 1px ${COLORS.activeGlow}, 0 8px 20px rgba(0,150,136,0.18)`,
+                  }),
+                  py: 1.05,
+                  px: currentCollapsed ? 0.6 : 1.6,
+                  transition: "all 0.24s ease-in-out",
                 }}
               >
                 <ListItemIcon
                   sx={{
                     color: isActive ? COLORS.accent : COLORS.textMuted,
-                    minWidth: "36px",
-                    transition: "color 0.2s ease",
+                    minWidth: currentCollapsed ? 0 : "38px",
+                    justifyContent: "center",
+                    "& .MuiSvgIcon-root": {
+                      fontSize: "1.25rem",
+                    },
+                    transition: "all 0.24s ease",
                   }}
                 >
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontWeight: isActive ? "bold" : "500",
-                    fontSize: "0.9rem",
-                    whiteSpace: "nowrap",
-                  }}
-                />
+                {!currentCollapsed && (
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: "0.92rem",
+                      letterSpacing: "0.01em",
+                      whiteSpace: "nowrap",
+                    }}
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
 
-      <Box sx={{ p: 2, pt: 1 }}>
+      <Box sx={{ p: currentCollapsed ? 1.2 : 2, pt: 1 }}>
+        {!currentCollapsed && (
+          <Box
+            sx={{
+              p: 2,
+              mb: 2,
+              borderRadius: "12px",
+              bgcolor: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="caption"
+              display="block"
+              color="rgba(255,255,255,0.5)"
+              mb={0.5} // ĐÃ FIX LỖI Ở ĐÂY
+            >
+              Phiên bản hệ thống
+            </Typography>
+            <Chip
+              label="HueHotel v2.1.0"
+              size="small"
+              sx={{
+                bgcolor: "rgba(0,150,136,0.2)",
+                color: "#80cbc4",
+                fontWeight: 700,
+                fontSize: "0.7rem",
+                height: 22,
+              }}
+            />
+          </Box>
+        )}
+
         <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
             sx={{
-              borderRadius: "6px",
-              bgcolor: "#d32f2f",
+              borderRadius: "14px",
+              bgcolor: "rgba(220,38,38,0.92)",
               color: "#ffffff",
-              "&:hover": { bgcolor: "#b71c1c" },
-              py: 1,
-              px: 2,
+              justifyContent: currentCollapsed ? "center" : "flex-start",
+              "&:hover": {
+                bgcolor: "rgba(220,38,38,1)",
+                transform: "translateY(-1px)",
+              },
+              py: 1.1,
+              px: currentCollapsed ? 0.6 : 2,
+              transition: "all 0.24s ease",
             }}
           >
-            <ListItemIcon sx={{ color: "#ffffff", minWidth: "36px" }}>
+            <ListItemIcon
+              sx={{
+                color: "#ffffff",
+                minWidth: currentCollapsed ? 0 : "36px",
+                justifyContent: "center",
+              }}
+            >
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText
-              primary="Đăng xuất"
-              primaryTypographyProps={{
-                fontWeight: "bold",
-                fontSize: "0.9rem",
-              }}
-            />
+            {!currentCollapsed && (
+              <ListItemText
+                primary="Đăng xuất"
+                primaryTypographyProps={{
+                  fontWeight: "bold",
+                  fontSize: "0.9rem",
+                }}
+              />
+            )}
           </ListItemButton>
         </ListItem>
       </Box>
@@ -253,7 +429,11 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   return (
     <Box
       component="nav"
-      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      sx={{
+        width: { sm: currentCollapsed ? collapsedDrawerWidth : drawerWidth },
+        flexShrink: { sm: 0 },
+        transition: "width 0.24s ease",
+      }}
     >
       <Drawer
         variant="temporary"
@@ -264,8 +444,9 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           display: { xs: "block", sm: "none" },
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
-            width: drawerWidth,
-            border: "none",
+            width: "min(82vw, 320px)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            boxShadow: "12px 0 28px rgba(7,18,43,0.35)",
           },
         }}
       >
@@ -278,8 +459,11 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           display: { xs: "none", sm: "block" },
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
-            width: drawerWidth,
-            border: "none",
+            width: currentCollapsed ? collapsedDrawerWidth : drawerWidth,
+            transition: "width 0.24s ease",
+            overflowX: "hidden",
+            borderRight: "none",
+            boxShadow: "12px 0 30px rgba(7,18,43,0.2)",
           },
         }}
         open

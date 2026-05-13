@@ -24,11 +24,26 @@ import AuditService from "../../services/auditService";
 // Đồng bộ Theme Colors
 const COLORS = {
   primary: "#5e35b1", // Tím chủ đạo
-  headerBg: "#5e35b1", // Nền Header bảng
+  navy: "#0b1b3f",
   teal: "#009688",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
   textMain: "#1a1a1a",
+};
+
+const glassCardSx = {
+  borderRadius: 1,
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-3px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
 };
 
 const AdminAuditLogs = () => {
@@ -63,8 +78,8 @@ const AdminAuditLogs = () => {
             sx={{
               bgcolor: "#e8f5e9",
               color: "#2e7d32",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -76,8 +91,8 @@ const AdminAuditLogs = () => {
             sx={{
               bgcolor: "#ffebee",
               color: "#c62828",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -89,8 +104,8 @@ const AdminAuditLogs = () => {
             sx={{
               bgcolor: "#e3f2fd",
               color: "#1976d2",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -102,8 +117,8 @@ const AdminAuditLogs = () => {
             sx={{
               bgcolor: "#fff3e0",
               color: "#ed6c02",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
@@ -115,15 +130,15 @@ const AdminAuditLogs = () => {
             sx={{
               bgcolor: "#f5f5f5",
               color: "#616161",
-              fontWeight: "bold",
-              borderRadius: "4px",
+              fontWeight: 700,
+              borderRadius: 1,
             }}
             size="small"
           />
         );
       default:
         return (
-          <Chip label={action} sx={{ borderRadius: "4px" }} size="small" />
+          <Chip label={action} sx={{ borderRadius: 1 }} size="small" />
         );
     }
   };
@@ -154,7 +169,14 @@ const AdminAuditLogs = () => {
 
   if (loading && logs.length === 0) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
@@ -163,54 +185,72 @@ const AdminAuditLogs = () => {
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
         minHeight: "100vh",
-        overflowX: "hidden",
-        pb: 10,
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
       {/* HEADER */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: { xs: "stretch", sm: "flex-start" },
           justifyContent: "space-between",
-          gap: 3,
-          mb: 4,
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "70%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            sx={{ color: COLORS.textMain, letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
             gutterBottom
           >
             Nhật Ký Hệ Thống (Audit Logs)
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Theo dõi 100 thao tác cập nhật gần nhất của Nhân viên và Khách hàng.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<RefreshIcon />}
-          onClick={fetchLogs}
-          disableElevation
-          sx={{
-            bgcolor: COLORS.teal,
-            "&:hover": { bgcolor: "#00796b" },
-            fontWeight: "bold",
-            borderRadius: "4px",
-            px: 3,
-            py: 1,
-            textTransform: "none",
-          }}
-        >
-          LÀM MỚI
-        </Button>
+        <Stack direction="row" spacing={1.25} alignItems="center">
+          <Chip
+            label={`${logs.length} bản ghi`}
+            sx={{
+              bgcolor: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(11,27,63,0.12)",
+              color: COLORS.navy,
+              fontWeight: 700,
+              borderRadius: 1,
+              px: 0.5,
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchLogs}
+            disableElevation
+            sx={{
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              boxShadow: "0 10px 22px rgba(11, 27, 63, 0.24)",
+              fontWeight: 700,
+              borderRadius: 1,
+              px: 2.25,
+              py: 1,
+              textTransform: "none",
+              "&:hover": { boxShadow: "0 14px 26px rgba(11, 27, 63, 0.32)" },
+            }}
+          >
+            Làm mới
+          </Button>
+        </Stack>
       </Box>
 
       {error && (
@@ -223,10 +263,10 @@ const AdminAuditLogs = () => {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: "4px",
-          border: `1px solid ${COLORS.border}`,
+          ...glassCardSx,
+          border: "1px solid rgba(11,27,63,0.12)",
           overflow: "hidden",
-          bgcolor: "white",
+          bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
         <TableContainer sx={{ maxHeight: "75vh" }}>
@@ -235,45 +275,55 @@ const AdminAuditLogs = () => {
               <TableRow>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   Thời gian
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   Người thao tác
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   Hành động
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   ID Đối tượng
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                     width: "20%",
                   }}
                 >
@@ -281,9 +331,11 @@ const AdminAuditLogs = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                     width: "20%",
                   }}
                 >
@@ -291,9 +343,11 @@ const AdminAuditLogs = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: COLORS.headerBg,
+                    background:
+                      "linear-gradient(180deg, rgba(11,27,63,0.95) 0%, rgba(15,42,97,0.93) 100%)",
                     color: "white",
-                    fontWeight: "bold",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
                   }}
                 >
                   IP / Thiết bị
@@ -315,7 +369,17 @@ const AdminAuditLogs = () => {
                     key={log.id}
                     hover
                     sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
+                      transition: "background-color 0.2s ease",
+                      "& td": {
+                        borderBottom: "1px solid rgba(11,27,63,0.08)",
+                        py: 1.5,
+                      },
+                      "&:nth-of-type(even)": {
+                        bgcolor: "rgba(11,27,63,0.015)",
+                      },
+                      "&:hover": {
+                        bgcolor: "rgba(0,150,136,0.06)",
+                      },
                     }}
                   >
                     <TableCell>
@@ -370,10 +434,10 @@ const AdminAuditLogs = () => {
                         color="text.secondary"
                         sx={{
                           fontFamily: "monospace",
-                          bgcolor: "#f5f5f5",
+                          bgcolor: "rgba(11,27,63,0.06)",
                           px: 1,
                           py: 0.5,
-                          borderRadius: "4px",
+                          borderRadius: 1,
                         }}
                       >
                         {log.ip_address || "N/A"}

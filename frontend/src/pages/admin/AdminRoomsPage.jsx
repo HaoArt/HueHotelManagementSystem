@@ -64,9 +64,48 @@ const COLORS = {
   primary: "#5e35b1",
   primaryDark: "#4527a0",
   teal: "#009688",
-  bgLight: "#f4f6f8",
-  border: "#e0e0e0",
-  textMain: "#001529",
+  navy: "#0b1b3f",
+  bgLight: "#f6f9fe",
+  border: "rgba(11, 27, 63, 0.14)",
+  textMain: "#1a1a1a",
+  textSecondary: "#667085",
+};
+
+const glassCardSx = {
+  borderRadius: "4px",
+  border: "1px solid rgba(255,255,255,0.4)",
+  bgcolor: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
+  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
+    borderColor: "rgba(0, 150, 136, 0.35)",
+  },
+};
+
+const inputStyle = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "4px",
+    bgcolor: "rgba(255,255,255,0.9)",
+    "& fieldset": {
+      borderColor: "rgba(11,27,63,0.12)",
+    },
+    "&:hover fieldset": {
+      borderColor: "rgba(0,150,136,0.35)",
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: COLORS.teal,
+    },
+  },
+};
+
+const sectionTitleSx = {
+  fontWeight: 700,
+  color: COLORS.textMain,
+  letterSpacing: "-0.02em",
 };
 
 const AdminRoomsPage = () => {
@@ -346,49 +385,62 @@ const AdminRoomsPage = () => {
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
 
-  const inputStyle = { "& .MuiOutlinedInput-root": { borderRadius: "4px" } };
   const buttonStyle = {
     borderRadius: "4px",
-    boxShadow: "none",
     textTransform: "none",
-    fontWeight: "bold",
+    fontWeight: 700,
+    letterSpacing: "0.01em",
+    px: 2.2,
+    py: 0.95,
+    transition: "all 0.22s ease",
   };
 
   return (
     <Box
       sx={{
-        p: 4,
-        bgcolor: COLORS.bgLight,
+        p: { xs: 2, sm: 3, md: 4 },
+        background:
+          "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
         minHeight: "100vh",
         overflowX: "hidden",
-        pb: 10,
+        pb: { xs: 5, md: 8 },
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
-          gap: 3,
-          mb: 4,
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
           flexWrap: "wrap",
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ mr: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "70%" } }}>
           <Typography
             variant="h4"
             fontWeight="900"
-            color={COLORS.textMain}
-            sx={{ letterSpacing: "-1px" }}
+            sx={{
+              color: COLORS.navy,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
+            }}
           >
             Sơ Đồ Phòng
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             Hiển thị {filteredRooms.length} phòng trong hệ thống
           </Typography>
         </Box>
@@ -396,9 +448,9 @@ const AdminRoomsPage = () => {
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 2,
-            height: "42px",
-            mt: 0.5,
+            justifyContent: { xs: "space-between", sm: "flex-start" },
+            width: { xs: "100%", sm: "auto" },
+            gap: 1.25,
           }}
         >
           <ToggleButtonGroup
@@ -406,23 +458,23 @@ const AdminRoomsPage = () => {
             exclusive
             onChange={(e, newMode) => newMode && setViewMode(newMode)}
             sx={{
-              bgcolor: "#f9f9f9",
+              bgcolor: "rgba(255,255,255,0.78)",
               borderRadius: "4px",
-              border: `1px solid ${COLORS.border}`,
-              height: "100%",
+              border: "1px solid rgba(11,27,63,0.12)",
+              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
               "& .MuiToggleButton-root": {
-                py: 0,
-                px: 2.5,
+                py: 0.7,
+                px: 1.6,
                 textTransform: "none",
                 borderRadius: "4px",
                 borderColor: "transparent",
-                fontWeight: "600",
-                color: "text.secondary",
+                fontWeight: 700,
+                color: COLORS.navy,
                 fontSize: "0.85rem",
               },
               "& .Mui-selected": {
-                bgcolor: "#e0e0e0 !important",
-                color: `${COLORS.textMain} !important`,
+                bgcolor: `${COLORS.teal} !important`,
+                color: "white !important",
               },
             }}
           >
@@ -436,13 +488,15 @@ const AdminRoomsPage = () => {
           <Button
             variant="contained"
             onClick={fetchRoomsOnly}
-            disableElevation
             sx={{
               ...buttonStyle,
-              bgcolor: COLORS.teal,
-              "&:hover": { bgcolor: "#00796b" },
-              px: 3,
-              height: "100%",
+              color: "white",
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              boxShadow: "0 8px 18px rgba(11,27,63,0.22)",
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: "0 12px 24px rgba(11,27,63,0.3)",
+              },
               fontSize: "0.85rem",
             }}
           >
@@ -457,11 +511,12 @@ const AdminRoomsPage = () => {
           severity="warning"
           icon={<NotificationsActiveIcon fontSize="inherit" />}
           sx={{
-            mb: 4,
-            borderRadius: "8px",
-            bgcolor: "#fff3e0",
-            border: "1px solid #ffe0b2",
+            mb: { xs: 2.5, sm: 3, md: 4 },
+            borderRadius: "4px",
+            bgcolor: "rgba(255,243,224,0.85)",
+            border: "1px solid rgba(237,108,2,0.3)",
             alignItems: "center",
+            boxShadow: "0 10px 22px rgba(237,108,2,0.12)",
           }}
         >
           <Typography variant="body1" fontWeight="bold" color="#e65100">
@@ -482,11 +537,9 @@ const AdminRoomsPage = () => {
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          mb: 4,
-          borderRadius: "4px",
-          border: `1px solid ${COLORS.border}`,
-          bgcolor: "white",
+          ...glassCardSx,
+          p: { xs: 2, sm: 2.5, md: 3 },
+          mb: { xs: 2.5, sm: 3, md: 4 },
         }}
       >
         <Grid container spacing={2} alignItems="center">
@@ -567,20 +620,25 @@ const AdminRoomsPage = () => {
           {Object.keys(groupedRooms)
             .sort()
             .map((floor) => (
-              <Box key={floor} sx={{ mb: 6 }}>
+              <Box key={floor} sx={{ mb: { xs: 3.5, md: 5 } }}>
                 <Typography
                   variant="h6"
-                  fontWeight="bold"
-                  color={COLORS.primary}
-                  sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
+                  sx={{
+                    ...sectionTitleSx,
+                    color: COLORS.navy,
+                    mb: 1.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
                 >
                   <MeetingRoomIcon /> {floor}
                 </Typography>
-                <Divider sx={{ mb: 3 }} />
+                <Divider sx={{ mb: 2.5, borderColor: "rgba(11,27,63,0.1)" }} />
                 <Box
                   sx={{
                     display: "grid",
-                    gap: 3,
+                    gap: { xs: 1.5, sm: 2, md: 2.5 },
                     gridTemplateColumns:
                       "repeat(auto-fill, minmax(160px, 1fr))",
                   }}
@@ -604,26 +662,25 @@ const AdminRoomsPage = () => {
                           elevation={0}
                           onClick={() => handleRoomClick(room)}
                           sx={{
+                            ...glassCardSx,
                             width: "100%",
                             aspectRatio: "1 / 1",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "center",
                             alignItems: "center",
-                            bgcolor: config.bg,
-                            color: config.color,
                             borderRadius: "4px",
                             border: `1px solid ${hasPendingOrder ? "#ed6c02" : config.border}`,
                             position: "relative",
                             cursor: "pointer",
                             overflow: "hidden",
-                            transition: "all 0.2s ease",
+                            background: `linear-gradient(180deg, ${config.bg} 0%, rgba(255,255,255,0.96) 100%)`,
                             boxShadow: hasPendingOrder
-                              ? "0 0 10px rgba(237, 108, 2, 0.5)"
-                              : "none",
+                              ? "0 0 0 1px rgba(237,108,2,0.35), 0 10px 24px rgba(237,108,2,0.18)"
+                              : "0 8px 18px rgba(11,27,63,0.09)",
                             "&:hover": {
                               transform: "translateY(-4px)",
-                              boxShadow: `0 4px 12px ${config.color}30`,
+                              boxShadow: `0 12px 26px ${config.color}36`,
                             },
                           }}
                         >
@@ -715,12 +772,21 @@ const AdminRoomsPage = () => {
           elevation={0}
           sx={{
             borderRadius: "4px",
-            border: `1px solid ${COLORS.border}`,
+            border: "1px solid rgba(11,27,63,0.12)",
             overflowX: "auto",
+            bgcolor: "rgba(255,255,255,0.92)",
+            boxShadow: "0 10px 24px rgba(11,27,63,0.1)",
           }}
         >
           <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ bgcolor: COLORS.primary }}>
+            <TableHead
+              sx={{
+                bgcolor: "rgba(11,27,63,0.96)",
+                "& .MuiTableCell-root": {
+                  borderBottom: "1px solid rgba(255,255,255,0.12)",
+                },
+              }}
+            >
               <TableRow>
                 <TableCell sx={{ fontWeight: "bold", color: "white" }}>
                   Số phòng
@@ -753,7 +819,13 @@ const AdminRoomsPage = () => {
                     key={room.id}
                     hover
                     sx={{
-                      "& td": { borderBottom: `1px solid ${COLORS.border}` },
+                      "& td": { borderBottom: "1px solid rgba(11,27,63,0.08)" },
+                      "&:nth-of-type(even)": {
+                        backgroundColor: "rgba(11,27,63,0.015)",
+                      },
+                      "&:hover": {
+                        backgroundColor: "rgba(0,150,136,0.06)",
+                      },
                     }}
                   >
                     <TableCell sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
@@ -803,9 +875,12 @@ const AdminRoomsPage = () => {
                         onClick={() => handleRoomClick(room)}
                         sx={{
                           ...buttonStyle,
-                          borderColor: COLORS.border,
-                          color: COLORS.textMain,
-                          "&:hover": { bgcolor: "#f5f5f5" },
+                          borderColor: "rgba(11,27,63,0.2)",
+                          color: COLORS.navy,
+                          "&:hover": {
+                            borderColor: COLORS.teal,
+                            bgcolor: "rgba(0,150,136,0.08)",
+                          },
                         }}
                       >
                         Cập nhật
@@ -824,10 +899,21 @@ const AdminRoomsPage = () => {
         disableScrollLock={true}
         open={statusDialog.open}
         onClose={() => setStatusDialog({ open: false, room: null })}
-        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "4px",
+            minWidth: 350,
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 20px 40px rgba(11,27,63,0.2)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ fontWeight: "bold", color: "white", bgcolor: COLORS.primary }}
+          sx={{
+            fontWeight: "bold",
+            color: "white",
+            background: "linear-gradient(135deg, #0b1b3f 0%, #5e35b1 100%)",
+          }}
         >
           Cập nhật phòng {statusDialog.room?.room_number}
         </DialogTitle>
@@ -868,8 +954,16 @@ const AdminRoomsPage = () => {
           <Button
             onClick={handleUpdateStatus}
             variant="contained"
-            disableElevation
-            sx={{ ...buttonStyle, bgcolor: COLORS.primary }}
+            sx={{
+              ...buttonStyle,
+              color: "white",
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+              boxShadow: "0 8px 18px rgba(11,27,63,0.22)",
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: "0 12px 24px rgba(11,27,63,0.3)",
+              },
+            }}
           >
             LƯU THAY ĐỔI
           </Button>
@@ -883,11 +977,18 @@ const AdminRoomsPage = () => {
         onClose={() => setOccupiedDialog({ open: false, room: null })}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px", bgcolor: "#f8f9fa" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "4px",
+            bgcolor: "#f8fbff",
+            border: "1px solid rgba(11,27,63,0.12)",
+            boxShadow: "0 20px 44px rgba(11,27,63,0.22)",
+          },
+        }}
       >
         <DialogTitle
           sx={{
-            bgcolor: "#1565c0",
+            background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
             color: "white",
             display: "flex",
             justifyContent: "space-between",
@@ -926,9 +1027,9 @@ const AdminRoomsPage = () => {
                 <Paper
                   elevation={0}
                   sx={{
+                    ...glassCardSx,
                     p: 3,
                     borderRadius: "4px",
-                    border: `1px solid ${COLORS.border}`,
                     height: "100%",
                   }}
                 >
@@ -936,7 +1037,7 @@ const AdminRoomsPage = () => {
                     variant="subtitle1"
                     fontWeight="bold"
                     gutterBottom
-                    color="#1565c0"
+                    color={COLORS.navy}
                   >
                     Thông Tin Đơn Hàng #{currentBooking.id}
                   </Typography>
@@ -1027,9 +1128,9 @@ const AdminRoomsPage = () => {
                 <Paper
                   elevation={0}
                   sx={{
+                    ...glassCardSx,
                     p: 3,
                     borderRadius: "4px",
-                    border: `1px solid ${COLORS.border}`,
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
@@ -1046,7 +1147,7 @@ const AdminRoomsPage = () => {
                     <Typography
                       variant="subtitle1"
                       fontWeight="bold"
-                      color="#1565c0"
+                      color={COLORS.navy}
                     >
                       Hóa Đơn Dịch Vụ (Folio)
                     </Typography>
@@ -1055,7 +1156,17 @@ const AdminRoomsPage = () => {
                       variant="outlined"
                       startIcon={<AddShoppingCartIcon />}
                       onClick={() => setAddServiceDialog(true)}
-                      sx={{ borderRadius: "4px", textTransform: "none" }}
+                      sx={{
+                        borderRadius: "4px",
+                        textTransform: "none",
+                        fontWeight: 700,
+                        borderColor: "rgba(11,27,63,0.2)",
+                        color: COLORS.navy,
+                        "&:hover": {
+                          borderColor: COLORS.teal,
+                          bgcolor: "rgba(0,150,136,0.08)",
+                        },
+                      }}
                     >
                       Thêm DV
                     </Button>
@@ -1207,10 +1318,18 @@ const AdminRoomsPage = () => {
             <Button
               variant="contained"
               color="success"
-              disableElevation
               startIcon={<ReceiptLongIcon />}
               disabled={!currentBooking}
-              sx={buttonStyle}
+              sx={{
+                ...buttonStyle,
+                color: "white",
+                background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+                boxShadow: "0 8px 18px rgba(11,27,63,0.22)",
+                "&:hover": {
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 12px 24px rgba(11,27,63,0.3)",
+                },
+              }}
               onClick={() => {
                 setConfirmDialog({
                   open: true,
@@ -1275,10 +1394,19 @@ const AdminRoomsPage = () => {
         onClose={() => setAddServiceDialog(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "4px",
+            border: "1px solid rgba(11,27,63,0.12)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ fontWeight: "bold", bgcolor: COLORS.primary, color: "white" }}
+          sx={{
+            fontWeight: "bold",
+            background: "linear-gradient(135deg, #0b1b3f 0%, #5e35b1 100%)",
+            color: "white",
+          }}
         >
           Thêm Dịch Vụ
         </DialogTitle>
@@ -1317,8 +1445,11 @@ const AdminRoomsPage = () => {
           </Button>
           <Button
             variant="contained"
-            disableElevation
-            sx={{ ...buttonStyle, bgcolor: COLORS.primary }}
+            sx={{
+              ...buttonStyle,
+              color: "white",
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
+            }}
             onClick={handleAddServiceSubmit}
           >
             XÁC NHẬN
@@ -1332,10 +1463,19 @@ const AdminRoomsPage = () => {
         onClose={() => setChangeRoomDialog(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "4px" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "4px",
+            border: "1px solid rgba(11,27,63,0.12)",
+          },
+        }}
       >
         <DialogTitle
-          sx={{ fontWeight: "bold", bgcolor: "#9c27b0", color: "white" }}
+          sx={{
+            fontWeight: "bold",
+            background: "linear-gradient(135deg, #5e35b1 0%, #0b1b3f 100%)",
+            color: "white",
+          }}
         >
           Đổi Phòng / Nâng Cấp
         </DialogTitle>
@@ -1371,7 +1511,6 @@ const AdminRoomsPage = () => {
           <Button
             variant="contained"
             color="secondary"
-            disableElevation
             sx={buttonStyle}
             onClick={async () => {
               try {
@@ -1405,7 +1544,13 @@ const AdminRoomsPage = () => {
         disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        PaperProps={{ sx: { borderRadius: "4px", minWidth: 350 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "4px",
+            minWidth: 350,
+            border: "1px solid rgba(11,27,63,0.12)",
+          },
+        }}
       >
         <DialogTitle
           sx={{
