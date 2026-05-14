@@ -7,7 +7,7 @@ import {
   Stack,
   IconButton,
   Divider,
-} from "@mui/material"; // Đã xóa Grid
+} from "@mui/material";
 
 // Icons
 import FacebookIcon from "@mui/icons-material/Facebook";
@@ -18,11 +18,16 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import ConfigService from "../../services/configService";
 
-const COLORS = {
-  primary: "#1a237e",
-  secondary: "#ff9800",
-  textLight: "#e2e8f0",
-  textMuted: "#94a3b8",
+// LUXURY DESIGN TOKENS (Đồng bộ toàn hệ thống)
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
 };
 
 const Footer = () => {
@@ -45,7 +50,7 @@ const Footer = () => {
           name: name || "Huế Hotel",
           address: address || "Trung tâm Cố Đô Huế, Việt Nam",
           phone: phone || "1900 xxxx",
-          email: email || "contact@huehotel.vn",
+          email: email || "contact@huehotel.com",
         });
       } catch (error) {
         console.error("Lỗi khi tải thông tin Footer:", error);
@@ -57,56 +62,95 @@ const Footer = () => {
 
   return (
     <Box
-      sx={{ bgcolor: COLORS.primary, color: "white", pt: 8, pb: 4, mt: "auto" }}
+      sx={{
+        bgcolor: LUXURY.navy,
+        color: LUXURY.white,
+        pt: { xs: 8, md: 10 },
+        pb: 4,
+        mt: "auto",
+        position: "relative",
+        overflow: "hidden",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "4px",
+          background: `linear-gradient(90deg, ${LUXURY.gold} 0%, ${LUXURY.goldLight} 50%, ${LUXURY.gold} 100%)`,
+        },
+      }}
     >
-      <Container maxWidth="lg">
-        {/* SỬ DỤNG FLEXBOX CHIA 3 Ô ĐỀU NHAU */}
+      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2 }}>
         <Box
           sx={{
             display: "flex",
-            flexDirection: { xs: "column", md: "row" }, // Mobile xếp dọc, PC xếp ngang
-            gap: 6, // Khoảng cách giữa các ô
+            flexDirection: { xs: "column", md: "row" },
+            gap: { xs: 6, md: 8 },
             justifyContent: "space-between",
           }}
         >
           {/* Ô 1: GIỚI THIỆU */}
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1.2 }}>
             <Typography
-              variant="h5"
-              fontWeight="900"
-              sx={{ color: COLORS.secondary, mb: 2, letterSpacing: "1px" }}
+              variant="h4"
+              sx={{
+                color: LUXURY.gold,
+                mb: 3,
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 900,
+                letterSpacing: "2px",
+              }}
             >
               {hotelInfo.name.toUpperCase()}
             </Typography>
             <Typography
-              variant="body2"
-              sx={{ color: COLORS.textLight, mb: 3, lineHeight: 1.8 }}
+              variant="body1"
+              sx={{ color: "rgba(255,255,255,0.8)", mb: 4, lineHeight: 1.9 }}
             >
               Trải nghiệm kỳ nghỉ dưỡng mang đậm dấu ấn văn hóa và kiến trúc Cố
               Đô. Mang đến cho bạn không gian thư giãn tuyệt đối với dịch vụ
               đẳng cấp 5 sao.
             </Typography>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1.5}>
               <IconButton
                 sx={{
-                  color: COLORS.textLight,
-                  "&:hover": { color: COLORS.secondary },
+                  color: LUXURY.softGray,
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  "&:hover": {
+                    color: LUXURY.charcoal,
+                    bgcolor: LUXURY.gold,
+                    transform: "translateY(-3px)",
+                  },
+                  transition: "all 0.3s ease",
                 }}
               >
                 <FacebookIcon />
               </IconButton>
               <IconButton
                 sx={{
-                  color: COLORS.textLight,
-                  "&:hover": { color: COLORS.secondary },
+                  color: LUXURY.softGray,
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  "&:hover": {
+                    color: LUXURY.charcoal,
+                    bgcolor: LUXURY.gold,
+                    transform: "translateY(-3px)",
+                  },
+                  transition: "all 0.3s ease",
                 }}
               >
                 <InstagramIcon />
               </IconButton>
               <IconButton
                 sx={{
-                  color: COLORS.textLight,
-                  "&:hover": { color: COLORS.secondary },
+                  color: LUXURY.softGray,
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  "&:hover": {
+                    color: LUXURY.charcoal,
+                    bgcolor: LUXURY.gold,
+                    transform: "translateY(-3px)",
+                  },
+                  transition: "all 0.3s ease",
                 }}
               >
                 <YouTubeIcon />
@@ -115,63 +159,46 @@ const Footer = () => {
           </Box>
 
           {/* Ô 2: LIÊN KẾT NHANH */}
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 0.8 }}>
             <Typography
               variant="h6"
-              fontWeight="bold"
-              sx={{ mb: 3, color: "white" }}
+              sx={{
+                mb: 3,
+                color: LUXURY.white,
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 700,
+              }}
             >
-              Liên kết nhanh
+              Liên Kết Nhanh
             </Typography>
             <Stack spacing={2}>
-              <Typography
-                component={Link}
-                to="/"
-                sx={{
-                  color: COLORS.textLight,
-                  textDecoration: "none",
-                  "&:hover": { color: COLORS.secondary, pl: 1 },
-                  transition: "all 0.3s",
-                }}
-              >
-                Trang chủ
-              </Typography>
-              <Typography
-                component={Link}
-                to="/rooms"
-                sx={{
-                  color: COLORS.textLight,
-                  textDecoration: "none",
-                  "&:hover": { color: COLORS.secondary, pl: 1 },
-                  transition: "all 0.3s",
-                }}
-              >
-                Phòng & Suite
-              </Typography>
-              <Typography
-                component={Link}
-                to="/discover-hue"
-                sx={{
-                  color: COLORS.textLight,
-                  textDecoration: "none",
-                  "&:hover": { color: COLORS.secondary, pl: 1 },
-                  transition: "all 0.3s",
-                }}
-              >
-                Khám phá Huế
-              </Typography>
-              <Typography
-                component={Link}
-                to="/contact"
-                sx={{
-                  color: COLORS.textLight,
-                  textDecoration: "none",
-                  "&:hover": { color: COLORS.secondary, pl: 1 },
-                  transition: "all 0.3s",
-                }}
-              >
-                Liên hệ với chúng tôi
-              </Typography>
+              {[
+                { label: "Trang chủ", path: "/" },
+                { label: "Phòng & Suite", path: "/rooms" },
+                { label: "Khám phá Huế", path: "/discover-hue" },
+                { label: "Liên hệ với chúng tôi", path: "/contact" },
+              ].map((link) => (
+                <Typography
+                  key={link.path}
+                  component={Link}
+                  to={link.path}
+                  sx={{
+                    color: "rgba(255,255,255,0.8)",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                    display: "inline-block",
+                    width: "fit-content",
+                    position: "relative",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      color: LUXURY.gold,
+                      transform: "translateX(6px)",
+                    },
+                  }}
+                >
+                  {link.label}
+                </Typography>
+              ))}
             </Stack>
           </Box>
 
@@ -179,30 +206,44 @@ const Footer = () => {
           <Box sx={{ flex: 1 }}>
             <Typography
               variant="h6"
-              fontWeight="bold"
-              sx={{ mb: 3, color: "white" }}
+              sx={{
+                mb: 3,
+                color: LUXURY.white,
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 700,
+              }}
             >
-              Thông tin liên hệ
+              Thông Tin Liên Hệ
             </Typography>
-            <Stack spacing={2.5}>
+            <Stack spacing={3}>
               <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
-                <LocationOnIcon sx={{ color: COLORS.secondary }} />
-                <Typography variant="body2" sx={{ color: COLORS.textLight }}>
+                <LocationOnIcon sx={{ color: LUXURY.gold, mt: 0.5 }} />
+                <Typography
+                  variant="body1"
+                  sx={{ color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}
+                >
                   {hotelInfo.address}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                <PhoneIcon sx={{ color: COLORS.secondary }} />
+                <PhoneIcon sx={{ color: LUXURY.gold }} />
                 <Typography
-                  variant="body2"
-                  sx={{ color: COLORS.textLight, fontWeight: "bold" }}
+                  variant="body1"
+                  sx={{
+                    color: LUXURY.white,
+                    fontWeight: 700,
+                    fontSize: "1.1rem",
+                  }}
                 >
                   {hotelInfo.phone}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                <EmailIcon sx={{ color: COLORS.secondary }} />
-                <Typography variant="body2" sx={{ color: COLORS.textLight }}>
+                <EmailIcon sx={{ color: LUXURY.gold }} />
+                <Typography
+                  variant="body1"
+                  sx={{ color: "rgba(255,255,255,0.8)" }}
+                >
                   {hotelInfo.email}
                 </Typography>
               </Box>
@@ -210,7 +251,7 @@ const Footer = () => {
           </Box>
         </Box>
 
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", my: 4 }} />
+        <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", my: 5 }} />
 
         {/* BẢN QUYỀN */}
         <Box
@@ -221,17 +262,22 @@ const Footer = () => {
             alignItems: "center",
           }}
         >
-          <Typography variant="body2" sx={{ color: COLORS.textMuted }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}
+          >
             &copy; {new Date().getFullYear()} {hotelInfo.name}. Đã đăng ký bản
             quyền.
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ mt: { xs: 2, sm: 0 } }}>
+          <Stack direction="row" spacing={4} sx={{ mt: { xs: 3, sm: 0 } }}>
             <Typography
               variant="body2"
               sx={{
-                color: COLORS.textMuted,
+                color: "rgba(255,255,255,0.6)",
                 cursor: "pointer",
-                "&:hover": { color: "white" },
+                fontWeight: 500,
+                transition: "color 0.3s ease",
+                "&:hover": { color: LUXURY.gold },
               }}
             >
               Điều khoản sử dụng
@@ -239,9 +285,11 @@ const Footer = () => {
             <Typography
               variant="body2"
               sx={{
-                color: COLORS.textMuted,
+                color: "rgba(255,255,255,0.6)",
                 cursor: "pointer",
-                "&:hover": { color: "white" },
+                fontWeight: 500,
+                transition: "color 0.3s ease",
+                "&:hover": { color: LUXURY.gold },
               }}
             >
               Chính sách bảo mật
