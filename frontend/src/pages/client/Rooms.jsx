@@ -10,27 +10,29 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Fade,
 } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import RoomTypeService from "../../services/roomTypeService";
 import SearchBar from "../../components/specific/SearchBar";
 import RoomCard from "../../components/specific/RoomCard";
 
-// ==========================================
-// IMPORT THÊM CÁC ICON Ý NGHĨA CHO BADGE
-// ==========================================
 import DiamondIcon from "@mui/icons-material/Diamond";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
-const COLORS = {
-  primary: "#5e35b1", // Đồng bộ màu tím Huế Hotel
-  bgLight: "#f8f9fa",
-  border: "#e0e0e0",
-  textMain: "#333",
-  textSecondary: "#666",
+// LUXURY DESIGN TOKENS (Đồng bộ với Home_Luxury)
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
 };
 
 const Rooms = () => {
@@ -103,55 +105,52 @@ const Rooms = () => {
     setRoomTypes(sortedArray);
   }, [sortBy]);
 
-  // ==========================================
   // HÀM TẠO BADGE CÓ Ý NGHĨA DỰA VÀO TÊN PHÒNG
-  // ==========================================
   const getBadge = (room) => {
     const roomName = (room.type_name || room.name || "").toLowerCase();
 
     if (roomName.includes("suite") || roomName.includes("vip")) {
       return {
-        label: "Cao cấp",
+        label: "Cao Cấp",
         icon: <DiamondIcon fontSize="small" />,
-        bgcolor: "#00695c", // Xanh ngọc sang trọng
-        color: "#fff",
+        bgcolor: LUXURY.navy,
+        color: LUXURY.gold,
       };
     }
     if (roomName.includes("deluxe") || roomName.includes("premium")) {
       return {
-        label: "Được yêu thích",
-        icon: <ThumbUpIcon fontSize="small" sx={{ color: "#d84315" }} />,
-        bgcolor: "#fbe9e7", // Cam nhạt
-        color: "#d84315", // Cam đậm
+        label: "Được Yêu Thích",
+        icon: <ThumbUpIcon fontSize="small" />,
+        bgcolor: `${LUXURY.gold}20`,
+        color: LUXURY.gold,
       };
     }
     if (roomName.includes("family") || roomName.includes("gia đình")) {
       return {
-        label: "Gia đình",
-        icon: <FamilyRestroomIcon fontSize="small" sx={{ color: "#2e7d32" }} />,
-        bgcolor: "#e8f5e9", // Xanh lá nhạt
-        color: "#2e7d32",
+        label: "Gia Đình",
+        icon: <FamilyRestroomIcon fontSize="small" />,
+        bgcolor: "#f0fdf4",
+        color: "#166534",
       };
     }
     if (roomName.includes("couple")) {
       return {
-        label: "Dành cho cặp đôi",
-        icon: <FavoriteIcon fontSize="small" sx={{ color: "#c2185b" }} />,
-        bgcolor: "#fce4ec", // Hồng nhạt
-        color: "#c2185b",
+        label: "Cặp Đôi",
+        icon: <FavoriteIcon fontSize="small" />,
+        bgcolor: "#fdf2f8",
+        color: "#be185d",
       };
     }
 
-    // Nếu là phòng Standard hoặc giá dưới 500k thì gắn nhãn Tiết kiệm
     if (
       roomName.includes("standard") ||
       parseFloat(room.base_price) <= 500000
     ) {
       return {
-        label: "Tiết kiệm",
-        icon: <LocalOfferIcon fontSize="small" sx={{ color: "#1565c0" }} />,
-        bgcolor: "#e3f2fd", // Xanh dương nhạt
-        color: "#1565c0",
+        label: "Tiết Kiệm",
+        icon: <LocalOfferIcon fontSize="small" />,
+        bgcolor: "#eff6ff",
+        color: "#1e40af",
       };
     }
 
@@ -159,53 +158,62 @@ const Rooms = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: COLORS.bgLight, minHeight: "100vh", pb: 10 }}>
-      {/* KHU VỰC HERO BANNER */}
+    <Box sx={{ bgcolor: LUXURY.offwhite, minHeight: "100vh", pb: 12 }}>
+      {/* =========================================================================
+          1. IMMERSIVE HERO BANNER
+         ========================================================================= */}
       <Box
         sx={{
-          height: { xs: "40vh", md: "50vh" },
-          backgroundImage: `linear-gradient(to bottom, rgba(94, 53, 177, 0.6), rgba(69, 39, 160, 0.3)), url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=1920")`,
+          height: { xs: "50vh", md: "60vh" },
+          backgroundImage: `linear-gradient(to bottom, rgba(26,26,26,0.5), rgba(27,45,79,0.3)), url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=100&w=1920")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
+          backgroundAttachment: { md: "fixed" },
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           color: "white",
           textAlign: "center",
-          mb: 6,
+          position: "relative",
+          mb: { xs: 6, md: 10 },
         }}
       >
         <Container>
-          <Typography
-            variant="h3"
-            component="h1"
-            fontWeight="900"
-            letterSpacing={2}
-            gutterBottom
-            sx={{
-              textTransform: "uppercase",
-              fontSize: { xs: "2rem", md: "3.5rem" },
-              textShadow: "0 4px 20px rgba(0,0,0,0.5)",
-            }}
-          >
-            Hệ Thống Phòng Nghỉ
-          </Typography>
-          <Typography
-            variant="h6"
-            component="p"
-            sx={{
-              maxWidth: "700px",
-              mx: "auto",
-              fontWeight: 400,
-              opacity: 0.9,
-              lineHeight: 1.6,
-              textShadow: "0 2px 10px rgba(0,0,0,0.5)",
-            }}
-          >
-            Tận hưởng không gian lưu trú đẳng cấp và tìm kiếm chốn tôn nghiêm
-            hoàn hảo của bạn tại trung tâm Cố đô.
-          </Typography>
+          <Fade in={true} timeout={1000}>
+            <Box>
+              <Typography
+                variant="h2"
+                component="h1"
+                sx={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 700,
+                  letterSpacing: "1px",
+                  mb: 2,
+                  fontSize: { xs: "2.5rem", md: "4rem" },
+                  textShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                }}
+              >
+                Hệ Thống Phòng Nghỉ
+              </Typography>
+              <Typography
+                variant="h6"
+                component="p"
+                sx={{
+                  maxWidth: "700px",
+                  mx: "auto",
+                  fontWeight: 300,
+                  opacity: 0.9,
+                  lineHeight: 1.8,
+                  fontSize: { xs: "1rem", md: "1.2rem" },
+                  textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                }}
+              >
+                Tận hưởng không gian lưu trú đẳng cấp và tìm kiếm chốn tôn
+                nghiêm hoàn hảo của bạn tại trung tâm Cố đô.
+              </Typography>
+            </Box>
+          </Fade>
         </Container>
       </Box>
 
@@ -214,109 +222,161 @@ const Rooms = () => {
           sx={{
             display: "flex",
             flexDirection: { xs: "column", lg: "row" },
-            gap: 4,
+            gap: { xs: 4, lg: 6 },
             alignItems: "flex-start",
           }}
         >
-          {/* CỘT TRÁI: SIDEBAR TÌM KIẾM */}
+          {/* =========================================================================
+              2. LUXURY SIDEBAR (SEARCH)
+             ========================================================================= */}
           <Box
             sx={{
-              flex: { xs: "1 1 100%", lg: "0 0 320px" },
+              flex: { xs: "1 1 100%", lg: "0 0 340px" },
               position: { lg: "sticky" },
               top: 100,
-              bgcolor: "white",
-              borderRadius: "12px",
-              p: 0,
-              border: `1px solid ${COLORS.border}`,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+              bgcolor: LUXURY.white,
+              borderRadius: "24px",
+              border: `1px solid ${LUXURY.softGray}`,
+              boxShadow: "0 20px 40px rgba(26,26,26,0.06)",
+              overflow: "hidden",
             }}
           >
-            <SearchBar onSearch={handleSearch} isSidebar={true} />
-          </Box>
-
-          {/* CỘT PHẢI: DANH SÁCH PHÒNG */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* THANH TOP BAR CỦA DANH SÁCH PHÒNG */}
             <Box
               sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 4,
-                borderBottom: `1px solid ${COLORS.border}`,
-                pb: 2,
+                bgcolor: LUXURY.navy,
+                color: LUXURY.white,
+                py: 2.5,
+                px: 3,
+                textAlign: "center",
               }}
             >
               <Typography
-                variant="body1"
-                color={COLORS.textMain}
-                sx={{ fontSize: "1.1rem" }}
+                variant="h6"
+                sx={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 600,
+                }}
               >
-                Đã tìm thấy{" "}
-                <Box component="span" fontWeight="900" color={COLORS.primary}>
-                  {roomTypes.length}
-                </Box>{" "}
-                phòng phù hợp
+                Tìm Kiếm Phòng
               </Typography>
+            </Box>
+            <Box sx={{ p: 1 }}>
+              <SearchBar onSearch={handleSearch} isSidebar={true} />
+            </Box>
+          </Box>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {/* =========================================================================
+              3. ROOM LISTINGS & SORTING
+             ========================================================================= */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* Top Bar Area */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                mb: 5,
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontFamily: '"Playfair Display", serif',
+                    color: LUXURY.charcoal,
+                    mb: 1,
+                  }}
+                >
+                  Kết Quả Tìm Kiếm
+                </Typography>
+                <Typography variant="body1" color={LUXURY.warmGray}>
+                  Khám phá{" "}
+                  <Box component="span" fontWeight="800" color={LUXURY.gold}>
+                    {roomTypes.length}
+                  </Box>{" "}
+                  lựa chọn đẳng cấp dành riêng cho bạn
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Typography
                   variant="body2"
-                  color={COLORS.textSecondary}
-                  fontWeight="bold"
+                  color={LUXURY.warmGray}
+                  fontWeight="600"
                 >
-                  Sắp xếp theo:
+                  Sắp xếp:
                 </Typography>
-                <FormControl variant="standard" sx={{ minWidth: 120 }}>
+                <FormControl variant="standard">
                   <Select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     disableUnderline
                     sx={{
                       fontSize: "0.95rem",
-                      fontWeight: "bold",
-                      color: COLORS.primary,
-                      bgcolor: "rgba(94, 53, 177, 0.08)",
+                      fontWeight: 700,
+                      color: LUXURY.navy,
+                      bgcolor: LUXURY.white,
+                      border: `1px solid ${LUXURY.softGray}`,
                       px: 2,
-                      py: 0.5,
-                      borderRadius: "8px",
+                      py: 0.8,
+                      borderRadius: "12px",
+                      "& .MuiSelect-select": {
+                        py: 0,
+                      },
                     }}
                   >
-                    <MenuItem value="Đề xuất">Mặc định</MenuItem>
-                    <MenuItem value="Giá tăng dần">Giá tăng dần</MenuItem>
-                    <MenuItem value="Giá giảm dần">Giá giảm dần</MenuItem>
+                    <MenuItem value="Đề xuất">Gợi ý từ Huế Hotel</MenuItem>
+                    <MenuItem value="Giá tăng dần">
+                      Giá từ thấp đến cao
+                    </MenuItem>
+                    <MenuItem value="Giá giảm dần">
+                      Giá từ cao đến thấp
+                    </MenuItem>
                   </Select>
                 </FormControl>
               </Box>
             </Box>
 
+            {/* Room Grid */}
             {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 10 }}>
-                <CircularProgress sx={{ color: COLORS.primary }} />
+              <Box sx={{ display: "flex", justifyContent: "center", my: 15 }}>
+                <CircularProgress sx={{ color: LUXURY.gold }} />
               </Box>
             ) : error ? (
-              <Alert severity="warning" sx={{ mb: 4, borderRadius: "8px" }}>
+              <Alert
+                severity="warning"
+                sx={{
+                  mb: 4,
+                  borderRadius: "16px",
+                  bgcolor: `${LUXURY.gold}15`,
+                  color: LUXURY.charcoal,
+                  border: `1px solid ${LUXURY.gold}40`,
+                }}
+              >
                 {error}
               </Alert>
             ) : (
               <Box
                 sx={{
                   display: "grid",
-                  gap: 3,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: { xs: 4, md: 5 },
+                  gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
                 }}
               >
-                {/* SỬ DỤNG COMPONENT ROOMCARD VÀ TRUYỀN DỮ LIỆU ĐỘNG */}
-                {roomTypes.map((room) => {
-                  const badge = getBadge(room); // Gọi hàm getBadge mới
+                {roomTypes.map((room, index) => {
+                  const badge = getBadge(room);
                   return (
-                    <RoomCard
-                      key={room.id}
-                      room={room}
-                      badge={badge}
-                      // Ưu tiên lấy description thật từ DB, không có mới dùng thẻ rỗng
-                      description={room.description || ""}
-                    />
+                    <Fade in={true} timeout={600 + index * 100} key={room.id}>
+                      <Box>
+                        <RoomCard
+                          room={room}
+                          badge={badge}
+                          description={room.description || ""}
+                        />
+                      </Box>
+                    </Fade>
                   );
                 })}
               </Box>
