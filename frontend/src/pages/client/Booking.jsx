@@ -2,7 +2,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable no-useless-assignment */
 import { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Form } from "react-bootstrap";
 import {
   TextField,
   Button,
@@ -23,36 +22,61 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Card,
-  CardContent,
   CircularProgress,
   Snackbar,
+  Grid,
+  Fade,
+  Slide,
+  Container,
 } from "@mui/material";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
 import BookingService from "../../services/bookingService";
 import ServiceService from "../../services/serviceService";
 import couponService from "../../services/couponService";
+import ConfigService from "../../services/configService";
 import { AuthContext } from "../../context/AuthContext";
 
 // Icons
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SecurityIcon from "@mui/icons-material/Security";
-import HotelIcon from "@mui/icons-material/Hotel";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import RoomServiceIcon from "@mui/icons-material/RoomService";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PaymentIcon from "@mui/icons-material/Payment";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
-const COLORS = {
-  primary: "#4a148c",
-  primaryLight: "#f3e5f5",
-  border: "#e0e0e0",
-  depositBg: "#ffcdd2",
-  textMain: "#333",
-  borderRadius: "8px",
+// LUXURY DESIGN TOKENS
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
+};
+
+const inputStyle = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "12px",
+    bgcolor: LUXURY.offwhite,
+    transition: "all 0.3s ease",
+    "& fieldset": { borderColor: "transparent" },
+    "&:hover fieldset": { borderColor: `${LUXURY.gold}80` },
+    "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
+  },
+  "& .MuiInputLabel-root": {
+    color: LUXURY.warmGray,
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: LUXURY.gold,
+    fontWeight: "bold",
+  },
 };
 
 const Booking = () => {
@@ -88,9 +112,16 @@ const Booking = () => {
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
 
-  // --- CÁC STATE MỚI CHO DIALOG QR ---
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
+
+  // STATE ĐỂ LƯU CẤU HÌNH TỪ BACKEND
+  const [sysConfigs, setSysConfigs] = useState({});
+
+  // ĐƯA BIẾN NGƯỠNG THANH TOÁN RA NGOÀI ĐỂ JSX CÓ THỂ ĐỌC ĐƯỢC
+  const HIGH_VALUE_THRESHOLD = sysConfigs.high_value_threshold
+    ? parseFloat(sysConfigs.high_value_threshold)
+    : 4000000;
 
   useEffect(() => {
     if (user) {
@@ -104,7 +135,7 @@ const Booking = () => {
 
   const [policy, setPolicy] = useState({
     holdUntilText: "",
-    depositPercent: 50,
+    depositPercent: 30,
     totalDays: 0,
     roomTotal: 0,
     servicesTotal: 0,
@@ -129,17 +160,27 @@ const Booking = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [svcRes, couponRes] = await Promise.all([
+        const [svcRes, couponRes, configRes] = await Promise.all([
           ServiceService.getAllServices(),
           couponService.getActiveCouponsForUser(),
+          ConfigService.getConfigs(),
         ]);
+
         setAvailableServices(svcRes.data || []);
+
         const coupons = couponRes.data?.data || couponRes.data || [];
         setAvailableCoupons(
           coupons.filter((c) => c.status === "ACTIVE" || c.status === "Active"),
         );
+
+        const configsArray = configRes.data || [];
+        const configMap = {};
+        configsArray.forEach((c) => {
+          configMap[c.config_key] = c.config_value;
+        });
+        setSysConfigs(configMap);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu:", err);
+        console.error("Lỗi tải dữ liệu ban đầu:", err);
       }
     };
     fetchData();
@@ -157,18 +198,18 @@ const Booking = () => {
       const leadTimeDays = Math.ceil((checkIn - today) / (1000 * 60 * 60 * 24));
 
       let holdText = "";
-      let percent = 30;
+
+      let percent = sysConfigs.deposit_percent
+        ? parseFloat(sysConfigs.deposit_percent)
+        : 50;
 
       if (leadTimeDays >= 1 && leadTimeDays <= 3) {
         holdText = "Hệ thống sẽ giữ phòng đến 14:00 ngày nhận phòng.";
-        percent = 50;
       } else if (leadTimeDays > 3 && leadTimeDays <= 14) {
         holdText = "Hệ thống sẽ giữ phòng đến 18:00 ngày nhận phòng.";
-        percent = 30;
       } else {
         holdText =
           "Hệ thống sẽ giữ phòng trong vòng 2 giờ kể từ khi đặt thành công.";
-        percent = 50;
       }
 
       const roomTotal = diffDays > 0 ? diffDays * roomInfo.base_price : 0;
@@ -201,11 +242,10 @@ const Booking = () => {
       if (discount > subTotal) discount = subTotal;
       const finalTotal = subTotal - discount;
 
-      const HIGH_VALUE_THRESHOLD = 4000000;
+      // KIỂM TRA XEM CÓ BỊ BẮT BUỘC ĐẶT CỌC HAY KHÔNG
       const isHigh = finalTotal >= HIGH_VALUE_THRESHOLD;
 
       if (isHigh) {
-        percent = 50;
         if (formData.paymentMethod === "PayAtDesk") {
           setFormData((prev) => ({ ...prev, paymentMethod: "DepositOnline" }));
         }
@@ -234,6 +274,8 @@ const Booking = () => {
     selectedServices,
     availableServices,
     selectedCoupon,
+    sysConfigs,
+    HIGH_VALUE_THRESHOLD,
   ]);
 
   const handleSubmit = async (e) => {
@@ -298,792 +340,1057 @@ const Booking = () => {
   };
 
   const paperSectionStyle = {
-    p: 3,
-    borderRadius: COLORS.borderRadius,
-    mb: 3,
-    border: `1px solid ${COLORS.border}`,
-    boxShadow: "none",
+    p: { xs: 3, md: 5 },
+    borderRadius: "24px",
+    mb: 4,
+    border: `1px solid ${LUXURY.softGray}`,
+    boxShadow: "0 20px 40px rgba(26,26,26,0.04)",
+    bgcolor: LUXURY.white,
   };
 
-  const avatarStyle = {
-    bgcolor: COLORS.primary,
-    width: 36,
-    height: 36,
-    fontSize: "1rem",
+  const sectionIconStyle = {
+    bgcolor: `${LUXURY.gold}15`,
+    color: LUXURY.gold,
+    width: 48,
+    height: 48,
+    borderRadius: "16px",
   };
+
+  // CẤU HÌNH NGÂN HÀNG CHO MÃ QR TỪ DATABASE
+  const bankId = sysConfigs.bank_id || "MB";
+  const bankAccount = sysConfigs.bank_account || "0866861876";
+  const accountName = sysConfigs.bank_account_name
+    ? encodeURIComponent(sysConfigs.bank_account_name)
+    : "HUE%20HOTEL";
 
   return (
-    <Box sx={{ bgcolor: "#f8f9fa", minHeight: "100vh", pb: 10 }}>
-      <Container className="py-4">
-        {/* BREADCRUMBS */}
-        <Breadcrumbs
-          separator={<NavigateNextIcon fontSize="small" />}
-          sx={{ mb: 3 }}
+    <Box
+      sx={{
+        bgcolor: LUXURY.white,
+        minHeight: "100vh",
+        pb: { xs: 8, md: 12 },
+        pt: { xs: 2, md: 4 },
+      }}
+    >
+      <Container maxWidth="lg">
+        <Fade in={true} timeout={600}>
+          <Box>
+            {/* BREADCRUMBS */}
+            <Breadcrumbs
+              separator={<NavigateNextIcon fontSize="small" />}
+              sx={{
+                mb: 4,
+                "& .MuiBreadcrumbs-separator": { color: LUXURY.gold },
+              }}
+            >
+              <MuiLink
+                component={Link}
+                to="/"
+                underline="hover"
+                color={LUXURY.warmGray}
+                fontSize="0.85rem"
+                fontWeight="600"
+                textTransform="uppercase"
+              >
+                Trang chủ
+              </MuiLink>
+              <MuiLink
+                component={Link}
+                to="/rooms"
+                underline="hover"
+                color={LUXURY.warmGray}
+                fontSize="0.85rem"
+                fontWeight="600"
+                textTransform="uppercase"
+              >
+                Phòng & Suite
+              </MuiLink>
+              <Typography
+                color={LUXURY.charcoal}
+                fontSize="0.85rem"
+                fontWeight="700"
+                textTransform="uppercase"
+              >
+                Thanh Toán
+              </Typography>
+            </Breadcrumbs>
+
+            <Typography
+              variant="h2"
+              fontWeight="900"
+              color={LUXURY.charcoal}
+              sx={{
+                fontFamily: '"Playfair Display", serif',
+                mb: 5,
+                fontSize: { xs: "2.2rem", md: "3rem" },
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Chi Tiết Đặt Phòng
+            </Typography>
+          </Box>
+        </Fade>
+
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", lg: "row" },
+            gap: { xs: 4, lg: 6 },
+            alignItems: "flex-start",
+          }}
         >
-          <MuiLink
-            component={Link}
-            to="/"
-            underline="hover"
-            color="inherit"
-            fontSize="0.9rem"
-          >
-            Trang chủ
-          </MuiLink>
-          <MuiLink
-            component={Link}
-            to="/rooms"
-            underline="hover"
-            color="inherit"
-            fontSize="0.9rem"
-          >
-            Phòng nghỉ
-          </MuiLink>
-          <Typography color="text.primary" fontSize="0.9rem" fontWeight="500">
-            Thanh toán
-          </Typography>
-        </Breadcrumbs>
-
-        {/* TIÊU ĐỀ */}
-        <Typography
-          variant="h4"
-          fontWeight="700"
-          sx={{ mb: 4, color: COLORS.primary }}
-        >
-          Chi tiết đặt phòng
-        </Typography>
-
-        <Form onSubmit={handleSubmit}>
-          <Row className="g-4">
-            <Col lg={8}>
-              {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT --- */}
-              <Paper sx={paperSectionStyle}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  alignItems="center"
-                  sx={{ mb: 3 }}
-                >
-                  <Avatar sx={avatarStyle}>1</Avatar>
-                  <Typography variant="h6" fontWeight="bold">
-                    Thông tin người đặt
-                  </Typography>
-                </Stack>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Typography variant="body2" fontWeight="500" mb={1}>
-                      Họ và tên
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={formData.fullName}
-                      InputProps={{ readOnly: true }}
-                      sx={{ bgcolor: "#f5f5f5" }}
-                    />
-                  </Col>
-                  <Col md={6}>
-                    <Typography variant="body2" fontWeight="500" mb={1}>
-                      Số điện thoại liên hệ{" "}
-                      <span style={{ color: "red" }}>*</span>
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      required
-                    />
-                  </Col>
-                  <Col md={6}>
-                    <Typography variant="body2" fontWeight="500" mb={1}>
-                      Ngày nhận phòng <span style={{ color: "red" }}>*</span>
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="date"
-                      name="checkIn"
-                      InputLabelProps={{ shrink: true }}
-                      value={formData.checkIn}
-                      onChange={(e) =>
-                        setFormData({ ...formData, checkIn: e.target.value })
-                      }
-                      required
-                    />
-                  </Col>
-                  <Col md={6}>
-                    <Typography variant="body2" fontWeight="500" mb={1}>
-                      Ngày trả phòng <span style={{ color: "red" }}>*</span>
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="date"
-                      name="checkOut"
-                      InputLabelProps={{ shrink: true }}
-                      value={formData.checkOut}
-                      onChange={(e) =>
-                        setFormData({ ...formData, checkOut: e.target.value })
-                      }
-                      required
-                    />
-                  </Col>
-                  <Col md={12}>
-                    <Typography variant="body2" fontWeight="500" mb={1}>
-                      Yêu cầu đặc biệt (Ghi chú)
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      placeholder="Ví dụ: Phòng yên tĩnh, tầng cao..."
-                      name="note"
-                      value={formData.note}
-                      onChange={(e) =>
-                        setFormData({ ...formData, note: e.target.value })
-                      }
-                    />
-                  </Col>
-                </Row>
-              </Paper>
-
-              {/* --- KHUNG 2: DỊCH VỤ ĐI KÈM --- */}
-              <Paper sx={paperSectionStyle}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  alignItems="center"
-                  sx={{ mb: 3 }}
-                >
-                  <Avatar sx={avatarStyle}>
-                    <RoomServiceIcon fontSize="small" />
-                  </Avatar>
-                  <Typography variant="h6" fontWeight="bold">
-                    Dịch vụ đi kèm{" "}
-                    <span
-                      style={{
-                        fontSize: "0.9rem",
-                        fontWeight: "normal",
-                        color: "#666",
+          {/* ============================================================== */}
+          {/* CỘT TRÁI: FORM ĐIỀN THÔNG TIN */}
+          {/* ============================================================== */}
+          <Box sx={{ flex: { xs: "1 1 100%", lg: "1 1 0%" } }}>
+            <Slide direction="right" in={true} timeout={800}>
+              <Box>
+                {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT --- */}
+                <Paper elevation={0} sx={paperSectionStyle}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ mb: 4 }}
+                  >
+                    <Avatar variant="rounded" sx={sectionIconStyle}>
+                      <AssignmentIndIcon />
+                    </Avatar>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontFamily: '"Playfair Display", serif',
+                        color: LUXURY.charcoal,
+                        fontWeight: 800,
                       }}
                     >
-                      (Tùy chọn)
-                    </span>
-                  </Typography>
-                </Stack>
-                <Stack spacing={2}>
-                  {availableServices.map((svc) => {
-                    const isSelected = selectedServices[svc.id] > 0;
-                    return (
-                      <Box
-                        key={svc.id}
+                      1. Khách Hàng
+                    </Typography>
+                  </Stack>
+
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        fontWeight="600"
+                        mb={1}
+                      >
+                        Họ và tên
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        value={formData.fullName}
+                        InputProps={{ readOnly: true }}
                         sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          p: 2,
-                          border: `1px solid ${isSelected ? COLORS.primary : COLORS.border}`,
-                          borderRadius: COLORS.borderRadius,
-                          bgcolor: isSelected
-                            ? COLORS.primaryLight
-                            : "transparent",
-                          transition: "all 0.2s ease",
+                          ...inputStyle,
+                          "& .MuiOutlinedInput-root": {
+                            bgcolor: LUXURY.softGray,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        fontWeight="600"
+                        mb={1}
+                      >
+                        Số điện thoại liên hệ{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        name="phone"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
+                        required
+                        sx={inputStyle}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        fontWeight="600"
+                        mb={1}
+                      >
+                        Ngày nhận phòng <span style={{ color: "red" }}>*</span>
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        name="checkIn"
+                        InputLabelProps={{ shrink: true }}
+                        value={formData.checkIn}
+                        onChange={(e) =>
+                          setFormData({ ...formData, checkIn: e.target.value })
+                        }
+                        required
+                        sx={inputStyle}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        fontWeight="600"
+                        mb={1}
+                      >
+                        Ngày trả phòng <span style={{ color: "red" }}>*</span>
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        name="checkOut"
+                        InputLabelProps={{ shrink: true }}
+                        value={formData.checkOut}
+                        onChange={(e) =>
+                          setFormData({ ...formData, checkOut: e.target.value })
+                        }
+                        required
+                        sx={inputStyle}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        fontWeight="600"
+                        mb={1}
+                      >
+                        Yêu cầu đặc biệt (Ghi chú)
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        placeholder="Ví dụ: Cần phòng tầng cao, giường phụ..."
+                        name="note"
+                        value={formData.note}
+                        onChange={(e) =>
+                          setFormData({ ...formData, note: e.target.value })
+                        }
+                        sx={inputStyle}
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* --- KHUNG 2: DỊCH VỤ ĐI KÈM --- */}
+                <Paper elevation={0} sx={paperSectionStyle}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ mb: 4 }}
+                  >
+                    <Avatar variant="rounded" sx={sectionIconStyle}>
+                      <RoomServiceIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          fontFamily: '"Playfair Display", serif',
+                          color: LUXURY.charcoal,
+                          fontWeight: 800,
                         }}
                       >
-                        <Box>
-                          <Typography fontWeight="bold" fontSize="0.95rem">
-                            {svc.name}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: COLORS.primary,
-                              fontWeight: "500",
-                              mt: 0.5,
-                            }}
-                          >
-                            {parseFloat(svc.price).toLocaleString()}đ
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <IconButton
-                            sx={{
-                              color: isSelected
-                                ? "error.main"
-                                : "action.disabled",
-                            }}
-                            onClick={() => handleServiceChange(svc.id, -1)}
-                            disabled={!selectedServices[svc.id]}
-                          >
-                            <RemoveCircleIcon />
-                          </IconButton>
-                          <Typography
-                            fontWeight="bold"
-                            sx={{ width: 24, textAlign: "center" }}
-                          >
-                            {selectedServices[svc.id] || 0}
-                          </Typography>
-                          <IconButton
-                            sx={{ color: COLORS.primary }}
-                            onClick={() => handleServiceChange(svc.id, 1)}
-                          >
-                            <AddCircleIcon />
-                          </IconButton>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </Paper>
-
-              {/* --- KHUNG 3: PHƯƠNG THỨC THANH TOÁN --- */}
-              <Paper sx={paperSectionStyle}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  alignItems="center"
-                  sx={{ mb: 3 }}
-                >
-                  <Avatar sx={avatarStyle}>3</Avatar>
-                  <Typography variant="h6" fontWeight="bold">
-                    Phương thức thanh toán
-                  </Typography>
-                </Stack>
-                <RadioGroup
-                  name="paymentMethod"
-                  value={formData.paymentMethod}
-                  onChange={(e) =>
-                    setFormData({ ...formData, paymentMethod: e.target.value })
-                  }
-                >
-                  <Box
-                    sx={{
-                      p: 2,
-                      border: `1px solid ${formData.paymentMethod === "PayAtDesk" ? COLORS.primary : COLORS.border}`,
-                      borderRadius: COLORS.borderRadius,
-                      mb: 2,
-                      bgcolor:
-                        formData.paymentMethod === "PayAtDesk"
-                          ? COLORS.primaryLight
-                          : "transparent",
-                      opacity: policy.isHighValue ? 0.6 : 1,
-                    }}
-                  >
-                    <FormControlLabel
-                      value="PayAtDesk"
-                      control={
-                        <Radio
-                          sx={{
-                            color: COLORS.primary,
-                            "&.Mui-checked": { color: COLORS.primary },
-                          }}
-                        />
-                      }
-                      disabled={policy.isHighValue}
-                      label={
-                        <Typography fontWeight="500" fontSize="0.95rem">
-                          Thanh toán trực tiếp tại quầy
-                        </Typography>
-                      }
-                    />
-                    {policy.isHighValue && (
-                      <Typography
-                        variant="body2"
-                        color="error"
-                        sx={{ ml: 4, mt: 0.5, fontStyle: "italic" }}
-                      >
-                        <AccessTimeIcon
-                          sx={{
-                            fontSize: 14,
-                            verticalAlign: "middle",
-                            mr: 0.5,
-                          }}
-                        />{" "}
-                        Đơn hàng vượt quá ngưỡng quy định (4 triệu VNĐ) bắt buộc
-                        phải đặt cọc trực tuyến.
+                        2. Nâng Cấp Trải Nghiệm
                       </Typography>
-                    )}
-                  </Box>
-
-                  <Box
-                    sx={{
-                      p: 2,
-                      border: `1px solid ${formData.paymentMethod === "DepositOnline" ? COLORS.primary : COLORS.border}`,
-                      borderRadius: COLORS.borderRadius,
-                      bgcolor:
-                        formData.paymentMethod === "DepositOnline"
-                          ? COLORS.primaryLight
-                          : "transparent",
-                    }}
-                  >
-                    <FormControlLabel
-                      value="DepositOnline"
-                      control={
-                        <Radio
-                          sx={{
-                            color: COLORS.primary,
-                            "&.Mui-checked": { color: COLORS.primary },
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography fontWeight="bold" fontSize="0.95rem">
-                          Đặt cọc trực tuyến ({policy.depositPercent}%)
-                        </Typography>
-                      }
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ ml: 4, color: "text.secondary", mt: 0.5 }}
-                    >
-                      Thanh toán qua cổng VNPay/MoMo để giữ phòng chắc chắn
-                      100%.
-                    </Typography>
-                    {formData.paymentMethod === "DepositOnline" &&
-                      policy.holdUntilText && (
-                        <Box
-                          sx={{
-                            ml: 4,
-                            mt: 1,
-                            p: 1.5,
-                            bgcolor: "#fff",
-                            borderRadius: 1,
-                            border: `1px solid ${COLORS.border}`,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            <AccessTimeIcon
-                              sx={{
-                                fontSize: 16,
-                                verticalAlign: "sub",
-                                mr: 0.5,
-                              }}
-                            />
-                            {policy.holdUntilText}
-                          </Typography>
-                        </Box>
-                      )}
-                  </Box>
-                </RadioGroup>
-              </Paper>
-            </Col>
-
-            {/* --- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG --- */}
-            <Col lg={4}>
-              <Paper
-                sx={{
-                  p: 0,
-                  borderRadius: COLORS.borderRadius,
-                  border: `1px solid ${COLORS.border}`,
-                  position: "sticky",
-                  top: 20,
-                  overflow: "hidden",
-                  boxShadow: "none",
-                }}
-              >
-                <Box
-                  sx={{
-                    bgcolor: COLORS.primary,
-                    p: 2,
-                    color: "white",
-                    textAlign: "center",
-                  }}
-                >
-                  <Typography fontWeight="bold" fontSize="1rem">
-                    TÓM TẮT ĐƠN HÀNG
-                  </Typography>
-                </Box>
-
-                <Box sx={{ p: 3 }}>
-                  <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                    <HotelIcon sx={{ color: COLORS.primary }} />
-                    <Box>
-                      <Typography fontWeight="bold" fontSize="1rem">
-                        {roomInfo.type_name}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mt: 0.5 }}
-                      >
-                        Thời gian: {policy.totalDays} đêm
+                      <Typography variant="body2" color={LUXURY.warmGray}>
+                        Thêm các dịch vụ chuẩn 5 sao để chuyến đi thêm hoàn hảo
                       </Typography>
                     </Box>
                   </Stack>
-                  <Divider sx={{ mb: 2 }} />
 
-                  <Stack spacing={1.5} sx={{ mb: 2 }}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography color="text.secondary" variant="body2">
-                        Giá phòng/đêm:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="500">
-                        {Number(roomInfo.base_price).toLocaleString("vi-VN")}đ
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography color="text.secondary" variant="body2">
-                        Tổng tiền phòng:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="500">
-                        {policy.roomTotal.toLocaleString()}đ
-                      </Typography>
-                    </Stack>
-                    {policy.servicesTotal > 0 && (
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography color="text.secondary" variant="body2">
-                          Dịch vụ đi kèm:
-                        </Typography>
-                        <Typography variant="body2" fontWeight="500">
-                          {policy.servicesTotal.toLocaleString()}đ
-                        </Typography>
-                      </Stack>
-                    )}
-                    {policy.discountAmount > 0 && (
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        sx={{ color: "#d32f2f" }}
-                      >
-                        <Typography fontWeight="bold" variant="body2">
-                          Giảm giá (Coupon):
-                        </Typography>
-                        <Typography fontWeight="bold" variant="body2">
-                          -{policy.discountAmount.toLocaleString()}đ
-                        </Typography>
-                      </Stack>
-                    )}
-                    <Divider sx={{ my: 1 }} />
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography variant="h6" fontWeight="bold">
-                        Tổng cộng
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: COLORS.primary }}
-                      >
-                        {policy.finalTotalAmount.toLocaleString()}đ
-                      </Typography>
-                    </Stack>
+                  <Stack spacing={2}>
+                    {availableServices.map((svc) => {
+                      const isSelected = selectedServices[svc.id] > 0;
+                      return (
+                        <Box
+                          key={svc.id}
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            p: 2.5,
+                            border: `2px solid ${isSelected ? LUXURY.gold : LUXURY.softGray}`,
+                            borderRadius: "16px",
+                            bgcolor: isSelected
+                              ? `${LUXURY.gold}08`
+                              : LUXURY.white,
+                            transition: "all 0.3s ease",
+                            "&:hover": { borderColor: LUXURY.gold },
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              fontWeight="800"
+                              color={LUXURY.charcoal}
+                              fontSize="1.05rem"
+                            >
+                              {svc.name}
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                color: LUXURY.warmGray,
+                                fontWeight: "600",
+                                mt: 0.5,
+                              }}
+                            >
+                              {parseFloat(svc.price).toLocaleString()}đ{" "}
+                              <span
+                                style={{
+                                  fontSize: "0.8rem",
+                                  fontWeight: "normal",
+                                }}
+                              >
+                                / lượt
+                              </span>
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.5,
+                              bgcolor: LUXURY.offwhite,
+                              borderRadius: "12px",
+                              p: 0.5,
+                            }}
+                          >
+                            <IconButton
+                              sx={{
+                                color: isSelected
+                                  ? LUXURY.charcoal
+                                  : LUXURY.softGray,
+                              }}
+                              onClick={() => handleServiceChange(svc.id, -1)}
+                              disabled={!selectedServices[svc.id]}
+                            >
+                              <RemoveCircleIcon />
+                            </IconButton>
+                            <Typography
+                              fontWeight="800"
+                              sx={{
+                                width: 20,
+                                textAlign: "center",
+                                color: LUXURY.charcoal,
+                              }}
+                            >
+                              {selectedServices[svc.id] || 0}
+                            </Typography>
+                            <IconButton
+                              sx={{ color: LUXURY.gold }}
+                              onClick={() => handleServiceChange(svc.id, 1)}
+                            >
+                              <AddCircleIcon />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      );
+                    })}
                   </Stack>
+                </Paper>
 
-                  <Box sx={{ mb: 3 }}>
-                    <Button
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<LocalOfferIcon />}
-                      onClick={() => setCouponDialogOpen(true)}
-                      sx={{
-                        color: COLORS.primary,
-                        borderColor: COLORS.primary,
-                        borderRadius: "4px",
-                        borderStyle: "dashed",
-                        borderWidth: 1.5,
-                        py: 1,
-                        "&:hover": {
-                          borderStyle: "dashed",
-                          borderWidth: 1.5,
-                          borderColor: COLORS.primary,
-                          bgcolor: COLORS.primaryLight,
-                        },
-                      }}
-                    >
-                      {selectedCoupon
-                        ? `Đã áp mã: ${selectedCoupon.code}`
-                        : "Chọn mã giảm giá"}
-                    </Button>
-                    {selectedCoupon && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mt: 1, textAlign: "center" }}
-                      >
-                        Nhấn vào nút trên để thay đổi hoặc hủy mã
-                      </Typography>
-                    )}
-                  </Box>
-
-                  <Box
-                    sx={{
-                      bgcolor:
-                        policy.depositAmount === 0
-                          ? "#e8f5e9"
-                          : COLORS.depositBg,
-                      p: 2,
-                      borderRadius: "4px",
-                      mb: 3,
-                      transition: "all 0.3s",
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography
-                        color={
-                          policy.depositAmount === 0 ? "#2e7d32" : "#b71c1c"
-                        }
-                        fontWeight="bold"
-                        fontSize="0.95rem"
-                      >
-                        Tiền cọc ({policy.depositPercent}%)
-                      </Typography>
-                      <Typography
-                        color={
-                          policy.depositAmount === 0 ? "#2e7d32" : "#b71c1c"
-                        }
-                        variant="h6"
-                        fontWeight="bold"
-                      >
-                        {policy.depositAmount.toLocaleString()}đ
-                      </Typography>
-                    </Stack>
-                  </Box>
-
-                  {error && (
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: "4px" }}>
-                      {error}
-                    </Alert>
-                  )}
-
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={loading}
-                    sx={{
-                      bgcolor: COLORS.primary,
-                      color: "white",
-                      py: 1.5,
-                      fontWeight: "bold",
-                      borderRadius: "4px",
-                      fontSize: "1rem",
-                      boxShadow: "none",
-                      "&:hover": { bgcolor: "#311b92", boxShadow: "none" },
-                    }}
-                  >
-                    {loading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      "XÁC NHẬN ĐẶT PHÒNG"
-                    )}
-                  </Button>
-
+                {/* --- KHUNG 3: PHƯƠNG THỨC THANH TOÁN --- */}
+                <Paper elevation={0} sx={paperSectionStyle}>
                   <Stack
                     direction="row"
-                    justifyContent="center"
+                    spacing={2}
                     alignItems="center"
-                    spacing={0.5}
-                    sx={{ mt: 2, color: "#2e7d32" }}
+                    sx={{ mb: 4 }}
                   >
-                    <SecurityIcon sx={{ fontSize: 16 }} />
-                    <Typography variant="caption" fontWeight="500">
-                      Thanh toán an toàn bảo mật
+                    <Avatar variant="rounded" sx={sectionIconStyle}>
+                      <PaymentIcon />
+                    </Avatar>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontFamily: '"Playfair Display", serif',
+                        color: LUXURY.charcoal,
+                        fontWeight: 800,
+                      }}
+                    >
+                      3. Thanh Toán
                     </Typography>
                   </Stack>
+
+                  <RadioGroup
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        paymentMethod: e.target.value,
+                      })
+                    }
+                  >
+                    {/* TRẢ TRƯỚC ONLINE */}
+                    <Box
+                      sx={{
+                        p: 3,
+                        border: `2px solid ${formData.paymentMethod === "DepositOnline" ? LUXURY.navy : LUXURY.softGray}`,
+                        borderRadius: "16px",
+                        bgcolor:
+                          formData.paymentMethod === "DepositOnline"
+                            ? `${LUXURY.navy}08`
+                            : "transparent",
+                        mb: 3,
+                        transition: "all 0.3s ease",
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          paymentMethod: "DepositOnline",
+                        })
+                      }
+                    >
+                      <FormControlLabel
+                        value="DepositOnline"
+                        control={
+                          <Radio
+                            sx={{
+                              color: LUXURY.navy,
+                              "&.Mui-checked": { color: LUXURY.navy },
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography
+                            fontWeight="800"
+                            color={LUXURY.charcoal}
+                            fontSize="1.1rem"
+                          >
+                            Chuyển khoản trực tuyến (Cọc {policy.depositPercent}
+                            %)
+                          </Typography>
+                        }
+                      />
+                      <Typography
+                        variant="body1"
+                        sx={{ ml: 4, color: LUXURY.warmGray, mt: 1 }}
+                      >
+                        Thanh toán qua cổng VNPay/MoMo/Banking để giữ phòng chắc
+                        chắn 100%. Nhanh chóng và tiện lợi.
+                      </Typography>
+                      {formData.paymentMethod === "DepositOnline" &&
+                        policy.holdUntilText && (
+                          <Box
+                            sx={{
+                              ml: 4,
+                              mt: 2,
+                              p: 2,
+                              bgcolor: LUXURY.white,
+                              borderRadius: "12px",
+                              border: `1px solid ${LUXURY.softGray}`,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color={LUXURY.charcoal}
+                              fontWeight="600"
+                            >
+                              <AccessTimeIcon
+                                sx={{
+                                  fontSize: 18,
+                                  verticalAlign: "middle",
+                                  mr: 1,
+                                  color: LUXURY.gold,
+                                }}
+                              />
+                              {policy.holdUntilText}
+                            </Typography>
+                          </Box>
+                        )}
+                    </Box>
+
+                    {/* TRẢ SAU TẠI QUẦY */}
+                    <Box
+                      sx={{
+                        p: 3,
+                        border: `2px solid ${formData.paymentMethod === "PayAtDesk" ? LUXURY.navy : LUXURY.softGray}`,
+                        borderRadius: "16px",
+                        bgcolor:
+                          formData.paymentMethod === "PayAtDesk"
+                            ? `${LUXURY.navy}08`
+                            : "transparent",
+                        opacity: policy.isHighValue ? 0.6 : 1,
+                        transition: "all 0.3s ease",
+                        cursor: policy.isHighValue ? "not-allowed" : "pointer",
+                      }}
+                      onClick={() => {
+                        if (!policy.isHighValue)
+                          setFormData({
+                            ...formData,
+                            paymentMethod: "PayAtDesk",
+                          });
+                      }}
+                    >
+                      <FormControlLabel
+                        value="PayAtDesk"
+                        control={
+                          <Radio
+                            sx={{
+                              color: LUXURY.navy,
+                              "&.Mui-checked": { color: LUXURY.navy },
+                            }}
+                          />
+                        }
+                        disabled={policy.isHighValue}
+                        label={
+                          <Typography
+                            fontWeight="800"
+                            color={LUXURY.charcoal}
+                            fontSize="1.1rem"
+                          >
+                            Thanh toán tại Lễ Tân
+                          </Typography>
+                        }
+                      />
+                      {policy.isHighValue && (
+                        <Typography
+                          variant="body2"
+                          color="error"
+                          sx={{ ml: 4, mt: 1, fontWeight: "600" }}
+                        >
+                          Đơn hàng vượt quá{" "}
+                          {HIGH_VALUE_THRESHOLD?.toLocaleString()}đ bắt buộc
+                          phải đặt cọc trực tuyến.
+                        </Typography>
+                      )}
+                    </Box>
+                  </RadioGroup>
+                </Paper>
+              </Box>
+            </Slide>
+          </Box>
+
+          {/* ============================================================== */}
+          {/* CỘT PHẢI: FLOATING SUMMARY CARD */}
+          {/* ============================================================== */}
+          <Box
+            sx={{
+              width: { xs: "100%", md: "380px", lg: "450px" },
+              flexShrink: 0,
+              position: { md: "sticky" },
+              top: 100,
+            }}
+          >
+            <Slide direction="left" in={true} timeout={1000}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 4 },
+                  borderRadius: "24px",
+                  border: `1px solid ${LUXURY.softGray}`,
+                  boxShadow: "0 24px 48px rgba(26,26,26,0.08)",
+                  bgcolor: LUXURY.navy,
+                  color: LUXURY.white,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color={LUXURY.gold}
+                  fontWeight="800"
+                  letterSpacing={2}
+                >
+                  TÓM TẮT ĐẶT PHÒNG
+                </Typography>
+
+                <Box sx={{ mt: 3, mb: 4 }}>
+                  <Typography
+                    variant="h4"
+                    fontWeight="800"
+                    sx={{ fontFamily: '"Playfair Display", serif', mb: 1 }}
+                  >
+                    {roomInfo.type_name}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ color: "rgba(255,255,255,0.7)" }}
+                  >
+                    Lưu trú: {policy.totalDays} đêm
+                  </Typography>
                 </Box>
+
+                <Divider
+                  sx={{ mb: 3, borderColor: "rgba(255,255,255,0.15)" }}
+                />
+
+                <Stack spacing={2} sx={{ mb: 3 }}>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography
+                      variant="body1"
+                      sx={{ color: "rgba(255,255,255,0.8)" }}
+                    >
+                      Giá phòng / đêm:
+                    </Typography>
+                    <Typography variant="body1" fontWeight="600">
+                      {Number(roomInfo.base_price).toLocaleString("vi-VN")}đ
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography
+                      variant="body1"
+                      sx={{ color: "rgba(255,255,255,0.8)" }}
+                    >
+                      Tổng tiền phòng:
+                    </Typography>
+                    <Typography variant="body1" fontWeight="600">
+                      {policy.roomTotal.toLocaleString()}đ
+                    </Typography>
+                  </Stack>
+                  {policy.servicesTotal > 0 && (
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography
+                        variant="body1"
+                        sx={{ color: "rgba(255,255,255,0.8)" }}
+                      >
+                        Dịch vụ đi kèm:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="600">
+                        {policy.servicesTotal.toLocaleString()}đ
+                      </Typography>
+                    </Stack>
+                  )}
+                  {policy.discountAmount > 0 && (
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      sx={{ color: LUXURY.goldLight }}
+                    >
+                      <Typography variant="body1" fontWeight="600">
+                        Mã giảm giá:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="600">
+                        -{policy.discountAmount.toLocaleString()}đ
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+
+                <Divider
+                  sx={{ my: 3, borderColor: "rgba(255,255,255,0.15)" }}
+                />
+
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-end"
+                  sx={{ mb: 4 }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 400 }}
+                  >
+                    Tổng thanh toán
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    fontWeight="800"
+                    sx={{ color: LUXURY.gold }}
+                  >
+                    {policy.finalTotalAmount.toLocaleString()}đ
+                  </Typography>
+                </Stack>
+
+                {/* Vùng Chọn Coupon */}
+                <Box sx={{ mb: 4 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<LocalOfferIcon />}
+                    onClick={() => setCouponDialogOpen(true)}
+                    sx={{
+                      color: LUXURY.gold,
+                      borderColor: "rgba(212,175,55,0.5)",
+                      borderRadius: "12px",
+                      borderStyle: "dashed",
+                      borderWidth: 1.5,
+                      py: 1.5,
+                      textTransform: "none",
+                      fontSize: "1rem",
+                      fontWeight: "700",
+                      "&:hover": {
+                        borderColor: LUXURY.gold,
+                        bgcolor: "rgba(212,175,55,0.1)",
+                        borderStyle: "dashed",
+                        borderWidth: 1.5,
+                      },
+                    }}
+                  >
+                    {selectedCoupon
+                      ? `ĐÃ ÁP MÃ: ${selectedCoupon.code}`
+                      : "Chọn hoặc nhập mã ưu đãi"}
+                  </Button>
+                </Box>
+
+                {/* Thông báo tiền cọc động từ Config */}
+                <Box
+                  sx={{
+                    bgcolor: "rgba(255,255,255,0.05)",
+                    p: 2.5,
+                    borderRadius: "16px",
+                    mb: 4,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    color={
+                      policy.depositAmount === 0 ? "#4ade80" : LUXURY.goldLight
+                    }
+                    fontWeight="600"
+                  >
+                    Cần đặt cọc ({policy.depositPercent}%)
+                  </Typography>
+                  <Typography
+                    color={
+                      policy.depositAmount === 0 ? "#4ade80" : LUXURY.white
+                    }
+                    variant="h6"
+                    fontWeight="800"
+                  >
+                    {policy.depositAmount.toLocaleString()}đ
+                  </Typography>
+                </Box>
+
+                {error && (
+                  <Alert severity="error" sx={{ mb: 3, borderRadius: "12px" }}>
+                    {error}
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading}
+                  sx={{
+                    background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                    color: LUXURY.white,
+                    py: 2,
+                    fontWeight: "800",
+                    borderRadius: "12px",
+                    fontSize: "1.1rem",
+                    boxShadow: `0 12px 24px ${LUXURY.gold}40`,
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: `0 16px 32px ${LUXURY.gold}60`,
+                    },
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "XÁC NHẬN ĐẶT PHÒNG"
+                  )}
+                </Button>
+
+                <Stack
+                  direction="row"
+                  justifyContent="center"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ mt: 3, color: "rgba(255,255,255,0.6)" }}
+                >
+                  <SecurityIcon sx={{ fontSize: 18 }} />
+                  <Typography
+                    variant="caption"
+                    fontWeight="500"
+                    letterSpacing={0.5}
+                  >
+                    Giao dịch được mã hóa bảo mật 256-bit
+                  </Typography>
+                </Stack>
               </Paper>
-            </Col>
-          </Row>
-        </Form>
+            </Slide>
+          </Box>
+        </Box>
       </Container>
 
-      {/* DIALOG HIỆN MÃ QR KHI ĐẶT THÀNH CÔNG (CHO ONLINE) */}
+      {/* ======================================================= */}
+      {/* DIALOG CHUYỂN KHOẢN QR TỰ ĐỘNG THEO CONFIG */}
+      {/* ======================================================= */}
       <Dialog
         open={qrDialogOpen}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "12px", textAlign: "center" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            textAlign: "center",
+            bgcolor: LUXURY.white,
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", color: COLORS.primary }}>
-          <CheckCircleIcon color="success" sx={{ fontSize: 40, mb: 1 }} />
-          <Typography variant="h5" fontWeight="bold">
-            Đặt Phòng Thành Công!
+        <DialogTitle sx={{ pt: 5 }}>
+          <CheckCircleIcon sx={{ fontSize: 64, color: "#16a34a", mb: 2 }} />
+          <Typography
+            variant="h4"
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              fontWeight: 900,
+              color: LUXURY.charcoal,
+            }}
+          >
+            Tuyệt Vời!
           </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Vui lòng thanh toán tiền cọc để hệ thống giữ phòng cho bạn.
+        <DialogContent sx={{ px: { xs: 3, md: 5 }, pb: 2 }}>
+          <Typography variant="body1" color={LUXURY.warmGray} sx={{ mb: 4 }}>
+            Đơn đặt phòng <b>#{createdBooking?.booking_id}</b> đã được tạo thành
+            công. Vui lòng hoàn tất thanh toán cọc để giữ phòng.
           </Typography>
 
           <Box
             sx={{
-              my: 3,
-              p: 2,
-              bgcolor: "#f9f9f9",
-              borderRadius: "8px",
-              border: `1px dashed ${COLORS.primary}`,
+              p: 3,
+              bgcolor: LUXURY.offwhite,
+              borderRadius: "20px",
+              border: `2px dashed ${LUXURY.gold}`,
+              mb: 4,
             }}
           >
             <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              color="error.main"
+              variant="caption"
+              fontWeight="800"
+              color={LUXURY.warmGray}
+              letterSpacing={1}
             >
-              SỐ TIỀN CỌC:{" "}
+              SỐ TIỀN CẦN THANH TOÁN
+            </Typography>
+            <Typography
+              variant="h4"
+              fontWeight="900"
+              color={LUXURY.navy}
+              sx={{ mt: 1, mb: 3 }}
+            >
               {parseFloat(
                 createdBooking?.deposit_required || 0,
               ).toLocaleString()}
               đ
             </Typography>
-            <img
-              src={`https://img.vietqr.io/image/MB-0866861876-compact2.png?amount=${createdBooking?.deposit_required}&addInfo=DatPhong%20${createdBooking?.booking_id}&accountName=HUE%20HOTEL`}
-              alt="QR Payment"
-              style={{ width: "100%", maxWidth: "220px", marginTop: "15px" }}
-            />
-            <Typography
-              variant="caption"
-              display="block"
-              sx={{ mt: 1, color: "text.secondary" }}
+
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "white",
+                borderRadius: "16px",
+                display: "inline-block",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+              }}
             >
-              Nội dung: <b>DatPhong {createdBooking?.booking_id}</b>
+              {/* TẠO QR TỰ ĐỘNG DỰA VÀO CẤU HÌNH NGÂN HÀNG ĐÃ TẢI TỪ DATABASE */}
+              <img
+                src={`https://img.vietqr.io/image/${bankId}-${bankAccount}-compact2.png?amount=${createdBooking?.deposit_required}&addInfo=DatPhong%20${createdBooking?.booking_id}&accountName=${accountName}`}
+                alt="QR Payment"
+                style={{
+                  width: "200px",
+                  height: "200px",
+                  objectFit: "contain",
+                }}
+              />
+            </Box>
+
+            <Typography variant="body2" sx={{ mt: 3, color: LUXURY.charcoal }}>
+              Nội dung CK:{" "}
+              <b style={{ fontSize: "1.1rem" }}>
+                DatPhong {createdBooking?.booking_id}
+              </b>
             </Typography>
           </Box>
 
           <Alert
             severity="warning"
-            sx={{ fontSize: "0.8rem", textAlign: "left" }}
+            icon={<AccessTimeIcon />}
+            sx={{
+              borderRadius: "12px",
+              textAlign: "left",
+              bgcolor: `${LUXURY.gold}15`,
+              color: LUXURY.charcoal,
+              border: `1px solid ${LUXURY.gold}40`,
+            }}
           >
             Hệ thống sẽ tự động hủy đơn sau <b>15 phút</b> nếu không nhận được
             tiền cọc.
           </Alert>
         </DialogContent>
-        <DialogActions sx={{ p: 3, justifyContent: "center" }}>
+        <DialogActions
+          sx={{ p: { xs: 3, md: 5 }, pt: 0, justifyContent: "center" }}
+        >
           <Button
             variant="contained"
             fullWidth
-            sx={{ bgcolor: COLORS.primary, fontWeight: "bold", py: 1.2 }}
+            sx={{
+              background: `linear-gradient(135deg, ${LUXURY.navy} 0%, #2a4374 100%)`,
+              color: LUXURY.white,
+              fontWeight: "800",
+              py: 1.8,
+              borderRadius: "12px",
+              fontSize: "1.05rem",
+              boxShadow: "0 12px 24px rgba(27,45,79,0.2)",
+            }}
             onClick={() => navigate("/profile")}
           >
-            XÁC NHẬN ĐÃ CHUYỂN KHOẢN
+            TÔI ĐÃ CHUYỂN KHOẢN
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG MÃ GIẢM GIÁ (Đã điền đầy đủ Code) */}
+      {/* ======================================================= */}
+      {/* DIALOG MÃ GIẢM GIÁ */}
+      {/* ======================================================= */}
       <Dialog
         open={couponDialogOpen}
         onClose={() => setCouponDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: COLORS.borderRadius } }}
+        PaperProps={{ sx: { borderRadius: "24px", bgcolor: LUXURY.offwhite } }}
       >
         <DialogTitle
           sx={{
-            fontWeight: "bold",
-            color: COLORS.primary,
+            fontWeight: "900",
+            fontFamily: '"Playfair Display", serif',
+            color: LUXURY.charcoal,
             textAlign: "center",
+            pt: 4,
+            fontSize: "1.8rem",
           }}
         >
-          Danh Sách Mã Giảm Giá
+          Đặc Quyền Của Bạn
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent sx={{ p: { xs: 2, md: 4 } }}>
           {availableCoupons.length === 0 ? (
             <Typography
               textAlign="center"
-              color="text.secondary"
-              sx={{ py: 3 }}
+              color={LUXURY.warmGray}
+              sx={{ py: 4, fontStyle: "italic" }}
             >
-              Hiện tại không có mã giảm giá nào khả dụng.
+              Hiện tại bạn chưa có mã ưu đãi nào.
             </Typography>
           ) : (
             availableCoupons.map((coupon) => (
-              <Card
+              <Paper
                 key={coupon.id}
                 elevation={0}
+                onClick={() => handleSelectCoupon(coupon)}
                 sx={{
-                  mb: 2,
+                  mb: 3,
                   cursor: "pointer",
+                  p: 3,
+                  borderRadius: "16px",
                   border:
                     selectedCoupon?.id === coupon.id
-                      ? `2px solid ${COLORS.primary}`
-                      : `1px solid ${COLORS.border}`,
-                  transition: "0.2s",
+                      ? `2px solid ${LUXURY.gold}`
+                      : `1px solid ${LUXURY.softGray}`,
+                  bgcolor:
+                    selectedCoupon?.id === coupon.id
+                      ? `${LUXURY.gold}08`
+                      : LUXURY.white,
+                  transition: "all 0.3s ease",
                   "&:hover": {
-                    borderColor: COLORS.primary,
-                    bgcolor: COLORS.primaryLight,
+                    borderColor: LUXURY.gold,
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 12px 24px rgba(212,175,55,0.15)",
                   },
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
                 }}
-                onClick={() => handleSelectCoupon(coupon)}
               >
-                <CardContent
-                  sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                <Box
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "12px",
+                    bgcolor: LUXURY.navy,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    color: LUXURY.gold,
+                    flexShrink: 0,
+                  }}
                 >
-                  <Avatar
-                    sx={{ bgcolor: COLORS.primary, width: 48, height: 48 }}
+                  <LocalOfferIcon fontSize="large" />
+                </Box>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="h6"
+                    fontWeight="900"
+                    color={LUXURY.charcoal}
                   >
-                    <LocalOfferIcon />
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography
-                      variant="h6"
-                      fontWeight="bold"
-                      color="text.primary"
-                    >
-                      {coupon.code}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {coupon.description}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: "block",
-                        mt: 1,
-                        fontWeight: "500",
-                        color: "#ed6c02",
-                      }}
-                    >
-                      Điều kiện: Đơn từ{" "}
-                      {Number(coupon.min_order_value).toLocaleString()}đ
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: "right" }}>
-                    <Typography
-                      variant="h6"
-                      fontWeight="bold"
-                      sx={{ color: "#d32f2f" }}
-                    >
-                      {coupon.discount_type === "PERCENTAGE" ||
-                      coupon.discount_type === "Percentage"
-                        ? `-${parseFloat(coupon.discount_value)}%`
-                        : `-${Number(coupon.discount_value).toLocaleString()}đ`}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
+                    {coupon.code}
+                  </Typography>
+                  <Typography variant="body2" color={LUXURY.warmGray} mb={1}>
+                    {coupon.description}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: "700",
+                      color: "#d84315",
+                      bgcolor: "#fbe9e7",
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: "6px",
+                    }}
+                  >
+                    Điều kiện: Đơn từ{" "}
+                    {Number(coupon.min_order_value).toLocaleString()}đ
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                  <Typography
+                    variant="h5"
+                    fontWeight="900"
+                    sx={{ color: LUXURY.gold }}
+                  >
+                    {coupon.discount_type === "PERCENTAGE" ||
+                    coupon.discount_type === "Percentage"
+                      ? `-${parseFloat(coupon.discount_value)}%`
+                      : `-${Number(coupon.discount_value).toLocaleString()}đ`}
+                  </Typography>
+                </Box>
+              </Paper>
             ))
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+        <DialogActions sx={{ p: 4, pt: 0, justifyContent: "space-between" }}>
           <Button
             onClick={() => {
               setSelectedCoupon(null);
               setCouponDialogOpen(false);
             }}
-            color="error"
+            sx={{ color: LUXURY.warmGray, fontWeight: "700" }}
             disabled={!selectedCoupon}
           >
-            Bỏ mã đã chọn
+            Bỏ chọn mã
           </Button>
           <Button
             onClick={() => setCouponDialogOpen(false)}
             variant="contained"
-            sx={{ bgcolor: COLORS.primary, "&:hover": { bgcolor: "#311b92" } }}
-            disableElevation
+            sx={{
+              bgcolor: LUXURY.charcoal,
+              color: LUXURY.gold,
+              fontWeight: "800",
+              borderRadius: "10px",
+              px: 4,
+              "&:hover": { bgcolor: "black" },
+            }}
           >
-            Đóng
+            ĐÓNG
           </Button>
         </DialogActions>
       </Dialog>
@@ -1092,13 +1399,13 @@ const Booking = () => {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", borderRadius: "12px" }}
         >
           {snackbar.message}
         </Alert>

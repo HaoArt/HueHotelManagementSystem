@@ -29,9 +29,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Badge,
   Tooltip,
+  Fade,
+  Slide,
 } from "@mui/material";
 
 // Icons
@@ -46,7 +47,10 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import LinearProgress from "@mui/material/LinearProgress";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import BadgeIcon from "@mui/icons-material/Badge"; // ĐÃ THÊM ICON THẺ ĐỊNH DANH
+import BadgeIcon from "@mui/icons-material/Badge";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import StarIcon from "@mui/icons-material/Star";
 
 import { AuthContext } from "../../context/AuthContext";
 import AuthService from "../../services/authService";
@@ -55,22 +59,42 @@ import UserService from "../../services/userService";
 import ServiceService from "../../services/serviceService";
 import FolioService from "../../services/folioService";
 
+// =========================================================================
+// LUXURY DESIGN TOKENS
+// =========================================================================
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
+};
+
+const inputStyle = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "12px",
+    bgcolor: LUXURY.white,
+    transition: "all 0.3s ease",
+    "& fieldset": { borderColor: LUXURY.softGray, borderWidth: "1px" },
+    "&:hover fieldset": { borderColor: LUXURY.gold },
+    "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
+  },
+  "& .MuiInputLabel-root": { color: LUXURY.warmGray },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: LUXURY.gold,
+    fontWeight: "bold",
+  },
+};
+
 const RANK_THRESHOLDS = [
   { name: "Đồng (Bronze)", min: 0, color: "#cd7f32" },
-  { name: "Bạc (Silver)", min: 5000000, color: "#9e9e9e" },
-  { name: "Vàng (Gold)", min: 15000000, color: "#fca311" },
-  { name: "Kim Cương (Diamond)", min: 30000000, color: "#00b4d8" },
+  { name: "Bạc (Silver)", min: 5000000, color: "#9ca3af" },
+  { name: "Vàng (Gold)", min: 15000000, color: LUXURY.gold },
+  { name: "Kim Cương (Diamond)", min: 30000000, color: "#38bdf8" },
 ];
-
-const COLORS = {
-  primary: "#4a148c",
-  secondary: "#00695c",
-  cyan: "#64ffda",
-  bgLight: "#f5f7fa",
-  border: "#e0e0e0",
-  textMain: "#333",
-  textSecondary: "#666",
-};
 
 const Profile = () => {
   const { user, setUser } = useContext(AuthContext);
@@ -79,6 +103,7 @@ const Profile = () => {
   const [userRank, setUserRank] = useState(null);
 
   const [bookings, setBookings] = useState([]);
+  const [filterStatus, setFilterStatus] = useState("All"); // THÊM STATE CHO BỘ LỌC
   const [availableServices, setAvailableServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,6 +164,12 @@ const Profile = () => {
       nextMin: next.min,
     };
   }, [profileData]);
+
+  // LỌC DANH SÁCH BOOKING THEO TRẠNG THÁI
+  const filteredBookings = useMemo(() => {
+    if (filterStatus === "All") return bookings;
+    return bookings.filter((b) => b.status === filterStatus);
+  }, [bookings, filterStatus]);
 
   const fetchData = async () => {
     try {
@@ -330,10 +361,10 @@ const Profile = () => {
           <Chip
             label="Chờ thanh toán"
             sx={{
-              bgcolor: "#fff3e0",
-              color: "#e65100",
+              bgcolor: "#fef08a",
+              color: "#854d0e",
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "8px",
             }}
           />
         );
@@ -342,10 +373,10 @@ const Profile = () => {
           <Chip
             label="Đã xác nhận"
             sx={{
-              bgcolor: "#ffecb3",
-              color: "#f57c00",
+              bgcolor: "#e0e7ff",
+              color: "#3730a3",
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "8px",
             }}
           />
         );
@@ -354,10 +385,10 @@ const Profile = () => {
           <Chip
             label="Đang lưu trú"
             sx={{
-              bgcolor: "#e8f5e9",
-              color: "#2e7d32",
+              bgcolor: "#dcfce7",
+              color: "#166534",
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "8px",
             }}
           />
         );
@@ -366,10 +397,10 @@ const Profile = () => {
           <Chip
             label="Đã hoàn tất"
             sx={{
-              bgcolor: "#e0e0e0",
-              color: "#424242",
+              bgcolor: "#f3f4f6",
+              color: "#374151",
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "8px",
             }}
           />
         );
@@ -378,15 +409,15 @@ const Profile = () => {
           <Chip
             label="Đã hủy"
             sx={{
-              bgcolor: "#ffebee",
-              color: "#c62828",
+              bgcolor: "#fee2e2",
+              color: "#991b1b",
               fontWeight: "bold",
-              borderRadius: 2,
+              borderRadius: "8px",
             }}
           />
         );
       default:
-        return <Chip label={status} sx={{ borderRadius: 2 }} />;
+        return <Chip label={status} sx={{ borderRadius: "8px" }} />;
     }
   };
 
@@ -397,23 +428,34 @@ const Profile = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          minHeight: "60vh",
+          minHeight: "80vh",
+          bgcolor: LUXURY.offwhite,
         }}
       >
-        <CircularProgress color="warning" />
+        <CircularProgress sx={{ color: LUXURY.gold }} />
       </Box>
     );
 
   return (
     <Box
-      sx={{ bgcolor: COLORS.bgLight, minHeight: "100vh", py: { xs: 4, md: 6 } }}
+      sx={{
+        bgcolor: LUXURY.offwhite,
+        minHeight: "100vh",
+        py: { xs: 6, md: 10 },
+      }}
     >
       <Container maxWidth="lg">
         {globalSuccess && (
           <Alert
             severity="success"
             onClose={() => setGlobalSuccess("")}
-            sx={{ mb: 4, borderRadius: 2 }}
+            sx={{
+              mb: 4,
+              borderRadius: "12px",
+              bgcolor: `${LUXURY.gold}15`,
+              border: `1px solid ${LUXURY.gold}40`,
+              color: LUXURY.charcoal,
+            }}
           >
             {globalSuccess}
           </Alert>
@@ -422,7 +464,7 @@ const Profile = () => {
           <Alert
             severity="error"
             onClose={() => setGlobalError("")}
-            sx={{ mb: 4, borderRadius: 2 }}
+            sx={{ mb: 4, borderRadius: "12px" }}
           >
             {globalError}
           </Alert>
@@ -432,506 +474,731 @@ const Profile = () => {
           sx={{
             display: "flex",
             flexDirection: { xs: "column", md: "row" },
-            gap: 4,
+            gap: { xs: 4, lg: 6 },
             alignItems: "flex-start",
           }}
         >
-          {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN & RANK */}
-          <Box sx={{ width: { xs: "100%", md: "32%" }, flexShrink: 0 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                bgcolor: COLORS.primary,
-                borderRadius: "12px",
-                p: 3,
-                mb: 3,
-                color: "white",
-                position: "relative",
-                overflow: "hidden",
-                boxShadow: "0 4px 20px rgba(74, 20, 140, 0.15)",
-              }}
-            >
-              <WorkspacePremiumIcon
-                sx={{
-                  position: "absolute",
-                  right: 16,
-                  top: 20,
-                  fontSize: 40,
-                  opacity: 0.3,
-                }}
-              />
-              <Typography variant="body1" fontWeight="500">
-                {userRank?.rank_name || "Thành viên Mới"}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8, mb: 3 }}>
-                Giảm {userRank?.discount_percent || 0}% cho mọi đặt phòng
-              </Typography>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                sx={{ mb: 1 }}
-              >
-                <Typography variant="caption">
-                  Tiến trình lên{" "}
-                  {nextRankInfo?.isMax
-                    ? "Max"
-                    : nextRankInfo?.nextName?.split(" ")[0]}
-                </Typography>
-                <Typography variant="caption" fontWeight="bold">
-                  {nextRankInfo?.isMax
-                    ? "Max"
-                    : `${Number(profileData?.total_spent || 0).toLocaleString("vi-VN")} / ${Number(nextRankInfo?.nextMin || 0).toLocaleString("vi-VN")} đ`}
-                </Typography>
-              </Stack>
-              <LinearProgress
-                variant="determinate"
-                value={nextRankInfo?.isMax ? 100 : nextRankInfo?.progress || 0}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  "& .MuiLinearProgress-bar": { bgcolor: "#ffb300" },
-                }}
-              />
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 4,
-                borderRadius: "12px",
-                border: `1px solid ${COLORS.border}`,
-                bgcolor: "white",
-                textAlign: "center",
-              }}
-            >
-              <Avatar
-                src={profileData?.avatar_url || ""}
-                sx={{
-                  width: 80,
-                  height: 80,
-                  bgcolor: "#2c3e50",
-                  fontSize: "2rem",
-                  margin: "0 auto",
-                  mb: 2,
-                }}
-              >
-                {!profileData?.avatar_url &&
-                  profileData?.full_name?.charAt(0).toUpperCase()}
-              </Avatar>
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                color={COLORS.textMain}
-              >
-                {profileData?.full_name}
-                {profileData?.cccd_number && (
-                  <Tooltip title="Tài khoản đã xác minh danh tính">
-                    <VerifiedIcon
-                      color="success"
-                      sx={{ ml: 1, fontSize: 18, verticalAlign: "middle" }}
-                    />
-                  </Tooltip>
-                )}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Thành viên từ{" "}
-                {new Date(profileData?.created_at || Date.now()).getFullYear()}
-              </Typography>
-
-              {/* ĐÃ CẬP NHẬT: Thêm dòng hiển thị số CCCD */}
-              <Stack spacing={1.5} sx={{ mb: 3, textAlign: "left" }}>
-                <Box
+          {/* =========================================================================
+              CỘT TRÁI: THÔNG TIN CÁ NHÂN & THẺ THÀNH VIÊN VIP
+             ========================================================================= */}
+          <Box
+            sx={{
+              width: { xs: "100%", md: "360px" },
+              flexShrink: 0,
+              position: { md: "sticky" },
+              top: 100,
+            }}
+          >
+            <Slide direction="right" in={true} timeout={600}>
+              <Box>
+                {/* 1. THẺ HẠNG THÀNH VIÊN (VIP CARD) */}
+                <Paper
+                  elevation={0}
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    color: COLORS.textSecondary,
+                    background: `linear-gradient(135deg, ${LUXURY.charcoal} 0%, ${LUXURY.navy} 100%)`,
+                    borderRadius: "24px",
+                    p: 4,
+                    mb: 3,
+                    color: "white",
+                    position: "relative",
+                    overflow: "hidden",
+                    boxShadow: "0 24px 48px rgba(27,45,79,0.2)",
                   }}
                 >
-                  <MailIcon fontSize="small" />
-                  <Typography variant="body2">{profileData?.email}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    color: COLORS.textSecondary,
-                  }}
-                >
-                  <PhoneIcon fontSize="small" />
-                  <Typography variant="body2">
-                    {profileData?.phone || "Chưa cập nhật SĐT"}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    color: COLORS.textSecondary,
-                  }}
-                >
-                  <BadgeIcon fontSize="small" />
-                  <Typography variant="body2">
-                    {profileData?.cccd_number
-                      ? `CCCD: ${profileData.cccd_number}`
-                      : "Chưa cập nhật CCCD"}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Divider sx={{ mb: 3 }} />
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                sx={{ mb: 4 }}
-              >
-                <Box textAlign="center">
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                  >
-                    Tổng chi tiêu
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    fontWeight="bold"
-                    color={COLORS.primary}
-                  >
-                    {Number(profileData?.total_spent || 0).toLocaleString(
-                      "vi-VN",
-                    )}
-                    đ
-                  </Typography>
-                </Box>
-                <Box textAlign="center">
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                  >
-                    Điểm tín nhiệm
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    fontWeight="bold"
-                    color="success.main"
-                  >
-                    {profileData?.trust_score || 0}/100
-                  </Typography>
-                </Box>
-              </Stack>
-              <Stack spacing={2}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => setEditModal(true)}
-                  sx={{
-                    bgcolor: COLORS.secondary,
-                    borderRadius: "8px",
-                    fontWeight: "bold",
-                    textTransform: "none",
-                    py: 1.2,
-                    boxShadow: "none",
-                    "&:hover": { bgcolor: "#004d40", boxShadow: "none" },
-                  }}
-                >
-                  Sửa thông tin / Cập nhật CCCD
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() => setPasswordModal(true)}
-                  sx={{
-                    borderRadius: "8px",
-                    fontWeight: "bold",
-                    textTransform: "none",
-                    color: COLORS.primary,
-                    borderColor: COLORS.primary,
-                    py: 1.2,
-                  }}
-                >
-                  Đổi mật khẩu
-                </Button>
-              </Stack>
-            </Paper>
-          </Box>
-
-          {/* CỘT PHẢI: LỊCH SỬ ĐẶT PHÒNG */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                color={COLORS.textMain}
-              >
-                Lịch sử hành trình
-              </Typography>
-              <IconButton
-                sx={{
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: "8px",
-                }}
-              >
-                <FilterListIcon />
-              </IconButton>
-            </Box>
-
-            {bookings.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 8,
-                  bgcolor: "white",
-                  borderRadius: "12px",
-                  border: `1px solid ${COLORS.border}`,
-                }}
-              >
-                <Typography variant="h6" color="text.secondary">
-                  Bạn chưa có giao dịch nào.
-                </Typography>
-              </Box>
-            ) : (
-              <Stack spacing={3}>
-                {bookings.map((booking) => (
-                  <Paper
-                    key={booking.id}
-                    elevation={0}
+                  <Box
                     sx={{
-                      display: "flex",
-                      flexDirection: { xs: "column", sm: "row" },
-                      borderRadius: "12px",
-                      border: `1px solid ${COLORS.border}`,
-                      borderLeft:
-                        booking.status === "Confirmed"
-                          ? `6px solid ${COLORS.primary}`
-                          : `1px solid ${COLORS.border}`,
-                      overflow: "hidden",
-                      bgcolor: "white",
+                      position: "absolute",
+                      top: -20,
+                      right: -20,
+                      opacity: 0.1,
+                      transform: "rotate(15deg)",
                     }}
                   >
-                    <Box sx={{ width: { xs: "100%", sm: 220 }, flexShrink: 0 }}>
-                      <CardMedia
-                        component="img"
-                        sx={{
-                          width: "100%",
-                          height: { xs: 180, sm: "100%" },
-                          objectFit: "cover",
-                        }}
-                        image={
-                          booking.image_url ||
-                          "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800"
-                        }
-                        alt={booking.type_name}
-                      />
-                    </Box>
+                    <WorkspacePremiumIcon
+                      sx={{ fontSize: 160, color: LUXURY.gold }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="overline"
+                    sx={{ color: LUXURY.softGray, letterSpacing: 2 }}
+                  >
+                    THẺ THÀNH VIÊN
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontFamily: '"Playfair Display", serif',
+                      color: LUXURY.gold,
+                      fontWeight: 900,
+                      mb: 1,
+                      textShadow: "0 2px 8px rgba(212,175,55,0.3)",
+                    }}
+                  >
+                    {userRank?.rank_name || "Thành Viên Mới"}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.8, mb: 4, color: LUXURY.white }}
+                  >
+                    Đặc quyền: Giảm{" "}
+                    <b style={{ color: LUXURY.gold }}>
+                      {userRank?.discount_percent || 0}%
+                    </b>{" "}
+                    toàn hệ thống
+                  </Typography>
 
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    sx={{ mb: 1 }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ color: LUXURY.softGray }}
+                    >
+                      Đến{" "}
+                      {nextRankInfo?.isMax
+                        ? "Max"
+                        : nextRankInfo?.nextName?.split(" ")[0]}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      fontWeight="bold"
+                      sx={{ color: LUXURY.gold }}
+                    >
+                      {nextRankInfo?.isMax
+                        ? "Max"
+                        : `${Number(profileData?.total_spent || 0).toLocaleString("vi-VN")} / ${Number(nextRankInfo?.nextMin || 0).toLocaleString("vi-VN")} đ`}
+                    </Typography>
+                  </Stack>
+                  <LinearProgress
+                    variant="determinate"
+                    value={
+                      nextRankInfo?.isMax ? 100 : nextRankInfo?.progress || 0
+                    }
+                    sx={{
+                      height: 6,
+                      borderRadius: 3,
+                      bgcolor: "rgba(255,255,255,0.1)",
+                      "& .MuiLinearProgress-bar": {
+                        background: `linear-gradient(90deg, ${LUXURY.goldLight}, ${LUXURY.gold})`,
+                      },
+                    }}
+                  />
+                </Paper>
+
+                {/* 2. THÔNG TIN HỒ SƠ CHÍNH */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    borderRadius: "24px",
+                    border: `1px solid ${LUXURY.softGray}`,
+                    bgcolor: LUXURY.white,
+                    boxShadow: "0 20px 40px rgba(26,26,26,0.04)",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      mb: 4,
+                    }}
+                  >
+                    <Avatar
+                      src={profileData?.avatar_url || ""}
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        bgcolor: LUXURY.charcoal,
+                        fontSize: "2.5rem",
+                        mb: 2,
+                        border: `3px solid ${LUXURY.gold}`,
+                        boxShadow: `0 8px 24px ${LUXURY.gold}40`,
+                      }}
+                    >
+                      {!profileData?.avatar_url &&
+                        profileData?.full_name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        fontFamily: '"Playfair Display", serif',
+                        fontWeight: 800,
+                        color: LUXURY.charcoal,
+                      }}
+                    >
+                      {profileData?.full_name}
+                      {profileData?.cccd_number && (
+                        <Tooltip title="Đã xác minh danh tính">
+                          <VerifiedIcon
+                            sx={{
+                              color: LUXURY.gold,
+                              ml: 1,
+                              fontSize: 22,
+                              verticalAlign: "middle",
+                            }}
+                          />
+                        </Tooltip>
+                      )}
+                    </Typography>
+                    <Typography variant="body2" color={LUXURY.warmGray}>
+                      Thành viên từ{" "}
+                      {new Date(
+                        profileData?.created_at || Date.now(),
+                      ).getFullYear()}
+                    </Typography>
+                  </Box>
+
+                  <Stack spacing={2} sx={{ mb: 4 }}>
                     <Box
                       sx={{
-                        p: { xs: 2, sm: 3 },
-                        flex: 1,
                         display: "flex",
-                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                        color: LUXURY.charcoal,
                       }}
                     >
                       <Box
                         sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          bgcolor: LUXURY.offwhite,
                           display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          mb: 0.5,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          color: LUXURY.gold,
                         }}
                       >
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          color={COLORS.textMain}
-                        >
-                          {booking.type_name}
-                        </Typography>
-                        <Box>{getStatusChip(booking.status)}</Box>
+                        <MailIcon fontSize="small" />
                       </Box>
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mb: 2 }}
-                      >
-                        Booking ID: #{booking.id}{" "}
-                        {booking.room_number
-                          ? `• Phòng ${booking.room_number}`
-                          : ""}
+                      <Typography variant="body2" fontWeight="500">
+                        {profileData?.email}
                       </Typography>
-
-                      <Stack
-                        direction="row"
-                        spacing={{ xs: 3, sm: 6 }}
-                        sx={{ mb: 3 }}
-                      >
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Check-in
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            fontWeight="500"
-                            color={COLORS.textMain}
-                          >
-                            {new Date(booking.check_in_date).toLocaleDateString(
-                              "vi-VN",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Check-out
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            fontWeight="500"
-                            color={COLORS.textMain}
-                          >
-                            {new Date(
-                              booking.check_out_date,
-                            ).toLocaleDateString("vi-VN", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </Typography>
-                        </Box>
-                      </Stack>
-
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        color: LUXURY.charcoal,
+                      }}
+                    >
                       <Box
                         sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          bgcolor: LUXURY.offwhite,
                           display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-end",
-                          mt: "auto",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          color: LUXURY.gold,
                         }}
                       >
-                        <Typography variant="body2" color="text.secondary">
-                          Đặt lúc{" "}
-                          {new Date(booking.created_at).toLocaleDateString(
-                            "vi-VN",
-                            { month: "short", day: "numeric", year: "numeric" },
-                          )}
-                        </Typography>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<ReceiptLongIcon />}
-                            onClick={() => handleOpenDetails(booking)}
-                            disabled={isSubmitting}
+                        <PhoneIcon fontSize="small" />
+                      </Box>
+                      <Typography variant="body2" fontWeight="500">
+                        {profileData?.phone || "Chưa cập nhật SĐT"}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        color: LUXURY.charcoal,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          bgcolor: LUXURY.offwhite,
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          color: LUXURY.gold,
+                        }}
+                      >
+                        <BadgeIcon fontSize="small" />
+                      </Box>
+                      <Typography variant="body2" fontWeight="500">
+                        {profileData?.cccd_number
+                          ? `CCCD: ${profileData.cccd_number}`
+                          : "Chưa cập nhật CCCD"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Divider sx={{ mb: 3, borderColor: LUXURY.softGray }} />
+
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    sx={{ mb: 4 }}
+                  >
+                    <Box textAlign="center">
+                      <Typography
+                        variant="caption"
+                        color={LUXURY.warmGray}
+                        display="block"
+                        letterSpacing={1}
+                      >
+                        TỔNG CHI TIÊU
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        fontWeight="800"
+                        color={LUXURY.charcoal}
+                      >
+                        {Number(profileData?.total_spent || 0).toLocaleString(
+                          "vi-VN",
+                        )}
+                        đ
+                      </Typography>
+                    </Box>
+                    <Box textAlign="center">
+                      <Typography
+                        variant="caption"
+                        color={LUXURY.warmGray}
+                        display="block"
+                        letterSpacing={1}
+                      >
+                        TÍN NHIỆM
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        fontWeight="800"
+                        sx={{ color: "#16a34a" }}
+                      >
+                        {profileData?.trust_score || 0}/100
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Stack spacing={2}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={<EditOutlinedIcon />}
+                      onClick={() => setEditModal(true)}
+                      sx={{
+                        background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                        color: LUXURY.white,
+                        borderRadius: "12px",
+                        fontWeight: "800",
+                        py: 1.5,
+                        boxShadow: `0 8px 24px ${LUXURY.gold}40`,
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: `0 12px 32px ${LUXURY.gold}60`,
+                        },
+                      }}
+                    >
+                      CẬP NHẬT HỒ SƠ
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<LockOutlinedIcon />}
+                      onClick={() => setPasswordModal(true)}
+                      sx={{
+                        borderRadius: "12px",
+                        fontWeight: "700",
+                        color: LUXURY.charcoal,
+                        borderColor: LUXURY.softGray,
+                        py: 1.5,
+                        "&:hover": {
+                          borderColor: LUXURY.charcoal,
+                          bgcolor: LUXURY.offwhite,
+                        },
+                      }}
+                    >
+                      Đổi mật khẩu
+                    </Button>
+                  </Stack>
+                </Paper>
+              </Box>
+            </Slide>
+          </Box>
+
+          {/* =========================================================================
+              CỘT PHẢI: LỊCH SỬ ĐẶT PHÒNG
+             ========================================================================= */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Slide direction="left" in={true} timeout={800}>
+              <Box>
+                {/* HEADER & FILTER TRẠNG THÁI */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: { xs: "column", sm: "row" },
+                    justifyContent: "space-between",
+                    alignItems: { xs: "flex-start", sm: "flex-end" },
+                    mb: 4,
+                    gap: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="h3"
+                      fontWeight="900"
+                      sx={{
+                        fontFamily: '"Playfair Display", serif',
+                        color: LUXURY.charcoal,
+                        mb: 1,
+                        fontSize: { xs: "2rem", md: "2.5rem" },
+                      }}
+                    >
+                      Hành Trình Của Bạn
+                    </Typography>
+                    <Typography variant="body1" color={LUXURY.warmGray}>
+                      Ghi dấu những khoảnh khắc tuyệt vời tại Huế Hotel
+                    </Typography>
+                  </Box>
+                  <FormControl
+                    size="small"
+                    sx={{ minWidth: 180, ...inputStyle }}
+                  >
+                    <Select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      displayEmpty
+                      sx={{
+                        borderRadius: "12px",
+                        bgcolor: LUXURY.white,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <MenuItem value="All">Tất cả trạng thái</MenuItem>
+                      <MenuItem value="Pending">Chờ thanh toán</MenuItem>
+                      <MenuItem value="Confirmed">Đã xác nhận</MenuItem>
+                      <MenuItem value="Checked_in">Đang lưu trú</MenuItem>
+                      <MenuItem value="Checked_out">Đã hoàn tất</MenuItem>
+                      <MenuItem value="Cancelled">Đã hủy</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                {filteredBookings.length === 0 ? (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      textAlign: "center",
+                      py: 10,
+                      borderRadius: "24px",
+                      bgcolor: LUXURY.white,
+                      border: `1px solid ${LUXURY.softGray}`,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      color={LUXURY.warmGray}
+                      sx={{ fontFamily: '"Playfair Display", serif' }}
+                    >
+                      {filterStatus === "All"
+                        ? "Bạn chưa có kỳ nghỉ nào cùng chúng tôi."
+                        : "Không có giao dịch nào ở trạng thái này."}
+                    </Typography>
+                  </Paper>
+                ) : (
+                  // BỌC TRONG BOX SCROLL CỐ ĐỊNH CHIỀU CAO
+                  <Box
+                    sx={{
+                      maxHeight: { xs: "600px", md: "800px" },
+                      overflowY: "auto",
+                      pr: 1.5,
+                      mr: -1.5, // Kéo ra một chút để thanh scroll không đè vào thẻ
+                      "&::-webkit-scrollbar": { width: "6px" },
+                      "&::-webkit-scrollbar-track": {
+                        background: "transparent",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        background: LUXURY.softGray,
+                        borderRadius: "10px",
+                      },
+                      "&::-webkit-scrollbar-thumb:hover": {
+                        background: LUXURY.warmGray,
+                      },
+                    }}
+                  >
+                    <Stack spacing={4}>
+                      {filteredBookings.map((booking) => (
+                        <Paper
+                          key={booking.id}
+                          elevation={0}
+                          sx={{
+                            display: "flex",
+                            flexDirection: { xs: "column", sm: "row" },
+                            borderRadius: "24px",
+                            border: `1px solid ${LUXURY.softGray}`,
+                            overflow: "hidden",
+                            bgcolor: LUXURY.white,
+                            transition: "all 0.4s ease",
+                            "&:hover": {
+                              boxShadow: "0 24px 48px rgba(26,26,26,0.08)",
+                              transform: "translateY(-4px)",
+                            },
+                          }}
+                        >
+                          <Box
                             sx={{
-                              borderRadius: "6px",
-                              textTransform: "none",
-                              fontWeight: "bold",
+                              width: { xs: "100%", sm: 280 },
+                              flexShrink: 0,
+                              position: "relative",
                             }}
                           >
-                            Hóa đơn & Dịch vụ
-                          </Button>
-                          {booking.status === "Checked_out" && (
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => {
-                                setReviewModal({
-                                  open: true,
-                                  bookingId: booking.id,
-                                  roomName: booking.type_name,
-                                });
-                                setReviewForm({ rating: 5, comment: "" });
-                              }}
+                            <CardMedia
+                              component="img"
                               sx={{
-                                bgcolor: COLORS.cyan,
-                                color: "#004d40",
-                                fontWeight: "bold",
-                                textTransform: "none",
-                                borderRadius: "6px",
-                                boxShadow: "none",
-                                "&:hover": {
-                                  bgcolor: "#1de9b6",
-                                  boxShadow: "none",
-                                },
+                                width: "100%",
+                                height: { xs: 220, sm: "100%" },
+                                objectFit: "cover",
+                              }}
+                              image={
+                                booking.image_url ||
+                                "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800"
+                              }
+                              alt={booking.type_name}
+                            />
+                          </Box>
+
+                          <Box
+                            sx={{
+                              p: { xs: 3, md: 4 },
+                              flex: 1,
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                mb: 1,
                               }}
                             >
-                              Đánh giá
-                            </Button>
-                          )}
-                          <Typography
-                            variant="h6"
-                            fontWeight="bold"
-                            sx={{
-                              color:
-                                booking.status === "Cancelled"
-                                  ? "text.secondary"
-                                  : COLORS.primary,
-                              textDecoration:
-                                booking.status === "Cancelled"
-                                  ? "line-through"
-                                  : "none",
-                            }}
-                          >
-                            {Number(
-                              booking.grand_total || booking.total_amount || 0,
-                            ).toLocaleString("vi-VN")}
-                            đ
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    </Box>
-                  </Paper>
-                ))}
-              </Stack>
-            )}
+                              <Typography
+                                variant="h5"
+                                fontWeight="800"
+                                color={LUXURY.charcoal}
+                                sx={{ fontFamily: '"Playfair Display", serif' }}
+                              >
+                                {booking.type_name}
+                              </Typography>
+                              <Box>{getStatusChip(booking.status)}</Box>
+                            </Box>
+
+                            <Typography
+                              variant="body2"
+                              color={LUXURY.warmGray}
+                              sx={{ mb: 3 }}
+                            >
+                              Mã đặt phòng: #{booking.id}{" "}
+                              {booking.room_number
+                                ? `• Phòng ${booking.room_number}`
+                                : ""}
+                            </Typography>
+
+                            <Stack
+                              direction="row"
+                              spacing={{ xs: 4, md: 8 }}
+                              sx={{
+                                mb: 4,
+                                py: 2,
+                                borderTop: `1px solid ${LUXURY.softGray}`,
+                                borderBottom: `1px solid ${LUXURY.softGray}`,
+                              }}
+                            >
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  color={LUXURY.warmGray}
+                                  fontWeight="700"
+                                  letterSpacing={1}
+                                >
+                                  CHECK-IN
+                                </Typography>
+                                <Typography
+                                  variant="h6"
+                                  fontWeight="700"
+                                  color={LUXURY.charcoal}
+                                >
+                                  {new Date(
+                                    booking.check_in_date,
+                                  ).toLocaleDateString("vi-VN", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  color={LUXURY.warmGray}
+                                  fontWeight="700"
+                                  letterSpacing={1}
+                                >
+                                  CHECK-OUT
+                                </Typography>
+                                <Typography
+                                  variant="h6"
+                                  fontWeight="700"
+                                  color={LUXURY.charcoal}
+                                >
+                                  {new Date(
+                                    booking.check_out_date,
+                                  ).toLocaleDateString("vi-VN", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })}
+                                </Typography>
+                              </Box>
+                            </Stack>
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-end",
+                                mt: "auto",
+                                flexWrap: "wrap",
+                                gap: 2,
+                              }}
+                            >
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  color={LUXURY.warmGray}
+                                  display="block"
+                                  mb={0.5}
+                                >
+                                  TỔNG THANH TOÁN
+                                </Typography>
+                                <Typography
+                                  variant="h5"
+                                  fontWeight="900"
+                                  sx={{
+                                    color:
+                                      booking.status === "Cancelled"
+                                        ? LUXURY.warmGray
+                                        : LUXURY.charcoal,
+                                    textDecoration:
+                                      booking.status === "Cancelled"
+                                        ? "line-through"
+                                        : "none",
+                                  }}
+                                >
+                                  {Number(
+                                    booking.grand_total ||
+                                      booking.total_amount ||
+                                      0,
+                                  ).toLocaleString("vi-VN")}
+                                  đ
+                                </Typography>
+                              </Box>
+                              <Stack
+                                direction="row"
+                                spacing={2}
+                                alignItems="center"
+                              >
+                                <Button
+                                  variant="outlined"
+                                  startIcon={<ReceiptLongIcon />}
+                                  onClick={() => handleOpenDetails(booking)}
+                                  disabled={isSubmitting}
+                                  sx={{
+                                    borderRadius: "10px",
+                                    textTransform: "none",
+                                    fontWeight: "700",
+                                    color: LUXURY.charcoal,
+                                    borderColor: LUXURY.softGray,
+                                    "&:hover": {
+                                      borderColor: LUXURY.charcoal,
+                                      bgcolor: LUXURY.offwhite,
+                                    },
+                                  }}
+                                >
+                                  Xem Hóa Đơn
+                                </Button>
+                                {booking.status === "Checked_out" && (
+                                  <Button
+                                    variant="contained"
+                                    onClick={() => {
+                                      setReviewModal({
+                                        open: true,
+                                        bookingId: booking.id,
+                                        roomName: booking.type_name,
+                                      });
+                                      setReviewForm({ rating: 5, comment: "" });
+                                    }}
+                                    sx={{
+                                      bgcolor: LUXURY.charcoal,
+                                      color: LUXURY.gold,
+                                      fontWeight: "800",
+                                      borderRadius: "10px",
+                                      boxShadow: "none",
+                                      "&:hover": {
+                                        bgcolor: "black",
+                                        boxShadow: "none",
+                                      },
+                                    }}
+                                  >
+                                    Đánh Giá
+                                  </Button>
+                                )}
+                              </Stack>
+                            </Box>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Box>
+            </Slide>
           </Box>
         </Box>
 
         {/* ======================================================= */}
-        {/* MODAL SỬA THÔNG TIN */}
+        {/* MODALS - LUXURY RESTYLING */}
         {/* ======================================================= */}
+
+        {/* 1. SỬA HỒ SƠ */}
         <Dialog
           open={editModal}
           onClose={() => setEditModal(false)}
           maxWidth="xs"
           fullWidth
-          PaperProps={{ sx: { borderRadius: "12px" } }}
+          PaperProps={{ sx: { borderRadius: "24px", bgcolor: LUXURY.white } }}
         >
           <DialogTitle
             sx={{
-              fontWeight: "bold",
-              color: COLORS.primary,
-              pt: 3,
+              fontWeight: "900",
+              fontFamily: '"Playfair Display", serif',
+              color: LUXURY.charcoal,
+              pt: 4,
               textAlign: "center",
+              fontSize: "1.8rem",
             }}
           >
             Hồ Sơ Cá Nhân
           </DialogTitle>
-          <DialogContent sx={{ pb: 1 }}>
+          <DialogContent sx={{ pb: 1, px: 4 }}>
             <Box
               sx={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                mb: 3,
-                mt: 1,
+                mb: 4,
+                mt: 2,
               }}
             >
               <Badge
@@ -941,11 +1208,12 @@ const Profile = () => {
                   <IconButton
                     component="label"
                     sx={{
-                      bgcolor: COLORS.primary,
+                      bgcolor: LUXURY.gold,
                       color: "white",
-                      "&:hover": { bgcolor: "#311b92" },
-                      width: 32,
-                      height: 32,
+                      "&:hover": { bgcolor: LUXURY.goldLight },
+                      width: 36,
+                      height: 36,
+                      boxShadow: `0 4px 12px ${LUXURY.gold}60`,
                     }}
                   >
                     <PhotoCameraIcon sx={{ fontSize: 18 }} />
@@ -960,66 +1228,65 @@ const Profile = () => {
               >
                 <Avatar
                   src={editForm.avatar_url}
-                  sx={{ width: 90, height: 90, bgcolor: "#2c3e50" }}
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    bgcolor: LUXURY.charcoal,
+                    border: `2px solid ${LUXURY.gold}`,
+                  }}
                 >
                   {!editForm.avatar_url &&
                     editForm.full_name?.charAt(0).toUpperCase()}
                 </Avatar>
               </Badge>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
-                Thay đổi ảnh đại diện
-              </Typography>
             </Box>
 
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Họ và Tên"
-              value={editForm.full_name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, full_name: e.target.value })
-              }
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Số điện thoại"
-              value={editForm.phone}
-              onChange={(e) =>
-                setEditForm({ ...editForm, phone: e.target.value })
-              }
-            />
-
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Số Căn cước công dân"
-              value={editForm.cccd_number}
-              disabled={!!profileData?.cccd_number}
-              onChange={(e) =>
-                setEditForm({ ...editForm, cccd_number: e.target.value })
-              }
-              inputProps={{ maxLength: 12 }}
-              helperText={
-                profileData?.cccd_number
-                  ? "🔒 Thông tin đã được xác thực, không thể thay đổi."
-                  : "Nhập 12 số CCCD để định danh bảo vệ tài khoản."
-              }
-              sx={{
-                mt: 2,
-                bgcolor: profileData?.cccd_number ? "#f5f5f5" : "transparent",
-              }}
-            />
+            <Stack spacing={3}>
+              <TextField
+                fullWidth
+                label="Họ và Tên"
+                value={editForm.full_name}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, full_name: e.target.value })
+                }
+                sx={inputStyle}
+              />
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                value={editForm.phone}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, phone: e.target.value })
+                }
+                sx={inputStyle}
+              />
+              <TextField
+                fullWidth
+                label="Căn cước công dân"
+                value={editForm.cccd_number}
+                disabled={!!profileData?.cccd_number}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, cccd_number: e.target.value })
+                }
+                inputProps={{ maxLength: 12 }}
+                helperText={
+                  profileData?.cccd_number
+                    ? "🔒 Thông tin đã được xác thực."
+                    : "Nhập 12 số CCCD để định danh bảo vệ tài khoản."
+                }
+                sx={{
+                  ...inputStyle,
+                  bgcolor: profileData?.cccd_number
+                    ? LUXURY.offwhite
+                    : "transparent",
+                }}
+              />
+            </Stack>
           </DialogContent>
-          <DialogActions sx={{ p: 3, justifyContent: "center" }}>
+          <DialogActions sx={{ p: 4, pt: 2, justifyContent: "center" }}>
             <Button
               onClick={() => setEditModal(false)}
-              color="inherit"
-              sx={{ fontWeight: "bold", mr: 1 }}
+              sx={{ fontWeight: "700", color: LUXURY.warmGray, mr: 1 }}
             >
               Hủy
             </Button>
@@ -1027,8 +1294,14 @@ const Profile = () => {
               onClick={handleUpdateProfile}
               disabled={isSubmitting}
               variant="contained"
-              disableElevation
-              sx={{ bgcolor: COLORS.primary, fontWeight: "bold", px: 4 }}
+              sx={{
+                background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                color: LUXURY.white,
+                fontWeight: "800",
+                px: 4,
+                py: 1.2,
+                borderRadius: "10px",
+              }}
             >
               {isSubmitting ? (
                 <CircularProgress size={24} color="inherit" />
@@ -1039,9 +1312,182 @@ const Profile = () => {
           </DialogActions>
         </Dialog>
 
-        {/* ======================================================= */}
-        {/* MODAL CHI TIẾT HÓA ĐƠN VÀ ORDER DỊCH VỤ */}
-        {/* ======================================================= */}
+        {/* 2. ĐỔI MẬT KHẨU */}
+        <Dialog
+          open={passwordModal}
+          onClose={() => setPasswordModal(false)}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: "24px", bgcolor: LUXURY.white } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "900",
+              fontFamily: '"Playfair Display", serif',
+              color: LUXURY.charcoal,
+              pt: 4,
+              textAlign: "center",
+              fontSize: "1.8rem",
+            }}
+          >
+            Đổi mật khẩu
+          </DialogTitle>
+          <DialogContent sx={{ px: 4, pt: 2 }}>
+            <Stack spacing={3} mt={1}>
+              <TextField
+                fullWidth
+                label="Mật khẩu hiện tại"
+                type="password"
+                value={passwordForm.current_password}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    current_password: e.target.value,
+                  })
+                }
+                sx={inputStyle}
+              />
+              <TextField
+                fullWidth
+                label="Mật khẩu mới"
+                type="password"
+                value={passwordForm.new_password}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    new_password: e.target.value,
+                  })
+                }
+                sx={inputStyle}
+              />
+              <TextField
+                fullWidth
+                label="Xác nhận mật khẩu mới"
+                type="password"
+                value={passwordForm.confirm_password}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirm_password: e.target.value,
+                  })
+                }
+                sx={inputStyle}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 4, pt: 2, justifyContent: "center" }}>
+            <Button
+              onClick={() => setPasswordModal(false)}
+              sx={{ fontWeight: "700", color: LUXURY.warmGray, mr: 1 }}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isSubmitting}
+              variant="contained"
+              sx={{
+                background: LUXURY.charcoal,
+                color: LUXURY.gold,
+                fontWeight: "800",
+                px: 4,
+                py: 1.2,
+                borderRadius: "10px",
+              }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "XÁC NHẬN"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 3. ĐÁNH GIÁ (REVIEW) */}
+        <Dialog
+          open={reviewModal.open}
+          onClose={() => setReviewModal({ ...reviewModal, open: false })}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: "24px", bgcolor: LUXURY.white } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "900",
+              fontFamily: '"Playfair Display", serif',
+              color: LUXURY.charcoal,
+              textAlign: "center",
+              pt: 5,
+              fontSize: "2rem",
+            }}
+          >
+            Đánh giá trải nghiệm
+          </DialogTitle>
+          <DialogContent
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              pb: 1,
+              px: { xs: 3, md: 6 },
+            }}
+          >
+            <Typography variant="body1" sx={{ mb: 3, color: LUXURY.warmGray }}>
+              Cảm nhận của bạn về{" "}
+              <b style={{ color: LUXURY.charcoal }}>{reviewModal.roomName}</b>
+            </Typography>
+            <Rating
+              value={reviewForm.rating}
+              onChange={(e, newValue) =>
+                setReviewForm({ ...reviewForm, rating: newValue })
+              }
+              size="large"
+              sx={{ mb: 4, "& .MuiRating-iconFilled": { color: LUXURY.gold } }}
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Chia sẻ trải nghiệm của bạn"
+              value={reviewForm.comment}
+              onChange={(e) =>
+                setReviewForm({ ...reviewForm, comment: e.target.value })
+              }
+              sx={inputStyle}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 5, pt: 3, justifyContent: "center" }}>
+            <Button
+              onClick={() => setReviewModal({ ...reviewModal, open: false })}
+              sx={{ fontWeight: "700", color: LUXURY.warmGray, mr: 2 }}
+            >
+              Để sau
+            </Button>
+            <Button
+              onClick={handleSubmitReview}
+              disabled={isSubmitting}
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                color: LUXURY.white,
+                fontWeight: "800",
+                px: 5,
+                py: 1.5,
+                borderRadius: "12px",
+                boxShadow: `0 12px 24px ${LUXURY.gold}40`,
+              }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "GỬI ĐÁNH GIÁ"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 4. HOÁ ĐƠN DỊCH VỤ VÀ GỌI MÓN (FOLIO) */}
         <Dialog
           disableScrollLock={true}
           open={detailModal.open}
@@ -1050,28 +1496,37 @@ const Profile = () => {
           }
           maxWidth="md"
           fullWidth
-          PaperProps={{ sx: { borderRadius: "4px", bgcolor: "#f4f6f8" } }}
+          PaperProps={{
+            sx: {
+              borderRadius: "24px",
+              bgcolor: LUXURY.offwhite,
+              overflow: "hidden",
+            },
+          }}
         >
-          <DialogTitle
+          <Box
             sx={{
-              bgcolor: COLORS.primary,
-              color: "white",
+              background: LUXURY.navy,
+              p: 3,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              color: "white",
             }}
           >
-            <Typography variant="h6" fontWeight="bold">
-              Chi tiết hóa đơn #{detailModal.booking?.id}
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: "bold",
+              }}
+            >
+              Hoá Đơn #{detailModal.booking?.id}
             </Typography>
             {getStatusChip(detailModal.booking?.status)}
-          </DialogTitle>
-          <DialogContent sx={{ p: 3 }}>
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={3}
-              alignItems="stretch"
-            >
+          </Box>
+          <DialogContent sx={{ p: { xs: 2, md: 4 } }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={4}>
               <Box
                 sx={{
                   flex:
@@ -1079,48 +1534,44 @@ const Profile = () => {
                     detailModal.booking?.status === "Cancelled"
                       ? 1
                       : 1.5,
-                  minWidth: 0,
                 }}
               >
                 <Paper
                   elevation={0}
                   sx={{
                     p: 3,
-                    borderRadius: "4px",
-                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: "16px",
+                    border: `1px solid ${LUXURY.softGray}`,
+                    bgcolor: LUXURY.white,
                     height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    bgcolor: "white",
                   }}
                 >
                   <Typography
                     variant="subtitle1"
-                    fontWeight="bold"
-                    color={COLORS.primary}
+                    fontWeight="800"
+                    color={LUXURY.charcoal}
                     mb={2}
                   >
-                    <RoomServiceIcon sx={{ verticalAlign: "middle", mr: 1 }} />{" "}
-                    Dịch vụ đã sử dụng / đang gọi
+                    <RoomServiceIcon
+                      sx={{
+                        verticalAlign: "middle",
+                        mr: 1,
+                        color: LUXURY.gold,
+                      }}
+                    />{" "}
+                    Dịch Vụ Phát Sinh
                   </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Box
-                    sx={{
-                      flexGrow: 1,
-                      overflowY: "auto",
-                      maxHeight: "300px",
-                      pr: 1,
-                    }}
-                  >
+                  <Divider sx={{ mb: 2, borderColor: LUXURY.softGray }} />
+                  <Box sx={{ maxHeight: "250px", overflowY: "auto", pr: 1 }}>
                     <List disablePadding>
                       {detailModal.folioData.length === 0 ? (
                         <Typography
                           variant="body2"
-                          color="text.secondary"
+                          color={LUXURY.warmGray}
                           textAlign="center"
-                          sx={{ py: 3 }}
+                          py={3}
                         >
-                          Bạn chưa sử dụng dịch vụ phát sinh nào.
+                          Chưa phát sinh dịch vụ nào.
                         </Typography>
                       ) : (
                         detailModal.folioData.map((item, index) => (
@@ -1128,22 +1579,20 @@ const Profile = () => {
                             key={index}
                             disablePadding
                             sx={{
-                              mb: 1.5,
+                              mb: 2,
                               bgcolor:
                                 item.status === "Pending"
-                                  ? "#fff3e0"
-                                  : "#f5f5f5",
-                              p: 1.5,
-                              borderRadius: "4px",
-                              border: `1px solid ${item.status === "Pending" ? "#ffe0b2" : COLORS.border}`,
+                                  ? `${LUXURY.gold}10`
+                                  : LUXURY.offwhite,
+                              p: 2,
+                              borderRadius: "12px",
                             }}
                           >
                             <ListItemText
                               primary={
                                 <Typography
-                                  fontWeight="bold"
-                                  color={COLORS.textMain}
-                                  variant="body2"
+                                  fontWeight="700"
+                                  color={LUXURY.charcoal}
                                 >
                                   {item.services_name ||
                                     item.service_name ||
@@ -1154,22 +1603,16 @@ const Profile = () => {
                               secondary={
                                 <Typography
                                   variant="caption"
+                                  fontWeight="600"
                                   color={
                                     item.status === "Pending"
                                       ? "warning.main"
                                       : "success.main"
                                   }
-                                  fontWeight="500"
                                 >
                                   {item.status === "Pending"
-                                    ? "⏳ Đang chuẩn bị..."
-                                    : "✅ Đã phục vụ"}{" "}
-                                  •{" "}
-                                  {item.created_at
-                                    ? new Date(item.created_at).toLocaleString(
-                                        "vi-VN",
-                                      )
-                                    : ""}
+                                    ? "⏳ Đang chuẩn bị"
+                                    : "✅ Đã phục vụ"}
                                 </Typography>
                               }
                             />
@@ -1181,14 +1624,13 @@ const Profile = () => {
                               }}
                             >
                               <Typography
-                                fontWeight="bold"
-                                mr={1}
-                                color={COLORS.textMain}
-                                variant="body2"
+                                fontWeight="800"
+                                mr={2}
+                                color={LUXURY.charcoal}
                               >
                                 {parseFloat(
                                   item.total_price || item.amount || 0,
-                                ).toLocaleString()}{" "}
+                                ).toLocaleString()}
                                 đ
                               </Typography>
                               {item.status === "Pending" &&
@@ -1199,8 +1641,8 @@ const Profile = () => {
                                     size="small"
                                     onClick={() => handleCancelService(item.id)}
                                     sx={{
-                                      bgcolor: "rgba(211,47,47,0.1)",
-                                      borderRadius: "4px",
+                                      bgcolor: "#fee2e2",
+                                      borderRadius: "8px",
                                     }}
                                   >
                                     <DeleteIcon fontSize="small" />
@@ -1212,15 +1654,21 @@ const Profile = () => {
                       )}
                     </List>
                   </Box>
-                  <Divider sx={{ my: 2 }} />
-                  <Stack spacing={1}>
+                  <Divider
+                    sx={{
+                      my: 3,
+                      borderStyle: "dashed",
+                      borderColor: LUXURY.softGray,
+                    }}
+                  />
+                  <Stack spacing={1.5}>
                     <Box
                       sx={{ display: "flex", justifyContent: "space-between" }}
                     >
-                      <Typography variant="body2" color="text.secondary">
-                        Tiền phòng (sau giảm giá):
+                      <Typography variant="body2" color={LUXURY.warmGray}>
+                        Tiền phòng (sau ưu đãi):
                       </Typography>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography variant="body2" fontWeight="700">
                         {parseFloat(
                           detailModal.booking?.total_amount || 0,
                         ).toLocaleString()}{" "}
@@ -1230,10 +1678,10 @@ const Profile = () => {
                     <Box
                       sx={{ display: "flex", justifyContent: "space-between" }}
                     >
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color={LUXURY.warmGray}>
                         Tiền dịch vụ phát sinh:
                       </Typography>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography variant="body2" fontWeight="700">
                         {detailModal.folioData
                           .reduce(
                             (sum, item) =>
@@ -1253,13 +1701,13 @@ const Profile = () => {
                           justifyContent: "space-between",
                         }}
                       >
-                        <Typography variant="body2" color="warning.main">
-                          Đã đặt cọc/Thanh toán trước:
+                        <Typography variant="body2" color="success.main">
+                          Đã đặt cọc/Thanh toán:
                         </Typography>
                         <Typography
                           variant="body2"
-                          color="warning.main"
-                          fontWeight="bold"
+                          color="success.main"
+                          fontWeight="700"
                         >
                           -{" "}
                           {parseFloat(
@@ -1269,28 +1717,23 @@ const Profile = () => {
                         </Typography>
                       </Box>
                     )}
-                    <Divider sx={{ borderStyle: "dashed", my: 1 }} />
                     <Box
                       sx={{
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center",
+                        mt: 2,
+                        pt: 2,
+                        borderTop: `1px solid ${LUXURY.softGray}`,
                       }}
                     >
-                      <Box>
-                        <Typography
-                          variant="body1"
-                          fontWeight="bold"
-                          color={COLORS.textMain}
-                        >
-                          TỔNG CỘNG:
-                        </Typography>
-                      </Box>
                       <Typography
-                        variant="h5"
-                        color="error.main"
-                        fontWeight="bold"
+                        variant="subtitle1"
+                        fontWeight="800"
+                        color={LUXURY.charcoal}
                       >
+                        TỔNG CÒN LẠI:
+                      </Typography>
+                      <Typography variant="h5" color="#dc2626" fontWeight="900">
                         {(
                           parseFloat(detailModal.booking?.total_amount || 0) +
                           detailModal.folioData.reduce(
@@ -1308,17 +1751,16 @@ const Profile = () => {
                 </Paper>
               </Box>
 
-              {/* CỘT PHẢI: GỌI THÊM DỊCH VỤ */}
               {detailModal.booking?.status !== "Checked_out" &&
                 detailModal.booking?.status !== "Cancelled" && (
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ flex: 1 }}>
                     <Paper
                       elevation={0}
                       sx={{
                         p: 3,
-                        borderRadius: "4px",
-                        border: `1px solid ${COLORS.border}`,
-                        bgcolor: "white",
+                        borderRadius: "16px",
+                        border: `1px solid ${LUXURY.softGray}`,
+                        bgcolor: LUXURY.white,
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
@@ -1326,23 +1768,24 @@ const Profile = () => {
                     >
                       <Typography
                         variant="subtitle1"
-                        fontWeight="bold"
-                        color="warning.main"
+                        fontWeight="800"
+                        color={LUXURY.charcoal}
                         mb={2}
                       >
                         <AddShoppingCartIcon
-                          sx={{ verticalAlign: "middle", mr: 1 }}
+                          sx={{
+                            verticalAlign: "middle",
+                            mr: 1,
+                            color: LUXURY.gold,
+                          }}
                         />{" "}
-                        Gọi thêm dịch vụ
+                        Đặt Thêm Dịch Vụ
                       </Typography>
-                      <Divider sx={{ mb: 3 }} />
+                      <Divider sx={{ mb: 3, borderColor: LUXURY.softGray }} />
                       <FormControl
                         fullWidth
                         size="small"
-                        sx={{
-                          mb: 3,
-                          "& .MuiOutlinedInput-root": { borderRadius: "4px" },
-                        }}
+                        sx={{ mb: 3, ...inputStyle }}
                       >
                         <InputLabel>Chọn dịch vụ</InputLabel>
                         <Select
@@ -1376,41 +1819,29 @@ const Profile = () => {
                           })
                         }
                         inputProps={{ min: 1 }}
-                        sx={{
-                          mb: 3,
-                          "& .MuiOutlinedInput-root": { borderRadius: "4px" },
-                        }}
+                        sx={{ mb: 4, ...inputStyle }}
                       />
                       <Button
                         fullWidth
                         variant="contained"
-                        color="warning"
-                        disableElevation
                         onClick={handleOrderService}
                         disabled={isSubmitting || !orderForm.serviceId}
                         sx={{
-                          fontWeight: "bold",
-                          py: 1.5,
-                          borderRadius: "4px",
                           mt: "auto",
+                          background: LUXURY.charcoal,
+                          color: LUXURY.gold,
+                          fontWeight: "800",
+                          py: 1.5,
+                          borderRadius: "12px",
+                          "&:hover": { bgcolor: "black" },
                         }}
                       >
                         {isSubmitting ? (
                           <CircularProgress size={24} color="inherit" />
                         ) : (
-                          "YÊU CẦU DỊCH VỤ"
+                          "GỬI YÊU CẦU"
                         )}
                       </Button>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        display="block"
-                        textAlign="center"
-                        mt={2}
-                      >
-                        Lễ tân sẽ nhận được thông báo ngay lập tức. Bạn có thể
-                        hủy yêu cầu trước khi đồ được mang lên phòng.
-                      </Typography>
                     </Paper>
                   </Box>
                 )}
@@ -1418,177 +1849,19 @@ const Profile = () => {
           </DialogContent>
           <DialogActions
             sx={{
-              p: 2,
-              bgcolor: "white",
-              borderTop: `1px solid ${COLORS.border}`,
+              p: 3,
+              bgcolor: LUXURY.white,
+              borderTop: `1px solid ${LUXURY.softGray}`,
+              justifyContent: "center",
             }}
           >
             <Button
               onClick={() =>
                 setDetailModal({ open: false, booking: null, folioData: [] })
               }
-              variant="outlined"
-              sx={{
-                fontWeight: "bold",
-                px: 4,
-                borderRadius: "4px",
-                borderColor: COLORS.border,
-                color: "text.secondary",
-              }}
+              sx={{ fontWeight: "700", color: LUXURY.charcoal, px: 5, py: 1 }}
             >
-              Đóng
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* ======================================================= */}
-        {/* MODAL ĐÁNH GIÁ VÀ MODAL ĐỔI MẬT KHẨU */}
-        {/* ======================================================= */}
-        <Dialog
-          open={reviewModal.open}
-          onClose={() => setReviewModal({ ...reviewModal, open: false })}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: "12px" } }}
-        >
-          <DialogTitle
-            sx={{
-              fontWeight: "bold",
-              color: COLORS.primary,
-              textAlign: "center",
-              pt: 4,
-            }}
-          >
-            Đánh giá trải nghiệm
-          </DialogTitle>
-          <DialogContent
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              pb: 1,
-            }}
-          >
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Cảm nhận của bạn về <b>{reviewModal.roomName}</b>
-            </Typography>
-            <Rating
-              value={reviewForm.rating}
-              onChange={(e, newValue) =>
-                setReviewForm({ ...reviewForm, rating: newValue })
-              }
-              size="large"
-              sx={{ mb: 3 }}
-            />
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Bình luận của bạn"
-              variant="outlined"
-              value={reviewForm.comment}
-              onChange={(e) =>
-                setReviewForm({ ...reviewForm, comment: e.target.value })
-              }
-            />
-          </DialogContent>
-          <DialogActions sx={{ p: 3, justifyContent: "center", pb: 4 }}>
-            <Button
-              onClick={() => setReviewModal({ ...reviewModal, open: false })}
-              color="inherit"
-              sx={{ fontWeight: "bold", mr: 1 }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSubmitReview}
-              disabled={isSubmitting}
-              variant="contained"
-              disableElevation
-              sx={{ bgcolor: COLORS.primary, fontWeight: "bold", px: 4 }}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "GỬI ĐÁNH GIÁ"
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={passwordModal}
-          onClose={() => setPasswordModal(false)}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: "12px" } }}
-        >
-          <DialogTitle
-            sx={{ fontWeight: "bold", color: COLORS.primary, pt: 3 }}
-          >
-            Đổi mật khẩu
-          </DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Mật khẩu hiện tại"
-              type="password"
-              value={passwordForm.current_password}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  current_password: e.target.value,
-                })
-              }
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Mật khẩu mới"
-              type="password"
-              value={passwordForm.new_password}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  new_password: e.target.value,
-                })
-              }
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Xác nhận mật khẩu mới"
-              type="password"
-              value={passwordForm.confirm_password}
-              onChange={(e) =>
-                setPasswordForm({
-                  ...passwordForm,
-                  confirm_password: e.target.value,
-                })
-              }
-            />
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button
-              onClick={() => setPasswordModal(false)}
-              color="inherit"
-              sx={{ fontWeight: "bold" }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleChangePassword}
-              disabled={isSubmitting}
-              variant="contained"
-              disableElevation
-              sx={{ bgcolor: COLORS.primary, fontWeight: "bold" }}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "ĐỔI MẬT KHẨU"
-              )}
+              ĐÓNG TÓM TẮT
             </Button>
           </DialogActions>
         </Dialog>

@@ -1,6 +1,5 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
-import { Container, Row, Col } from "react-bootstrap";
 import {
   Typography,
   Box,
@@ -16,6 +15,8 @@ import {
   Rating,
   Dialog,
   IconButton,
+  Fade,
+  Slide,
 } from "@mui/material";
 
 // Icons
@@ -33,18 +34,21 @@ import BathtubIcon from "@mui/icons-material/Bathtub";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AppsIcon from "@mui/icons-material/Apps";
 import CloseIcon from "@mui/icons-material/Close";
+import StarIcon from "@mui/icons-material/Star";
 
 import { AuthContext } from "../../context/AuthContext";
 import RoomTypeService from "../../services/roomTypeService";
 
-// Theme Colors
-const COLORS = {
-  primary: "#5e35b1",
-  primaryLight: "#ede7f6",
-  border: "#e0e0e0",
-  textMain: "#333",
-  textSecondary: "#666",
-  bgLight: "#f8f9fa",
+// LUXURY DESIGN TOKENS
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
 };
 
 const FALLBACK_IMAGE =
@@ -60,8 +64,6 @@ const RoomDetail = () => {
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // State quản lý việc mở Dialog xem toàn bộ ảnh
   const [openGallery, setOpenGallery] = useState(false);
 
   useEffect(() => {
@@ -112,44 +114,49 @@ const RoomDetail = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          minHeight: "60vh",
+          minHeight: "80vh",
+          bgcolor: LUXURY.white,
         }}
       >
-        <CircularProgress sx={{ color: COLORS.primary }} />
+        <CircularProgress sx={{ color: LUXURY.gold }} />
       </Box>
     );
   }
 
   if (error || !room) {
     return (
-      <Container className="py-5 text-center">
-        <Alert severity="error" sx={{ borderRadius: "4px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Alert severity="error" sx={{ borderRadius: "12px", mb: 3 }}>
           {error || "Không tìm thấy thông tin phòng!"}
         </Alert>
         <Button
           variant="outlined"
-          sx={{ mt: 3, color: COLORS.primary, borderColor: COLORS.primary }}
+          sx={{ color: LUXURY.navy, borderColor: LUXURY.navy }}
           onClick={() => navigate("/rooms")}
         >
           Quay lại danh sách phòng
         </Button>
-      </Container>
+      </Box>
     );
   }
 
-  // ==========================================
-  // 1. HÀM TỐI ƯU ẢNH CLOUDINARY (XÓA BỎ LỖI MỜ ẢNH)
-  // ==========================================
+  // TỐI ƯU ẢNH CLOUDINARY
   const optimizeImageUrl = (url) => {
     if (!url) return FALLBACK_IMAGE;
-    // Chèn tham số w_1920, q_100 để ép Cloudinary xuất ảnh nét căng
     if (url.includes("cloudinary.com") && !url.includes("/upload/w_")) {
       return url.replace("/upload/", "/upload/w_1920,q_100,f_auto/");
     }
     return url;
   };
 
-  // Cần ít nhất 5 ảnh để lấp đầy Lưới ảnh (Grid)
   const baseImages =
     room.images && room.images.length > 0
       ? room.images.map((img) => optimizeImageUrl(img.image_url))
@@ -162,44 +169,38 @@ const RoomDetail = () => {
     "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=100",
   ];
 
-  // Trộn ảnh thực tế và ảnh dự phòng nếu phòng không đủ 5 ảnh
   const imagesList = [...baseImages, ...defaultFillers].slice(
     0,
     Math.max(5, baseImages.length),
   );
 
-  // ==========================================
-  // 2. TẠO THẺ CHIP ĐỘNG DỰA VÀO TÊN PHÒNG
-  // ==========================================
+  // TẠO THẺ CHIP ĐỘNG
   const getDynamicChips = (roomName = "") => {
     const chips = [];
     const nameLower = roomName.toLowerCase();
 
     if (nameLower.includes("suite") || nameLower.includes("vip")) {
-      chips.push({ label: "SUITE CAO CẤP", color: COLORS.primary });
+      chips.push({ label: "SUITE CAO CẤP", color: LUXURY.navy });
     } else if (nameLower.includes("deluxe") || nameLower.includes("premium")) {
-      chips.push({ label: "PREMIUM", color: COLORS.primary });
+      chips.push({ label: "PREMIUM", color: LUXURY.navy });
     } else if (nameLower.includes("family") || nameLower.includes("gia đình")) {
       chips.push({ label: "GIA ĐÌNH", color: "#2e7d32" });
     } else {
-      chips.push({ label: "TIÊU CHUẨN", color: "#1976d2" });
+      chips.push({ label: "TIÊU CHUẨN", color: LUXURY.warmGray });
     }
 
     if (nameLower.includes("city") || nameLower.includes("thành phố")) {
-      chips.push({ label: "🏙 Hướng Thành Phố", color: "rgba(0,0,0,0.6)" });
+      chips.push({ label: "🏙 Hướng Thành Phố", color: LUXURY.charcoal });
     } else if (nameLower.includes("river") || nameLower.includes("sông")) {
-      chips.push({ label: "🏞 Hướng Sông Hương", color: "rgba(0,0,0,0.6)" });
+      chips.push({ label: "🏞 Hướng Sông Hương", color: LUXURY.charcoal });
     } else if (nameLower.includes("couple")) {
-      chips.push({ label: "💕 Lãng Mạn", color: "rgba(0,0,0,0.6)" });
+      chips.push({ label: "💕 Lãng Mạn", color: "#be185d" });
     }
     return chips;
   };
 
   const dynamicChips = getDynamicChips(room.type_name || room.name);
 
-  // ==========================================
-  // 3. TẠO LOẠI GIƯỜNG ĐỘNG
-  // ==========================================
   const getBedInfo = (capacity) => {
     if (capacity >= 4) return "2 Giường Đôi cỡ lớn";
     if (capacity === 1) return "1 Giường Đơn";
@@ -207,176 +208,750 @@ const RoomDetail = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: COLORS.bgLight, minHeight: "100vh", pb: 10, pt: 4 }}>
-      <Container maxWidth="lg">
-        {/* BREADCRUMBS */}
-        <Breadcrumbs
-          separator={<NavigateNextIcon fontSize="small" />}
-          sx={{ mb: 3 }}
-        >
-          <MuiLink
-            component={Link}
-            to="/"
-            underline="hover"
-            color="inherit"
-            fontSize="0.9rem"
-          >
-            Trang chủ
-          </MuiLink>
-          <MuiLink
-            component={Link}
-            to="/rooms"
-            underline="hover"
-            color="inherit"
-            fontSize="0.9rem"
-          >
-            Phòng & Suite
-          </MuiLink>
-          <Typography color="text.primary" fontSize="0.9rem" fontWeight="500">
-            {room.type_name || room.name}
-          </Typography>
-        </Breadcrumbs>
-
-        {/* TIÊU ĐỀ PHÒNG */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="h3"
-            fontWeight="900"
-            color={COLORS.textMain}
-            sx={{ mb: 2, fontSize: { xs: "2rem", md: "2.5rem" } }}
-          >
-            {room.type_name || room.name}
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            {dynamicChips.map((chip, index) => (
-              <Chip
-                key={index}
-                label={chip.label}
-                size="small"
-                sx={{
-                  bgcolor: chip.color,
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "0.75rem",
-                  borderRadius: "4px",
-                }}
-              />
-            ))}
-          </Stack>
-        </Box>
-
-        {/* ============================================================== */}
-        {/* LƯỚI ẢNH (IMAGE GRID) - PHONG CÁCH AIRBNB THAY CHO SWIPER */}
-        {/* ============================================================== */}
-        <Box sx={{ position: "relative", mb: 5 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 1.5,
-              height: { xs: 280, md: 500 },
-              borderRadius: "16px",
-              overflow: "hidden",
-            }}
-          >
-            {/* Ảnh To Nhất (Bên trái) */}
-            <Box
-              sx={{ overflow: "hidden", cursor: "pointer", height: "100%" }}
-              onClick={() => setOpenGallery(true)}
-            >
-              <Box
-                component="img"
-                src={imagesList[0]}
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  transition: "transform 0.5s ease",
-                  "&:hover": { transform: "scale(1.05)" },
-                }}
-              />
-            </Box>
-
-            {/* 4 Ảnh Nhỏ (Bên phải - Chỉ hiện trên PC) */}
-            <Box
+    <Box
+      sx={{
+        bgcolor: LUXURY.white,
+        minHeight: "100vh",
+        pb: { xs: 8, md: 12 },
+        pt: { xs: 2, md: 4 },
+      }}
+    >
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, sm: 3, md: 4 } }}>
+        <Fade in={true} timeout={600}>
+          <Box>
+            {/* BREADCRUMBS */}
+            <Breadcrumbs
+              separator={<NavigateNextIcon fontSize="small" />}
               sx={{
-                display: { xs: "none", md: "grid" },
-                gridTemplateColumns: "1fr 1fr",
-                gridTemplateRows: "1fr 1fr",
-                gap: 1.5,
-                height: "100%",
+                mb: 4,
+                "& .MuiBreadcrumbs-separator": { color: LUXURY.gold },
               }}
             >
-              {imagesList.slice(1, 5).map((img, idx) => (
+              <MuiLink
+                component={Link}
+                to="/"
+                underline="hover"
+                color={LUXURY.warmGray}
+                fontSize="0.85rem"
+                fontWeight="600"
+                letterSpacing="1px"
+                textTransform="uppercase"
+              >
+                Trang chủ
+              </MuiLink>
+              <MuiLink
+                component={Link}
+                to="/rooms"
+                underline="hover"
+                color={LUXURY.warmGray}
+                fontSize="0.85rem"
+                fontWeight="600"
+                letterSpacing="1px"
+                textTransform="uppercase"
+              >
+                Phòng & Suite
+              </MuiLink>
+              <Typography
+                color={LUXURY.charcoal}
+                fontSize="0.85rem"
+                fontWeight="700"
+                letterSpacing="1px"
+                textTransform="uppercase"
+              >
+                {room.type_name || room.name}
+              </Typography>
+            </Breadcrumbs>
+
+            {/* HEADER PHÒNG */}
+            <Box
+              sx={{
+                mb: 4,
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                justifyContent: "space-between",
+                alignItems: { md: "flex-end" },
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h2"
+                  fontWeight="900"
+                  color={LUXURY.charcoal}
+                  sx={{
+                    fontFamily: '"Playfair Display", serif',
+                    mb: 2,
+                    fontSize: { xs: "2.2rem", md: "3.5rem" },
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {room.type_name || room.name}
+                </Typography>
+                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                  {dynamicChips.map((chip, index) => (
+                    <Chip
+                      key={index}
+                      label={chip.label}
+                      size="small"
+                      sx={{
+                        bgcolor: chip.color,
+                        color: "white",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                        borderRadius: "8px",
+                        px: 1,
+                        letterSpacing: "0.5px",
+                      }}
+                    />
+                  ))}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      ml: { xs: 0, md: 2 },
+                      color: LUXURY.charcoal,
+                    }}
+                  >
+                    <StarIcon sx={{ color: LUXURY.gold, fontSize: 18 }} />
+                    <Typography variant="body2" fontWeight="700">
+                      {averageRating}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color={LUXURY.warmGray}
+                      sx={{ textDecoration: "underline", cursor: "pointer" }}
+                    >
+                      ({reviews.length} đánh giá)
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            </Box>
+
+            {/* ============================================================== */}
+            {/* LƯỚI ẢNH (MASONRY GALLERY) - CHUẨN AIRBNB LUXE */}
+            {/* ============================================================== */}
+            <Box sx={{ position: "relative", mb: { xs: 6, md: 8 } }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" },
+                  gridTemplateRows: { md: "1fr 1fr" },
+                  gap: 2,
+                  height: { xs: 300, md: 560 },
+                  borderRadius: "24px",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Ảnh lớn bên trái */}
                 <Box
-                  key={idx}
-                  sx={{ overflow: "hidden", cursor: "pointer", height: "100%" }}
                   onClick={() => setOpenGallery(true)}
+                  sx={{
+                    gridColumn: { md: "1 / 2" },
+                    gridRow: { md: "1 / 3" },
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    position: "relative",
+                  }}
                 >
                   <Box
                     component="img"
-                    src={img}
+                    src={imagesList[0]}
                     sx={{
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
-                      transition: "transform 0.5s ease",
+                      transition:
+                        "transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1)",
                       "&:hover": { transform: "scale(1.05)" },
                     }}
                   />
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      bgcolor: "rgba(0,0,0,0.03)",
+                      transition: "0.3s",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0)" },
+                    }}
+                  />
                 </Box>
-              ))}
+
+                {/* 4 Ảnh nhỏ bên phải */}
+                {imagesList.slice(1, 5).map((img, idx) => (
+                  <Box
+                    key={idx}
+                    onClick={() => setOpenGallery(true)}
+                    sx={{
+                      display: { xs: "none", md: "block" },
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      position: "relative",
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={img}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transition:
+                          "transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1)",
+                        "&:hover": { transform: "scale(1.05)" },
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        bgcolor: "rgba(0,0,0,0.03)",
+                        transition: "0.3s",
+                        "&:hover": { bgcolor: "rgba(0,0,0,0)" },
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+
+              <Button
+                variant="contained"
+                startIcon={<AppsIcon />}
+                onClick={() => setOpenGallery(true)}
+                sx={{
+                  position: "absolute",
+                  bottom: 24,
+                  right: 24,
+                  bgcolor: LUXURY.white,
+                  color: LUXURY.charcoal,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: "12px",
+                  px: 3,
+                  py: 1,
+                  boxShadow: "0 8px 24px rgba(26,26,26,0.12)",
+                  "&:hover": {
+                    bgcolor: LUXURY.offwhite,
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                Hiển thị tất cả ảnh
+              </Button>
             </Box>
           </Box>
+        </Fade>
 
-          {/* Nút mở Dialog Gallery */}
-          <Button
-            variant="contained"
-            startIcon={<AppsIcon />}
-            onClick={() => setOpenGallery(true)}
-            sx={{
-              position: "absolute",
-              bottom: 24,
-              right: 24,
-              bgcolor: "white",
-              color: "black",
-              fontWeight: "bold",
-              textTransform: "none",
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              "&:hover": { bgcolor: "#f5f5f5" },
-            }}
-          >
-            Hiển thị tất cả ảnh
-          </Button>
-        </Box>
-
-        {/* DIALOG TOÀN MÀN HÌNH ĐỂ XEM ẢNH */}
-        <Dialog
-          fullScreen
-          open={openGallery}
-          onClose={() => setOpenGallery(false)}
+        {/* ============================================================== */}
+        {/* MAIN CONTENT VỚI FLEXBOX (RESPONSIVE CHUẨN) */}
+        {/* ============================================================== */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" }, // Mobile dọc, Tablet/PC ngang
+            gap: { xs: 4, lg: 8 },
+            alignItems: "flex-start", // Rất quan trọng để thẻ bên phải có thể trôi (sticky) được
+          }}
         >
-          <Box
+          {/* CỘT TRÁI: THÔNG TIN CHI TIẾT */}
+          <Slide direction="up" in={true} timeout={800}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              {/* THỐNG KÊ NHANH */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: { xs: 3, md: 6 },
+                  mb: 6,
+                  pb: 4,
+                  borderBottom: `1px solid ${LUXURY.softGray}`,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <AspectRatioIcon sx={{ fontSize: 32, color: LUXURY.gold }} />
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color={LUXURY.warmGray}
+                      fontWeight="600"
+                    >
+                      DIỆN TÍCH
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      fontWeight="800"
+                      color={LUXURY.charcoal}
+                    >
+                      {room.area || "25"} m²
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <PeopleAltIcon sx={{ fontSize: 32, color: LUXURY.gold }} />
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color={LUXURY.warmGray}
+                      fontWeight="600"
+                    >
+                      SỨC CHỨA
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      fontWeight="800"
+                      color={LUXURY.charcoal}
+                    >
+                      Tối đa {room.capacity || 2} Khách
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <BedIcon sx={{ fontSize: 32, color: LUXURY.gold }} />
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color={LUXURY.warmGray}
+                      fontWeight="600"
+                    >
+                      LOẠI GIƯỜNG
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      fontWeight="800"
+                      color={LUXURY.charcoal}
+                    >
+                      {getBedInfo(room.capacity)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* TỔNG QUAN */}
+              <Box sx={{ mb: 6 }}>
+                <Typography
+                  variant="h4"
+                  fontWeight="800"
+                  sx={{
+                    fontFamily: '"Playfair Display", serif',
+                    mb: 3,
+                    color: LUXURY.navy,
+                  }}
+                >
+                  Không Gian Của Bạn
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: LUXURY.charcoal,
+                    lineHeight: 1.9,
+                    fontSize: "1.05rem",
+                    opacity: 0.85,
+                  }}
+                >
+                  {room.description ||
+                    `Phòng ${room.type_name || room.name} mang đến cho bạn không gian lưu trú lý tưởng với đầy đủ các tiện ích tiêu chuẩn 5 sao. Thiết kế hài hòa giữa nét truyền thống kiến trúc cung đình Huế và sự tiện nghi hiện đại phương Tây sẽ giúp kỳ nghỉ của bạn trở nên hoàn hảo.`}
+                </Typography>
+              </Box>
+
+              {/* TIỆN NGHI */}
+              <Box sx={{ mb: 8 }}>
+                <Typography
+                  variant="h4"
+                  fontWeight="800"
+                  sx={{
+                    fontFamily: '"Playfair Display", serif',
+                    mb: 4,
+                    color: LUXURY.navy,
+                  }}
+                >
+                  Tiện Nghi Cao Cấp
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr 1fr",
+                      sm: "repeat(3, 1fr)",
+                    },
+                    gap: 3,
+                  }}
+                >
+                  {[
+                    { label: "Wi-Fi tốc độ cao", icon: <WifiIcon /> },
+                    { label: "Smart TV giải trí", icon: <TvIcon /> },
+                    { label: "Ban công góc rộng", icon: <BalconyIcon /> },
+                    { label: "Điều hòa độc lập", icon: <AcUnitIcon /> },
+                    { label: "Máy pha Espresso", icon: <CoffeeMakerIcon /> },
+                    { label: "Bồn tắm & vòi sen", icon: <BathtubIcon /> },
+                  ].map((item, index) => (
+                    <Box
+                      key={index}
+                      sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                    >
+                      <Box sx={{ color: LUXURY.gold }}>{item.icon}</Box>
+                      <Typography
+                        variant="body1"
+                        fontWeight="500"
+                        color={LUXURY.charcoal}
+                      >
+                        {item.label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* ĐÁNH GIÁ */}
+              <Box sx={{ pt: 6, borderTop: `1px solid ${LUXURY.softGray}` }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}
+                >
+                  <StarIcon sx={{ fontSize: 36, color: LUXURY.gold }} />
+                  <Typography
+                    variant="h3"
+                    fontWeight="900"
+                    sx={{
+                      fontFamily: '"Playfair Display", serif',
+                      color: LUXURY.charcoal,
+                    }}
+                  >
+                    {averageRating}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color={LUXURY.warmGray}
+                    sx={{ mt: 1 }}
+                  >
+                    · {reviews.length} Đánh giá
+                  </Typography>
+                </Box>
+
+                {reviews.length > 0 ? (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                      gap: 4,
+                    }}
+                  >
+                    {reviews.map((review) => (
+                      <Box
+                        key={review.id}
+                        sx={{
+                          p: 3,
+                          borderRadius: "16px",
+                          bgcolor: LUXURY.offwhite,
+                          height: "100%",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          sx={{ mb: 2 }}
+                        >
+                          <Avatar
+                            sx={{
+                              bgcolor: LUXURY.navy,
+                              color: LUXURY.gold,
+                              width: 48,
+                              height: 48,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {review.full_name?.substring(0, 2).toUpperCase() ||
+                              "KH"}
+                          </Avatar>
+                          <Box>
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight="700"
+                              color={LUXURY.charcoal}
+                            >
+                              {review.full_name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color={LUXURY.warmGray}
+                            >
+                              {new Date(review.created_at).toLocaleDateString(
+                                "vi-VN",
+                              )}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                        <Rating
+                          value={review.rating}
+                          readOnly
+                          size="small"
+                          sx={{
+                            mb: 2,
+                            "& .MuiRating-iconFilled": { color: LUXURY.gold },
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: LUXURY.charcoal,
+                            fontStyle: "italic",
+                            lineHeight: 1.7,
+                            opacity: 0.8,
+                          }}
+                        >
+                          "{review.comment}"
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography
+                    variant="body1"
+                    color={LUXURY.warmGray}
+                    sx={{ fontStyle: "italic" }}
+                  >
+                    Chưa có đánh giá nào. Hãy là người đầu tiên trải nghiệm!
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </Slide>
+
+          {/* CỘT PHẢI: FLOATING BOOKING CARD */}
+          <Slide direction="up" in={true} timeout={1000}>
+            <Box
+              sx={{
+                width: { xs: "100%", md: "360px", lg: "420px" }, // Giữ chiều rộng cố định trên PC
+                flexShrink: 0,
+                position: { md: "sticky" }, // Trôi lơ lửng khi cuộn
+                top: 100,
+              }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 4 },
+                  borderRadius: "24px",
+                  border: `1px solid ${LUXURY.softGray}`,
+                  boxShadow: "0 24px 48px rgba(26,26,26,0.08)",
+                  bgcolor: LUXURY.white,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color={LUXURY.warmGray}
+                  fontWeight="700"
+                  letterSpacing={1}
+                >
+                  GIÁ CHỈ TỪ
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 1,
+                    mb: 1,
+                    mt: 0.5,
+                  }}
+                >
+                  <Typography
+                    variant="h3"
+                    fontWeight="900"
+                    sx={{
+                      fontFamily: '"Playfair Display", serif',
+                      color: LUXURY.charcoal,
+                    }}
+                  >
+                    {Number(room.base_price)?.toLocaleString("vi-VN")}đ
+                  </Typography>
+                  <Typography variant="body1" color={LUXURY.warmGray}>
+                    / đêm
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 4,
+                    color: LUXURY.warmGray,
+                  }}
+                >
+                  <CheckCircleIcon sx={{ fontSize: 18, color: "#16a34a" }} />
+                  <Typography variant="body2" fontWeight="500">
+                    Đã bao gồm thuế & phí phục vụ
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    mb: 4,
+                    borderRadius: "12px",
+                    border: `1px solid ${LUXURY.softGray}`,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    sx={{ borderBottom: `1px solid ${LUXURY.softGray}` }}
+                  >
+                    <Box
+                      sx={{
+                        p: 2,
+                        flex: 1,
+                        borderRight: `1px solid ${LUXURY.softGray}`,
+                        cursor: "pointer",
+                        "&:hover": { bgcolor: LUXURY.offwhite },
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        fontWeight="800"
+                        display="block"
+                        color={LUXURY.charcoal}
+                      >
+                        NHẬN PHÒNG
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.warmGray}
+                        mt={0.5}
+                      >
+                        Chọn ngày đến
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        p: 2,
+                        flex: 1,
+                        cursor: "pointer",
+                        "&:hover": { bgcolor: LUXURY.offwhite },
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        fontWeight="800"
+                        display="block"
+                        color={LUXURY.charcoal}
+                      >
+                        TRẢ PHÒNG
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.warmGray}
+                        mt={0.5}
+                      >
+                        Chọn ngày đi
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Box
+                    sx={{
+                      p: 2,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      "&:hover": { bgcolor: LUXURY.offwhite },
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        fontWeight="800"
+                        display="block"
+                        color={LUXURY.charcoal}
+                      >
+                        KHÁCH
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={LUXURY.charcoal}
+                        mt={0.5}
+                      >
+                        Tối đa {room.capacity || 2} Người
+                      </Typography>
+                    </Box>
+                    <KeyboardArrowDownIcon sx={{ color: LUXURY.charcoal }} />
+                  </Box>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleBooking}
+                  sx={{
+                    py: 2,
+                    background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                    color: LUXURY.white,
+                    fontWeight: "800",
+                    fontSize: "1.05rem",
+                    borderRadius: "12px",
+                    textTransform: "none",
+                    letterSpacing: "0.5px",
+                    mb: 2,
+                    boxShadow: `0 12px 24px ${LUXURY.gold}40`,
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: `0 16px 32px ${LUXURY.gold}60`,
+                    },
+                  }}
+                >
+                  ĐẶT PHÒNG NGAY
+                </Button>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  textAlign="center"
+                  color={LUXURY.warmGray}
+                >
+                  Bạn sẽ không bị trừ tiền cho đến khi nhận phòng.
+                </Typography>
+              </Paper>
+            </Box>
+          </Slide>
+        </Box>
+      </Box>
+
+      {/* DIALOG XEM TOÀN BỘ ẢNH */}
+      <Dialog
+        fullScreen
+        open={openGallery}
+        onClose={() => setOpenGallery(false)}
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            bgcolor: "rgba(255,255,255,0.9)",
+            backdropFilter: "blur(10px)",
+            zIndex: 10,
+            borderBottom: `1px solid ${LUXURY.softGray}`,
+          }}
+        >
+          <IconButton
+            onClick={() => setOpenGallery(false)}
+            sx={{ bgcolor: LUXURY.offwhite }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography
+            variant="h6"
             sx={{
-              p: 2,
-              display: "flex",
-              alignItems: "center",
-              position: "sticky",
-              top: 0,
-              bgcolor: "white",
-              zIndex: 10,
-              borderBottom: "1px solid #eee",
+              ml: 2,
+              fontWeight: "800",
+              fontFamily: '"Playfair Display", serif',
             }}
           >
-            <IconButton onClick={() => setOpenGallery(false)}>
-              <CloseIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
-              Thư viện ảnh của {room.type_name || room.name}
-            </Typography>
-          </Box>
-          <Container maxWidth="md" sx={{ py: 4 }}>
+            {room.type_name || room.name}
+          </Typography>
+        </Box>
+        <Box sx={{ py: 6, bgcolor: LUXURY.offwhite, minHeight: "100vh" }}>
+          <Box sx={{ maxWidth: 800, mx: "auto", px: 2 }}>
             <Stack spacing={4}>
               {imagesList.map((img, idx) => (
                 <Box
@@ -385,507 +960,16 @@ const RoomDetail = () => {
                   src={img}
                   sx={{
                     width: "100%",
-                    borderRadius: "12px",
+                    borderRadius: "16px",
                     objectFit: "cover",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                    boxShadow: "0 12px 32px rgba(26,26,26,0.1)",
                   }}
                 />
               ))}
             </Stack>
-          </Container>
-        </Dialog>
-        {/* KẾT THÚC LƯỚI ẢNH VÀ DIALOG */}
-
-        <Row className="g-5">
-          {/* CỘT TRÁI: THÔNG TIN CHI TIẾT */}
-          <Col lg={8}>
-            {/* THỐNG KÊ NHANH CỦA PHÒNG */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: "12px",
-                border: `1px solid ${COLORS.border}`,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 4,
-                mb: 5,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "8px",
-                    bgcolor: COLORS.primaryLight,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    color: COLORS.primary,
-                  }}
-                >
-                  <AspectRatioIcon />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    fontWeight="bold"
-                    display="block"
-                  >
-                    DIỆN TÍCH
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    fontWeight="bold"
-                    color={COLORS.textMain}
-                  >
-                    {room.area || "25"} m²
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "8px",
-                    bgcolor: COLORS.primaryLight,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    color: COLORS.primary,
-                  }}
-                >
-                  <PeopleAltIcon />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    fontWeight="bold"
-                    display="block"
-                  >
-                    SỨC CHỨA
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    fontWeight="bold"
-                    color={COLORS.textMain}
-                  >
-                    Tối đa {room.capacity || 2} Khách
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "8px",
-                    bgcolor: COLORS.primaryLight,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    color: COLORS.primary,
-                  }}
-                >
-                  <BedIcon />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    fontWeight="bold"
-                    display="block"
-                  >
-                    LOẠI GIƯỜNG
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    fontWeight="bold"
-                    color={COLORS.textMain}
-                  >
-                    {getBedInfo(room.capacity)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
-
-            {/* TỔNG QUAN */}
-            <Box sx={{ mb: 5 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  color={COLORS.primary}
-                >
-                  Tổng quan
-                </Typography>
-                <Box
-                  sx={{
-                    ml: 2,
-                    height: "1px",
-                    flex: 1,
-                    bgcolor: COLORS.border,
-                    maxWidth: "120px",
-                  }}
-                />
-              </Box>
-
-              <Typography
-                variant="body1"
-                color={COLORS.textSecondary}
-                paragraph
-                sx={{ lineHeight: 1.8 }}
-              >
-                {room.description ||
-                  `Phòng ${room.type_name || room.name} mang đến cho bạn không gian lưu trú lý tưởng với đầy đủ các tiện ích tiêu chuẩn 5 sao. Thiết kế hài hòa giữa nét truyền thống và sự tiện nghi hiện đại sẽ giúp kỳ nghỉ của bạn trở nên trọn vẹn.`}
-              </Typography>
-            </Box>
-
-            {/* TIỆN NGHI PHÒNG */}
-            <Box sx={{ mb: 5 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  color={COLORS.primary}
-                >
-                  Tiện nghi nổi bật
-                </Typography>
-                <Box
-                  sx={{
-                    ml: 2,
-                    height: "1px",
-                    flex: 1,
-                    bgcolor: COLORS.border,
-                    maxWidth: "80px",
-                  }}
-                />
-              </Box>
-
-              <Row className="g-4">
-                {[
-                  {
-                    label: "Wi-Fi tốc độ cao",
-                    icon: <WifiIcon color="success" />,
-                  },
-                  {
-                    label: "Smart TV giải trí",
-                    icon: <TvIcon color="success" />,
-                  },
-                  {
-                    label: "Ban công riêng biệt",
-                    icon: <BalconyIcon color="success" />,
-                  },
-                  {
-                    label: "Điều hòa 2 chiều",
-                    icon: <AcUnitIcon color="success" />,
-                  },
-                  {
-                    label: "Bàn làm việc",
-                    icon: <CoffeeMakerIcon color="success" />,
-                  },
-                  {
-                    label: "Bồn tắm & vòi sen",
-                    icon: <BathtubIcon color="success" />,
-                  },
-                ].map((item, index) => (
-                  <Col md={4} xs={6} key={index}>
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
-                    >
-                      {item.icon}
-                      <Typography
-                        variant="body2"
-                        fontWeight="500"
-                        color={COLORS.textMain}
-                      >
-                        {item.label}
-                      </Typography>
-                    </Box>
-                  </Col>
-                ))}
-              </Row>
-            </Box>
-
-            {/* ĐÁNH GIÁ TỪ KHÁCH HÀNG */}
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  color={COLORS.primary}
-                >
-                  Đánh giá từ khách hàng
-                </Typography>
-                <Box
-                  sx={{
-                    ml: 2,
-                    height: "1px",
-                    flex: 1,
-                    bgcolor: COLORS.border,
-                    maxWidth: "60px",
-                  }}
-                />
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    ml: "auto",
-                  }}
-                >
-                  <Typography variant="h5" fontWeight="bold">
-                    {averageRating}
-                  </Typography>
-                  <Rating
-                    value={Number(averageRating)}
-                    readOnly
-                    precision={0.1}
-                    size="small"
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    ({reviews.length})
-                  </Typography>
-                </Box>
-              </Box>
-
-              {reviews.length > 0 ? (
-                <Stack spacing={3}>
-                  {reviews.map((review) => (
-                    <Paper
-                      key={review.id}
-                      elevation={0}
-                      sx={{
-                        p: 3,
-                        borderRadius: "12px",
-                        border: `1px solid ${COLORS.border}`,
-                        bgcolor: "white",
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={2}
-                        alignItems="center"
-                        sx={{ mb: 2, justifyContent: "space-between" }}
-                      >
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
-                        >
-                          <Avatar
-                            sx={{
-                              bgcolor: COLORS.primaryLight,
-                              color: COLORS.primary,
-                              width: 48,
-                              height: 48,
-                              borderRadius: "8px",
-                            }}
-                          >
-                            {review.full_name?.substring(0, 2).toUpperCase() ||
-                              "KH"}
-                          </Avatar>
-                          <Box>
-                            <Typography
-                              variant="subtitle2"
-                              sx={{ fontWeight: "bold", fontSize: "0.95rem" }}
-                            >
-                              {review.full_name}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Khách lưu trú •{" "}
-                              {new Date(review.created_at).toLocaleDateString(
-                                "vi-VN",
-                              )}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Rating value={review.rating} readOnly size="small" />
-                      </Stack>
-                      <Typography
-                        variant="body2"
-                        color={COLORS.textSecondary}
-                        sx={{ fontStyle: "italic", lineHeight: 1.6 }}
-                      >
-                        "{review.comment}"
-                      </Typography>
-                    </Paper>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{
-                    fontStyle: "italic",
-                    textAlign: "center",
-                    py: 4,
-                    bgcolor: "white",
-                    borderRadius: "12px",
-                    border: `1px solid ${COLORS.border}`,
-                  }}
-                >
-                  Chưa có đánh giá nào cho hạng phòng này.
-                </Typography>
-              )}
-            </Box>
-          </Col>
-
-          {/* CỘT PHẢI: BOOKING CARD */}
-          <Col lg={4}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 3, md: 4 },
-                borderRadius: "12px",
-                position: "sticky",
-                top: 100,
-                border: `1px solid ${COLORS.border}`,
-                boxShadow: "0 10px 40px rgba(0,0,0,0.04)",
-                bgcolor: "white",
-              }}
-            >
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontWeight="bold"
-                letterSpacing={1}
-              >
-                GIÁ TỪ
-              </Typography>
-              <Box
-                sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1 }}
-              >
-                <Typography
-                  variant="h3"
-                  fontWeight="bold"
-                  color={COLORS.primary}
-                >
-                  {Number(room.base_price)?.toLocaleString("vi-VN")}đ
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  / đêm
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}
-              >
-                <CheckCircleIcon color="success" fontSize="small" />
-                <Typography
-                  variant="body2"
-                  color="success.main"
-                  fontWeight="500"
-                >
-                  Đã bao gồm thuế & phí
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 3 }}>
-                <Stack
-                  direction="row"
-                  sx={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderTopLeftRadius: "8px",
-                    borderTopRightRadius: "8px",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      p: 2,
-                      flex: 1,
-                      borderRight: `1px solid ${COLORS.border}`,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      fontWeight="bold"
-                      display="block"
-                    >
-                      NHẬN PHÒNG
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Chọn ngày đến
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: 2, flex: 1 }}>
-                    <Typography
-                      variant="caption"
-                      fontWeight="bold"
-                      display="block"
-                    >
-                      TRẢ PHÒNG
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Chọn ngày đi
-                    </Typography>
-                  </Box>
-                </Stack>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: `1px solid ${COLORS.border}`,
-                    borderTop: "none",
-                    borderBottomLeftRadius: "8px",
-                    borderBottomRightRadius: "8px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      fontWeight="bold"
-                      display="block"
-                    >
-                      KHÁCH
-                    </Typography>
-                    <Typography variant="body2">
-                      Tối đa {room.capacity || 2} Người
-                    </Typography>
-                  </Box>
-                  <KeyboardArrowDownIcon color="action" />
-                </Box>
-              </Box>
-
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={handleBooking}
-                disableElevation
-                sx={{
-                  py: 1.5,
-                  bgcolor: COLORS.primary,
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  mb: 2,
-                  "&:hover": { bgcolor: "#4527a0" },
-                }}
-              >
-                ĐẶT PHÒNG NGAY
-              </Button>
-              <Typography
-                variant="caption"
-                display="block"
-                textAlign="center"
-                color="text.secondary"
-              >
-                Bạn sẽ không bị trừ tiền ngay lúc này
-              </Typography>
-            </Paper>
-          </Col>
-        </Row>
-      </Container>
+          </Box>
+        </Box>
+      </Dialog>
     </Box>
   );
 };
