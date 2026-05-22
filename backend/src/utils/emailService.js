@@ -5,6 +5,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = "HuếHotel <onboarding@resend.dev>";
 
+
+verifySMTP();
 exports.sendEmailOtp = async (email, otp) => {
   return await resend.emails.send({
     from: FROM_EMAIL,
