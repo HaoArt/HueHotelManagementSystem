@@ -67,6 +67,8 @@ const RoomDetail = () => {
   const [openGallery, setOpenGallery] = useState(false);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     const fetchRoomDetail = async () => {
       try {
         const data = await RoomTypeService.getRoomTypeById(id);

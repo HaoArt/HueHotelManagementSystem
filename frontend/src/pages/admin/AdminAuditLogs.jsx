@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 // src/pages/AdminAuditLogs.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -17,6 +17,7 @@ import {
   Chip,
   Stack,
   Button,
+  TablePagination,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AuditService from "../../services/auditService";
@@ -38,7 +39,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -50,6 +52,8 @@ const AdminAuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const fetchLogs = async () => {
     try {
@@ -63,6 +67,10 @@ const AdminAuditLogs = () => {
       setLoading(false);
     }
   };
+  const paginatedLogs = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return logs.slice(startIndex, startIndex + rowsPerPage);
+  }, [logs, page, rowsPerPage]);
 
   useEffect(() => {
     fetchLogs();
@@ -137,9 +145,7 @@ const AdminAuditLogs = () => {
           />
         );
       default:
-        return (
-          <Chip label={action} sx={{ borderRadius: 1 }} size="small" />
-        );
+        return <Chip label={action} sx={{ borderRadius: 1 }} size="small" />;
     }
   };
 
@@ -269,7 +275,7 @@ const AdminAuditLogs = () => {
           bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
-        <TableContainer sx={{ maxHeight: "75vh" }}>
+        <TableContainer sx={{  }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -364,7 +370,7 @@ const AdminAuditLogs = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                logs.map((log) => (
+                paginatedLogs.map((log) => (
                   <TableRow
                     key={log.id}
                     hover
@@ -449,6 +455,122 @@ const AdminAuditLogs = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100]} // Audit log thường cần xem nhiều dòng hơn
+          component="div"
+          count={logs.length} // Tổng số lượng nhật ký
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0); // Reset về trang đầu khi đổi số lượng hiển thị
+          }}
+          labelRowsPerPage="Số dòng hiển thị:"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} trong số ${count}`
+          }
+          sx={{
+            borderTop: "1px solid rgba(11,27,63,0.08)",
+            bgcolor: "rgba(255, 255, 255, 0.85)",
+            color: COLORS.navy,
+            fontWeight: "bold",
+            // Thanh Toolbar tổng
+            "& .MuiTablePagination-toolbar": {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              minHeight: "56px !important",
+              py: 0,
+            },
+            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+            "& .MuiTablePagination-selectLabel": {
+              fontWeight: 700,
+              color: "text.secondary",
+              fontSize: "0.85rem",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // Khung bao ngoài ô select số dòng
+            "& .MuiTablePagination-input": {
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "20px",
+              marginLeft: "8px",
+              height: "100%",
+            },
+            // Ô chọn số dòng hiển thị
+            "& .MuiTablePagination-select": {
+              fontWeight: 800,
+              color: COLORS.primary,
+              bgcolor: "rgba(94, 53, 177, 0.05)",
+              borderRadius: "8px",
+              border: "1px solid rgba(94, 53, 177, 0.15)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              pt: "4px !important",
+              pb: "4px !important",
+              pl: "12px !important",
+              pr: "32px !important", // Khoảng trống an toàn tránh đè icon mũi tên
+              "&:focus": {
+                borderRadius: "8px",
+              },
+            },
+            // Icon mũi tên
+            "& .MuiTablePagination-selectIcon": {
+              color: COLORS.primary,
+              top: "calc(50% - 10px)",
+              right: "4px",
+            },
+            // Dòng chữ hiển thị số trang
+            "& .MuiTablePagination-displayedRows": {
+              fontWeight: 800,
+              color: COLORS.navy,
+              fontSize: "0.85rem",
+              letterSpacing: "0.02em",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // Cụm 2 nút bấm điều hướng
+            "& .MuiTablePagination-actions": {
+              marginLeft: "16px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              "& .MuiIconButton-root": {
+                bgcolor: "white",
+                border: "1px solid rgba(11,27,63,0.08)",
+                borderRadius: "8px",
+                padding: "5px",
+                color: COLORS.teal,
+                boxShadow: "0 2px 6px rgba(11,27,63,0.04)",
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "&:hover": {
+                  bgcolor: COLORS.teal,
+                  color: "white",
+                  borderColor: COLORS.teal,
+                },
+                "&.Mui-disabled": {
+                  bgcolor: "rgba(0,0,0,0.02)",
+                  color: "rgba(0,0,0,0.2)",
+                  borderColor: "rgba(0,0,0,0.05)",
+                  boxShadow: "none",
+                },
+                "& .MuiSvgIcon-root": {
+                  fontSize: "18px",
+                },
+              },
+            },
+          }}
+        />
       </Paper>
     </Box>
   );

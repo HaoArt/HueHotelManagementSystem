@@ -30,6 +30,7 @@ import {
   Select,
   MenuItem,
   Grid,
+  TablePagination,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -65,7 +66,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -82,6 +84,8 @@ const AdminAccountsPage = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -120,6 +124,9 @@ const AdminAccountsPage = () => {
   useEffect(() => {
     fetchAccounts();
   }, []);
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter((c) => {
@@ -128,7 +135,10 @@ const AdminAccountsPage = () => {
       return searchStr.includes(searchTerm.toLowerCase());
     });
   }, [accounts, searchTerm]);
-
+  const paginatedAccounts = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return filteredAccounts.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredAccounts, page, rowsPerPage]);
   const handleToggleStatus = (id, currentStatus, name) => {
     const newStatus = currentStatus === "Active" ? "Blacklisted" : "Active";
     const actionText = newStatus === "Blacklisted" ? "khóa" : "mở khóa";
@@ -278,7 +288,14 @@ const AdminAccountsPage = () => {
 
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress sx={{ color: COLORS.teal }} />
       </Box>
     );
@@ -373,7 +390,13 @@ const AdminAccountsPage = () => {
         }}
       >
         {/* THANH TÌM KIẾM */}
-        <Box sx={{ p: 2, borderBottom: "1px solid rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.86)" }}>
+        <Box
+          sx={{
+            p: 2,
+            borderBottom: "1px solid rgba(11,27,63,0.1)",
+            bgcolor: "rgba(255,255,255,0.86)",
+          }}
+        >
           <TextField
             fullWidth
             placeholder="Tìm theo Tên, Email, SĐT hoặc Quyền..."
@@ -397,7 +420,9 @@ const AdminAccountsPage = () => {
           />
         </Box>
 
-        <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
+        <TableContainer
+          sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}
+        >
           <Table sx={{ minWidth: 900 }}>
             {/* HEADER BẢNG XANH NAVY CHUẨN */}
             <TableHead
@@ -407,22 +432,60 @@ const AdminAccountsPage = () => {
               }}
             >
               <TableRow>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Tài khoản
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Vai trò (Role)
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Liên hệ
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Uy tín (Chỉ KH)
                 </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  align="center"
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Trạng thái
                 </TableCell>
-                <TableCell align="right" sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  align="right"
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Thao tác
                 </TableCell>
               </TableRow>
@@ -437,7 +500,7 @@ const AdminAccountsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredAccounts.map((acc) => (
+                paginatedAccounts.map((acc) => (
                   <TableRow
                     key={acc.id}
                     hover
@@ -519,7 +582,7 @@ const AdminAccountsPage = () => {
                             fontWeight: 700,
                             borderRadius: 1,
                             bgcolor: `${getTrustScoreColor(acc.trust_score)}.light`,
-                            color: "white"
+                            color: "white",
                           }}
                         />
                       ) : (
@@ -530,11 +593,18 @@ const AdminAccountsPage = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Chip
-                        label={acc.status === "Active" ? "Hoạt động" : "Bị khóa"}
+                        label={
+                          acc.status === "Active" ? "Hoạt động" : "Bị khóa"
+                        }
                         sx={{
-                          bgcolor: acc.status === "Active" ? "#e8f5e9" : "white",
-                          color: acc.status === "Active" ? "#2e7d32" : COLORS.error,
-                          border: acc.status === "Active" ? "none" : `1px solid ${COLORS.error}`,
+                          bgcolor:
+                            acc.status === "Active" ? "#e8f5e9" : "white",
+                          color:
+                            acc.status === "Active" ? "#2e7d32" : COLORS.error,
+                          border:
+                            acc.status === "Active"
+                              ? "none"
+                              : `1px solid ${COLORS.error}`,
                           fontWeight: 700,
                           borderRadius: 1,
                         }}
@@ -543,10 +613,16 @@ const AdminAccountsPage = () => {
                     </TableCell>
                     <TableCell align="right">
                       {isAdmin ? (
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="flex-end"
+                        >
                           <Tooltip title="Cấp lại mật khẩu">
                             <IconButton
-                              onClick={() => handleResetPassword(acc.id, acc.full_name)}
+                              onClick={() =>
+                                handleResetPassword(acc.id, acc.full_name)
+                              }
                               sx={{
                                 color: COLORS.orange,
                                 bgcolor: "rgba(237, 108, 2, 0.1)",
@@ -566,19 +642,36 @@ const AdminAccountsPage = () => {
                           {acc.role !== "Admin" && (
                             <Tooltip
                               title={
-                                acc.status === "Active" ? "Khóa tài khoản" : "Mở khóa"
+                                acc.status === "Active"
+                                  ? "Khóa tài khoản"
+                                  : "Mở khóa"
                               }
                             >
                               <IconButton
-                                onClick={() => handleToggleStatus(acc.id, acc.status, acc.full_name)}
+                                onClick={() =>
+                                  handleToggleStatus(
+                                    acc.id,
+                                    acc.status,
+                                    acc.full_name,
+                                  )
+                                }
                                 sx={{
-                                  color: acc.status === "Active" ? COLORS.error : "#2e7d32",
-                                  bgcolor: acc.status === "Active" ? "rgba(211, 47, 47, 0.1)" : "rgba(46, 125, 50, 0.1)",
+                                  color:
+                                    acc.status === "Active"
+                                      ? COLORS.error
+                                      : "#2e7d32",
+                                  bgcolor:
+                                    acc.status === "Active"
+                                      ? "rgba(211, 47, 47, 0.1)"
+                                      : "rgba(46, 125, 50, 0.1)",
                                   border: `1px solid ${acc.status === "Active" ? "rgba(211, 47, 47, 0.2)" : "rgba(46, 125, 50, 0.2)"}`,
                                   borderRadius: 1,
                                   transition: "all 0.2s ease",
                                   "&:hover": {
-                                    bgcolor: acc.status === "Active" ? "rgba(211, 47, 47, 0.18)" : "rgba(46, 125, 50, 0.18)",
+                                    bgcolor:
+                                      acc.status === "Active"
+                                        ? "rgba(211, 47, 47, 0.18)"
+                                        : "rgba(46, 125, 50, 0.18)",
                                     transform: "translateY(-1px)",
                                   },
                                 }}
@@ -605,6 +698,122 @@ const AdminAccountsPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={filteredAccounts.length} // Tổng số lượng tài khoản sau khi lọc
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0); // Reset về trang đầu khi đổi số lượng dòng hiển thị
+          }}
+          labelRowsPerPage="Số dòng hiển thị:"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} trong số ${count}`
+          }
+          sx={{
+            borderTop: "1px solid rgba(11,27,63,0.08)",
+            bgcolor: "rgba(255, 255, 255, 0.85)",
+            color: "#0b1b3f", // Màu COLORS.navy chủ đạo của Admin
+            fontWeight: "bold",
+            // Thanh Toolbar tổng của phân trang
+            "& .MuiTablePagination-toolbar": {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              minHeight: "56px !important",
+              py: 0,
+            },
+            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+            "& .MuiTablePagination-selectLabel": {
+              fontWeight: 700,
+              color: "text.secondary",
+              fontSize: "0.85rem",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // Khung bao ngoài ô select số dòng
+            "& .MuiTablePagination-input": {
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "20px",
+              marginLeft: "8px",
+              height: "100%",
+            },
+            // Ô chọn số dòng hiển thị
+            "& .MuiTablePagination-select": {
+              fontWeight: 800,
+              color: "#5e35b1", // Màu COLORS.primary (Tím)
+              bgcolor: "rgba(94, 53, 177, 0.05)",
+              borderRadius: "8px",
+              border: "1px solid rgba(94, 53, 177, 0.15)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              pt: "4px !important",
+              pb: "4px !important",
+              pl: "12px !important",
+              pr: "32px !important", // Khoảng trống an toàn tránh đè icon mũi tên
+              "&:focus": {
+                borderRadius: "8px",
+              },
+            },
+            // Định vị icon mũi tên của ô select nằm chuẩn ở giữa dọc
+            "& .MuiTablePagination-selectIcon": {
+              color: "#5e35b1",
+              top: "calc(50% - 10px)",
+              right: "4px",
+            },
+            // Dòng chữ hiển thị "1-10 trong số..."
+            "& .MuiTablePagination-displayedRows": {
+              fontWeight: 800,
+              color: "#0b1b3f",
+              fontSize: "0.85rem",
+              letterSpacing: "0.02em",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // Cụm 2 nút bấm điều hướng trang (Mũi tên trái/phải)
+            "& .MuiTablePagination-actions": {
+              marginLeft: "16px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              "& .MuiIconButton-root": {
+                bgcolor: "white",
+                border: "1px solid rgba(11,27,63,0.08)",
+                borderRadius: "8px",
+                padding: "5px",
+                color: "#009688", // Màu COLORS.teal (Xanh ngọc)
+                boxShadow: "0 2px 6px rgba(11,27,63,0.04)",
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "&:hover": {
+                  bgcolor: "#009688",
+                  color: "white",
+                  borderColor: "#009688",
+                },
+                "&.Mui-disabled": {
+                  bgcolor: "rgba(0,0,0,0.02)",
+                  color: "rgba(0,0,0,0.2)",
+                  borderColor: "rgba(0,0,0,0.05)",
+                  boxShadow: "none",
+                },
+                "& .MuiSvgIcon-root": {
+                  fontSize: "18px",
+                },
+              },
+            },
+          }}
+        />
       </Paper>
 
       {/* DIALOG THÊM TÀI KHOẢN MỚI ĐỒNG BỘ MÀU CAM */}
@@ -647,29 +856,48 @@ const AdminAccountsPage = () => {
           >
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
                   Họ và Tên (*)
                 </Typography>
                 <TextField
                   fullWidth
                   size="small"
                   value={addForm.full_name}
-                  onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, full_name: e.target.value })
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
                   Số điện thoại
                 </Typography>
                 <TextField
                   fullWidth
                   size="small"
                   value={addForm.phone}
-                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, phone: e.target.value })
+                  }
                 />
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
                   Email đăng nhập (*)
                 </Typography>
                 <TextField
@@ -677,11 +905,18 @@ const AdminAccountsPage = () => {
                   type="email"
                   size="small"
                   value={addForm.email}
-                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, email: e.target.value })
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
                   Mật khẩu khởi tạo (*)
                 </Typography>
                 <TextField
@@ -689,19 +924,30 @@ const AdminAccountsPage = () => {
                   type="password"
                   size="small"
                   value={addForm.password}
-                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, password: e.target.value })
+                  }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color="text.primary"
+                  sx={{ mb: 1 }}
+                >
                   Quyền truy cập (Role)
                 </Typography>
                 <FormControl fullWidth size="small">
                   <Select
                     value={addForm.role}
-                    onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, role: e.target.value })
+                    }
                   >
-                    <MenuItem value="Receptionist">Lễ tân (Receptionist)</MenuItem>
+                    <MenuItem value="Receptionist">
+                      Lễ tân (Receptionist)
+                    </MenuItem>
                     <MenuItem value="Admin">Quản trị viên (Admin)</MenuItem>
                     <MenuItem value="Customer">Khách hàng (Customer)</MenuItem>
                   </Select>
@@ -718,7 +964,11 @@ const AdminAccountsPage = () => {
             justifyContent: "space-between",
           }}
         >
-          <Button onClick={() => setAddDialog(false)} color="inherit" sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}>
+          <Button
+            onClick={() => setAddDialog(false)}
+            color="inherit"
+            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
+          >
             Hủy bỏ
           </Button>
           <Button
@@ -737,7 +987,11 @@ const AdminAccountsPage = () => {
               "&:hover": { boxShadow: "0 12px 24px rgba(230,81,0,0.28)" },
             }}
           >
-            {isSubmitting ? <CircularProgress size={24} color="inherit" /> : "TẠO TÀI KHOẢN"}
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "TẠO TÀI KHOẢN"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -768,7 +1022,10 @@ const AdminAccountsPage = () => {
           <Typography>{confirmDialog.message}</Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setConfirmDialog({ ...confirmDialog, open: false })} color="inherit">
+          <Button
+            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            color="inherit"
+          >
             Hủy
           </Button>
           <Button
@@ -778,7 +1035,11 @@ const AdminAccountsPage = () => {
             disableElevation
             disabled={isSubmitting}
           >
-            {isSubmitting ? <CircularProgress size={24} color="inherit" /> : "Xác nhận"}
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

@@ -34,6 +34,7 @@ import {
   Select,
   MenuItem,
   Snackbar,
+  TablePagination,
 } from "@mui/material";
 
 // Icons
@@ -70,7 +71,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -85,7 +87,13 @@ const AdminBookingsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [tabValue, setTabValue] = useState("All");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [upgradeDialog, setUpgradeDialog] = useState(false);
+  const [selectedBookingForUpgrade, setSelectedBookingForUpgrade] =
+    useState(null);
+  const [availableRoomsForUpgrade, setAvailableRoomsForUpgrade] = useState([]);
+  const [selectedNewRoomId, setSelectedNewRoomId] = useState("");
   const [detailDialog, setDetailDialog] = useState({
     open: false,
     booking: null,
@@ -143,6 +151,9 @@ const AdminBookingsPage = () => {
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, tabValue]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
@@ -162,7 +173,15 @@ const AdminBookingsPage = () => {
       return matchesSearch && matchesTab;
     });
   }, [bookings, searchTerm, tabValue]);
-
+  const paginatedBookings = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return filteredBookings.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredBookings, page, rowsPerPage]);
+  useEffect(() => {
+    if (page > 0 && paginatedBookings.length === 0) {
+      setPage(page - 1);
+    }
+  }, [paginatedBookings, page]);
   const getStatusChip = (status) => {
     switch (status) {
       case "Pending":
@@ -475,7 +494,64 @@ const AdminBookingsPage = () => {
       setIsSubmitting(false);
     }
   };
+  // Hàm mở hộp thoại đổi phòng và tải danh sách phòng khả dụng
+  const handleOpenUpgradeDialog = async (booking) => {
+    setSelectedBookingForUpgrade(booking);
+    setSelectedNewRoomId("");
+    try {
+      // Gọi RoomService lấy toàn bộ phòng trong hệ thống
+      const res = await RoomService.getRooms();
+      const roomsData = res.data || res;
 
+      // Lọc ra các phòng vật lý đang trống (Available)
+      const emptyRooms = roomsData.filter((r) => r.status === "Available");
+      setAvailableRoomsForUpgrade(emptyRooms);
+      setUpgradeDialog(true);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Không thể tải danh sách phòng trống!",
+        severity: "error",
+      });
+    }
+  };
+
+  // Hàm xác nhận gửi yêu cầu nâng hạng/đổi phòng lên máy chủ
+  const handleConfirmUpgrade = async () => {
+    if (!selectedNewRoomId) {
+      setSnackbar({
+        open: true,
+        message: "Vui lòng chọn một căn phòng mới!",
+        severity: "warning",
+      });
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const res = await BookingService.reassignRoomBeforeCheckIn(
+        selectedBookingForUpgrade.id,
+        selectedNewRoomId,
+      );
+      setSnackbar({
+        open: true,
+        message: res.message || "Đổi phòng thành công!",
+        severity: "success",
+      });
+      setUpgradeDialog(false);
+
+      // Tải lại danh sách đơn đặt phòng để cập nhật dữ liệu mới nhất lên bảng
+      if (typeof fetchBookings === "function") fetchBookings();
+      else window.location.reload();
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: err || "Có lỗi xảy ra khi đổi phòng!",
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   if (loading)
     return (
       <Box
@@ -589,7 +665,12 @@ const AdminBookingsPage = () => {
           overflow: "hidden",
         }}
       >
-        <Box sx={{ borderBottom: "1px solid rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.84)" }}>
+        <Box
+          sx={{
+            borderBottom: "1px solid rgba(11,27,63,0.1)",
+            bgcolor: "rgba(255,255,255,0.84)",
+          }}
+        >
           <Tabs
             value={tabValue}
             onChange={(e, val) => setTabValue(val)}
@@ -635,7 +716,13 @@ const AdminBookingsPage = () => {
           </Tabs>
         </Box>
 
-        <Box sx={{ p: 2, borderBottom: "1px solid rgba(11,27,63,0.1)", bgcolor: "rgba(255,255,255,0.86)" }}>
+        <Box
+          sx={{
+            p: 2,
+            borderBottom: "1px solid rgba(11,27,63,0.1)",
+            bgcolor: "rgba(255,255,255,0.86)",
+          }}
+        >
           <TextField
             fullWidth
             placeholder="Tìm theo Mã đơn, Tên khách, SĐT hoặc Số phòng..."
@@ -659,7 +746,9 @@ const AdminBookingsPage = () => {
           />
         </Box>
 
-        <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
+        <TableContainer
+          sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}
+        >
           <Table sx={{ minWidth: 900 }}>
             <TableHead
               sx={{
@@ -668,22 +757,58 @@ const AdminBookingsPage = () => {
               }}
             >
               <TableRow>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Mã
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Khách hàng
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Phòng
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Lịch trình
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Tài chính
                 </TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700, letterSpacing: "0.03em" }}>
+                <TableCell
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                  }}
+                >
                   Trạng thái
                 </TableCell>
                 <TableCell
@@ -708,7 +833,7 @@ const AdminBookingsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBookings.map((b) => (
+                paginatedBookings.map((b) => (
                   <TableRow
                     key={b.id}
                     hover
@@ -796,7 +921,11 @@ const AdminBookingsPage = () => {
                             color="error"
                             size="small"
                             onClick={() => handleCancel(b.id)}
-                            sx={{ fontWeight: 700, borderRadius: 1, textTransform: "none" }}
+                            sx={{
+                              fontWeight: 700,
+                              borderRadius: 1,
+                              textTransform: "none",
+                            }}
                           >
                             HỦY ĐƠN
                           </Button>
@@ -834,6 +963,23 @@ const AdminBookingsPage = () => {
                             CHECK-IN
                           </Button>
                         )}
+                        {(b.status === "Pending" ||
+                          b.status === "Confirmed") && (
+                          <Tooltip title="Đổi phòng vật lý hoặc Nâng hạng miễn phí">
+                            <IconButton
+                              color="warning"
+                              onClick={() => handleOpenUpgradeDialog(b)}
+                              sx={{
+                                border: "1px solid #f59e0b",
+                                borderRadius: "8px",
+                                p: 1,
+                                "&:hover": { bgcolor: "#f59e0b10" },
+                              }}
+                            >
+                              <MeetingRoomIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title="Xem chi tiết đơn">
                           <IconButton
                             onClick={() => handleViewDetails(b)}
@@ -860,6 +1006,122 @@ const AdminBookingsPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={filteredBookings.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          labelRowsPerPage="Số dòng hiển thị:"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} trong số ${count}`
+          }
+          sx={{
+            borderTop: `1px solid ${COLORS.border}`,
+            bgcolor: "rgba(255, 255, 255, 0.85)",
+            color: COLORS.navy,
+            fontWeight: "bold",
+            // Thanh Toolbar tổng của phân trang
+            "& .MuiTablePagination-toolbar": {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              minHeight: "56px !important",
+              py: 0,
+            },
+            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+            "& .MuiTablePagination-selectLabel": {
+              fontWeight: 700,
+              color: "text.secondary",
+              fontSize: "0.85rem",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // KHUNG BAO NGOÀI Ô SELECT (ĐÃ FIX: Bật flex căn tâm trục dọc để chống lệch hàng)
+            "& .MuiTablePagination-input": {
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "20px",
+              marginLeft: "8px",
+              height: "100%", // Đồng bộ chiều cao theo luồng chữ tĩnh
+            },
+            // CHÍNH XÁC Ô SELECT SỐ (ĐÃ FIX: Gỡ bỏ height cứng và padding sai lệch gây đè chữ)
+            "& .MuiTablePagination-select": {
+              fontWeight: 800,
+              color: COLORS.primary,
+              bgcolor: "rgba(94, 53, 177, 0.05)",
+              borderRadius: "8px",
+              border: "1px solid rgba(94, 53, 177, 0.15)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              pt: "4px !important", // Căn đều khoảng cách trên dưới bằng padding nhạt
+              pb: "4px !important",
+              pl: "12px !important", // Đảm bảo số không bị ép sát lề trái
+              pr: "32px !important", // Tạo khoảng trống an toàn bên phải cho icon mũi tên
+              "&:focus": {
+                borderRadius: "8px",
+              },
+            },
+            // Định vị lại icon mũi tên nhỏ của ô select nằm chuẩn ở giữa
+            "& .MuiTablePagination-selectIcon": {
+              color: COLORS.primary,
+              top: "calc(50% - 10px)",
+              right: "4px",
+            },
+            // Dòng chữ hiển thị "1-10 trong số 27"
+            "& .MuiTablePagination-displayedRows": {
+              fontWeight: 800,
+              color: COLORS.navy,
+              fontSize: "0.85rem",
+              letterSpacing: "0.02em",
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+            },
+            // Cụm 2 nút bấm điều hướng trang (Mũi tên trái/phải)
+            "& .MuiTablePagination-actions": {
+              marginLeft: "16px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              "& .MuiIconButton-root": {
+                bgcolor: "white",
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: "8px",
+                padding: "5px",
+                color: COLORS.teal,
+                boxShadow: "0 2px 6px rgba(11,27,63,0.04)",
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "&:hover": {
+                  bgcolor: COLORS.teal,
+                  color: "white",
+                  borderColor: COLORS.teal,
+                },
+                "&.Mui-disabled": {
+                  bgcolor: "rgba(0,0,0,0.02)",
+                  color: "rgba(0,0,0,0.2)",
+                  borderColor: "rgba(0,0,0,0.05)",
+                  boxShadow: "none",
+                },
+                "& .MuiSvgIcon-root": {
+                  fontSize: "18px",
+                },
+              },
+            },
+          }}
+        />
       </Paper>
 
       {/* DIALOG: XÁC NHẬN CHUNG (CONFIRM) */}
@@ -1520,6 +1782,128 @@ const AdminBookingsPage = () => {
               <CircularProgress size={24} color="inherit" />
             ) : (
               "XÁC NHẬN & GIAO PHÒNG"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* DIALOG GIAO DIỆN XỬ LÝ ĐỔI PHÒNG / NÂNG HẠNG MIỄN PHÍ */}
+      <Dialog
+        open={upgradeDialog}
+        onClose={() => setUpgradeDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 800,
+            color: "#1A1A1A",
+            borderBottom: "1px solid #e2e8f0",
+            pb: 2,
+          }}
+        >
+          Xử lý Đổi phòng / Nâng hạng miễn phí
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          {selectedBookingForUpgrade && (
+            <Stack gap={2}>
+              <Alert severity="info" sx={{ borderRadius: "8px" }}>
+                Khách hàng:{" "}
+                <strong>
+                  {selectedBookingForUpgrade.full_name || "Khách hàng"}
+                </strong>{" "}
+                <br />
+                Hạng phòng đã đặt:{" "}
+                <strong>{selectedBookingForUpgrade.type_name}</strong> <br />
+                Phòng hiện tại:{" "}
+                <strong>
+                  Phòng {selectedBookingForUpgrade.room_number || "Chưa xếp"}
+                </strong>
+              </Alert>
+
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, color: "#4a5568", mt: 1 }}
+              >
+                Chọn căn phòng trống mới để chuyển sang:
+              </Typography>
+
+              <FormControl fullWidth>
+                <InputLabel id="select-new-room-label">
+                  Danh sách phòng trống
+                </InputLabel>
+                <Select
+                  labelId="select-new-room-label"
+                  value={selectedNewRoomId}
+                  label="Danh sách phòng trống"
+                  onChange={(e) => setSelectedNewRoomId(e.target.value)}
+                  sx={{ borderRadius: "8px" }}
+                >
+                  {availableRoomsForUpgrade.length === 0 ? (
+                    <MenuItem disabled value="">
+                      <em>Không có phòng nào trống hiện tại!</em>
+                    </MenuItem>
+                  ) : (
+                    availableRoomsForUpgrade.map((room) => {
+                      const isSameType =
+                        room.room_type_id ===
+                        selectedBookingForUpgrade.room_type_id;
+                      return (
+                        <MenuItem key={room.id} value={room.id}>
+                          Phòng {room.room_number} - Hạng: {room.type_name}{" "}
+                          {isSameType
+                            ? "(Cùng hạng)"
+                            : "⭐ (Nâng hạng miễn phí)"}
+                        </MenuItem>
+                      );
+                    })
+                  )}
+                </Select>
+              </FormControl>
+
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                sx={{ fontStyle: "italic" }}
+              >
+                * Hệ thống sẽ tự động giữ nguyên tổng tiền hóa đơn cũ của khách
+                hàng và chỉ thực hiện điều chuyển thông tin phòng vật lý.
+              </Typography>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            p: 3,
+            borderTop: "1px solid #e2e8f0",
+            justifyContent: "space-between",
+          }}
+        >
+          <Button
+            onClick={() => setUpgradeDialog(false)}
+            color="inherit"
+            sx={{ fontWeight: 700, textTransform: "none" }}
+          >
+            Hủy bỏ
+          </Button>
+          <Button
+            onClick={handleConfirmUpgrade}
+            variant="contained"
+            disabled={isSubmitting || !selectedNewRoomId}
+            sx={{
+              fontWeight: 700,
+              textTransform: "none",
+              background: "linear-gradient(135deg, #d4af37 0%, #b8962a 100%)",
+              color: "#FAFAF9",
+              px: 3,
+              "&:hover": { bgcolor: "#b8962a" },
+            }}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận chuyển"
             )}
           </Button>
         </DialogActions>

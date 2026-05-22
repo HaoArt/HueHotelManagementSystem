@@ -192,8 +192,8 @@ const Header = () => {
                   <Box
                     sx={{
                       display: { xs: "none", md: "flex" },
-                      flexDirection: "column",
-                      alignItems: "flex-end",
+                      flexDirection: "row",
+                      alignItems: "center",
                       mr: 1.5,
                     }}
                   >
@@ -202,8 +202,9 @@ const Header = () => {
                       color={LUXURY.warmGray}
                       fontWeight="700"
                       letterSpacing={1}
+                      sx={{ mr: "5px" }}
                     >
-                      XIN CHÀO
+                      XIN CHÀO,
                     </Typography>
                     <Typography
                       variant="body2"
@@ -348,7 +349,7 @@ const Header = () => {
                     fontWeight="700"
                     color={LUXURY.charcoal}
                   >
-                    Hồ Sơ & Chuyến Đi
+                    Hồ Sơ & Lịch sử lưu trú
                   </Typography>
                 </MenuItem>
               )}

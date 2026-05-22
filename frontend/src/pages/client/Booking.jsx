@@ -24,7 +24,6 @@ import {
   DialogActions,
   CircularProgress,
   Snackbar,
-  Grid,
   Fade,
   Slide,
   Container,
@@ -158,6 +157,8 @@ const Booking = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     const fetchData = async () => {
       try {
         const [svcRes, couponRes, configRes] = await Promise.all([
@@ -319,7 +320,11 @@ const Booking = () => {
         setTimeout(() => navigate("/profile"), 1500);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Có lỗi xảy ra khi đặt phòng.");
+      const errorMessage =
+        typeof err === "string"
+          ? err
+          : err?.response?.data?.message || "Có lỗi xảy ra khi đặt phòng.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -448,6 +453,7 @@ const Booking = () => {
             <Slide direction="right" in={true} timeout={800}>
               <Box>
                 {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT --- */}
+                {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT (ĐÃ CHUYỂN SANG FLEXBOX & THÊM BORDER) --- */}
                 <Paper elevation={0} sx={paperSectionStyle}>
                   <Stack
                     direction="row"
@@ -470,8 +476,20 @@ const Booking = () => {
                     </Typography>
                   </Stack>
 
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                  {/* THAY GRID THÀNH BOX FLEX ĐỂ CÂN XỨNG TUYỆT ĐỐI */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 3, // Khoảng cách giữa các ô input
+                    }}
+                  >
+                    {/* Ô 1: Họ và tên (Chiếm 50% hàng) */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
+                      }}
+                    >
                       <Typography
                         variant="body2"
                         color={LUXURY.charcoal}
@@ -488,11 +506,21 @@ const Booking = () => {
                           ...inputStyle,
                           "& .MuiOutlinedInput-root": {
                             bgcolor: LUXURY.softGray,
+                            "& fieldset": {
+                              borderColor: LUXURY.softGray,
+                              borderWidth: "1px",
+                            }, // Thêm border tĩnh
                           },
                         }}
                       />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                    </Box>
+
+                    {/* Ô 2: Số điện thoại (Chiếm 50% hàng) */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
+                      }}
+                    >
                       <Typography
                         variant="body2"
                         color={LUXURY.charcoal}
@@ -510,10 +538,22 @@ const Booking = () => {
                           setFormData({ ...formData, phone: e.target.value })
                         }
                         required
-                        sx={inputStyle}
+                        sx={{
+                          ...inputStyle,
+                          "& .MuiOutlinedInput-root fieldset": {
+                            borderColor: LUXURY.softGray, // Thêm border hiện rõ ràng
+                            borderWidth: "1px",
+                          },
+                        }}
                       />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                    </Box>
+
+                    {/* Ô 3: Ngày nhận phòng (Chiếm 50% hàng) */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
+                      }}
+                    >
                       <Typography
                         variant="body2"
                         color={LUXURY.charcoal}
@@ -532,10 +572,22 @@ const Booking = () => {
                           setFormData({ ...formData, checkIn: e.target.value })
                         }
                         required
-                        sx={inputStyle}
+                        sx={{
+                          ...inputStyle,
+                          "& .MuiOutlinedInput-root fieldset": {
+                            borderColor: LUXURY.softGray,
+                            borderWidth: "1px",
+                          },
+                        }}
                       />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                    </Box>
+
+                    {/* Ô 4: Ngày trả phòng (Chiếm 50% hàng) */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
+                      }}
+                    >
                       <Typography
                         variant="body2"
                         color={LUXURY.charcoal}
@@ -554,10 +606,18 @@ const Booking = () => {
                           setFormData({ ...formData, checkOut: e.target.value })
                         }
                         required
-                        sx={inputStyle}
+                        sx={{
+                          ...inputStyle,
+                          "& .MuiOutlinedInput-root fieldset": {
+                            borderColor: LUXURY.softGray,
+                            borderWidth: "1px",
+                          },
+                        }}
                       />
-                    </Grid>
-                    <Grid item xs={12}>
+                    </Box>
+
+                    {/* Ô 5: Yêu cầu đặc biệt (Bao trọn 100% hàng) */}
+                    <Box sx={{ flex: "1 1 100%" }}>
                       <Typography
                         variant="body2"
                         color={LUXURY.charcoal}
@@ -576,10 +636,16 @@ const Booking = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, note: e.target.value })
                         }
-                        sx={inputStyle}
+                        sx={{
+                          ...inputStyle,
+                          "& .MuiOutlinedInput-root fieldset": {
+                            borderColor: LUXURY.softGray,
+                            borderWidth: "1px",
+                          },
+                        }}
                       />
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
                 </Paper>
 
                 {/* --- KHUNG 2: DỊCH VỤ ĐI KÈM --- */}
@@ -1125,128 +1191,248 @@ const Booking = () => {
       {/* ======================================================= */}
       <Dialog
         open={qrDialogOpen}
-        maxWidth="xs"
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: "24px",
-            textAlign: "center",
             bgcolor: LUXURY.white,
+            overflow: "hidden",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.15)",
           },
         }}
       >
-        <DialogTitle sx={{ pt: 5 }}>
-          <CheckCircleIcon sx={{ fontSize: 64, color: "#16a34a", mb: 2 }} />
-          <Typography
-            variant="h4"
-            sx={{
-              fontFamily: '"Playfair Display", serif',
-              fontWeight: 900,
-              color: LUXURY.charcoal,
-            }}
-          >
-            Tuyệt Vời!
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 3, md: 5 }, pb: 2 }}>
-          <Typography variant="body1" color={LUXURY.warmGray} sx={{ mb: 4 }}>
-            Đơn đặt phòng <b>#{createdBooking?.booking_id}</b> đã được tạo thành
-            công. Vui lòng hoàn tất thanh toán cọc để giữ phòng.
-          </Typography>
-
+        <DialogContent sx={{ p: 0 }}>
+          {/* CONTAINER CHÍNH SỬ DỤNG FLEXBOX */}
           <Box
             sx={{
-              p: 3,
-              bgcolor: LUXURY.offwhite,
-              borderRadius: "20px",
-              border: `2px dashed ${LUXURY.gold}`,
-              mb: 4,
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: "stretch", // Đảm bảo 2 bên cao bằng nhau, không bị hở đáy
+              minHeight: { md: "480px" }, // Khống chế chiều cao vừa vặn khung hình
             }}
           >
-            <Typography
-              variant="caption"
-              fontWeight="800"
-              color={LUXURY.warmGray}
-              letterSpacing={1}
-            >
-              SỐ TIỀN CẦN THANH TOÁN
-            </Typography>
-            <Typography
-              variant="h4"
-              fontWeight="900"
-              color={LUXURY.navy}
-              sx={{ mt: 1, mb: 3 }}
-            >
-              {parseFloat(
-                createdBooking?.deposit_required || 0,
-              ).toLocaleString()}
-              đ
-            </Typography>
-
+            {/* =================================================== */}
+            {/* KHỐI TRÁI: QR & TRẠNG THÁI (Gom cụm, dùng Flexbox dọc) */}
+            {/* =================================================== */}
             <Box
               sx={{
-                p: 2,
-                bgcolor: "white",
-                borderRadius: "16px",
-                display: "inline-block",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+                flex: { xs: "1 1 auto", md: "0 0 42%" }, // Chiếm 42% chiều ngang cố định ở màn hình lớn
+                bgcolor: LUXURY.offwhite,
+                p: { xs: 3, md: 4 },
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRight: { md: `2px dashed ${LUXURY.softGray}` },
+                borderBottom: {
+                  xs: `2px dashed ${LUXURY.softGray}`,
+                  md: "none",
+                },
               }}
             >
-              {/* TẠO QR TỰ ĐỘNG DỰA VÀO CẤU HÌNH NGÂN HÀNG ĐÃ TẢI TỪ DATABASE */}
-              <img
-                src={`https://img.vietqr.io/image/${bankId}-${bankAccount}-compact2.png?amount=${createdBooking?.deposit_required}&addInfo=DatPhong%20${createdBooking?.booking_id}&accountName=${accountName}`}
-                alt="QR Payment"
-                style={{
-                  width: "200px",
-                  height: "200px",
-                  objectFit: "contain",
-                }}
+              <CheckCircleIcon
+                sx={{ fontSize: 56, color: "#16a34a", mb: 1.5 }}
               />
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 900,
+                  color: LUXURY.charcoal,
+                  mb: 0.5,
+                }}
+              >
+                Tuyệt Vời!
+              </Typography>
+              <Typography
+                variant="body2"
+                color={LUXURY.warmGray}
+                sx={{ mb: 2.5, textAlign: "center", px: 2 }}
+              >
+                Đơn đặt phòng{" "}
+                <b style={{ color: LUXURY.navy }}>
+                  #{createdBooking?.booking_id}
+                </b>{" "}
+                đã được tạo.
+              </Typography>
+
+              {/* Khung chứa QR thu nhỏ vừa vặn */}
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                  border: `1px solid ${LUXURY.softGray}`,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <img
+                  src={`https://img.vietqr.io/image/${bankId}-${bankAccount}-compact2.png?amount=${createdBooking?.deposit_required}&addInfo=DatPhong%20${createdBooking?.booking_id}&accountName=${accountName}`}
+                  alt="QR Payment"
+                  style={{
+                    width: "180px",
+                    height: "180px",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 1.5,
+                  color: LUXURY.warmGray,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                }}
+              >
+                QUÉT MÃ ĐỂ THANH TOÁN CỌC
+              </Typography>
             </Box>
 
-            <Typography variant="body2" sx={{ mt: 3, color: LUXURY.charcoal }}>
-              Nội dung CK:{" "}
-              <b style={{ fontSize: "1.1rem" }}>
-                DatPhong {createdBooking?.booking_id}
-              </b>
-            </Typography>
-          </Box>
+            {/* =================================================== */}
+            {/* KHỐI PHẢI: CHI TIẾT VÀ NÚT BẤM (Dùng Flexbox dọc) */}
+            {/* =================================================== */}
+            <Box
+              sx={{
+                flex: 1, // Tự động lấp đầy phần còn lại (58%)
+                p: { xs: 3.5, md: 4.5 },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between", // Đẩy các phần ra sát cạnh để cân xứng, không lo khoảng trống dư
+              }}
+            >
+              {/* Stack quản lý khoảng cách giữa các hàng nội dung phía trên */}
+              <Stack spacing={2.5} sx={{ width: "100%" }}>
+                {/* Hàng số tiền */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    fontWeight="800"
+                    color={LUXURY.warmGray}
+                    letterSpacing={1}
+                  >
+                    SỐ TIỀN CẦN THANH TOÁN
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    fontWeight="900"
+                    color={LUXURY.navy}
+                    sx={{ mt: 0.5 }}
+                  >
+                    {parseFloat(
+                      createdBooking?.deposit_required || 0,
+                    ).toLocaleString()}
+                    đ
+                  </Typography>
+                </Box>
 
-          <Alert
-            severity="warning"
-            icon={<AccessTimeIcon />}
-            sx={{
-              borderRadius: "12px",
-              textAlign: "left",
-              bgcolor: `${LUXURY.gold}15`,
-              color: LUXURY.charcoal,
-              border: `1px solid ${LUXURY.gold}40`,
-            }}
-          >
-            Hệ thống sẽ tự động hủy đơn sau <b>15 phút</b> nếu không nhận được
-            tiền cọc.
-          </Alert>
+                {/* Hàng Nội dung chuyển khoản */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    fontWeight="800"
+                    color={LUXURY.warmGray}
+                    letterSpacing={1}
+                  >
+                    NỘI DUNG CHUYỂN KHOẢN CHÍNH XÁC
+                  </Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.8,
+                      mt: 0.5,
+                      bgcolor: `${LUXURY.gold}10`,
+                      border: `1px solid ${LUXURY.gold}60`,
+                      borderRadius: "12px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      fontWeight="900"
+                      color={LUXURY.charcoal}
+                      letterSpacing={0.5}
+                    >
+                      DatPhong {createdBooking?.booking_id}
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Khối cảnh báo thời gian */}
+                <Alert
+                  severity="warning"
+                  icon={
+                    <AccessTimeIcon
+                      sx={{ color: `${LUXURY.gold} !important` }}
+                    />
+                  }
+                  sx={{
+                    borderRadius: "12px",
+                    bgcolor: `${LUXURY.gold}12`,
+                    color: LUXURY.charcoal,
+                    border: `1px solid ${LUXURY.gold}30`,
+                    fontSize: "0.85rem",
+                    alignItems: "center",
+                    py: 0.5,
+                  }}
+                >
+                  Hệ thống tự động hủy đơn sau <b>15 phút</b> nếu chưa nhận được
+                  tiền cọc.
+                </Alert>
+              </Stack>
+
+              {/* Khối Nút bấm cố định ở đáy hộp thoại phải */}
+              <Box sx={{ mt: 3 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{
+                    background: `linear-gradient(135deg, ${LUXURY.navy} 0%, #2a4374 100%)`,
+                    color: LUXURY.white,
+                    fontWeight: "800",
+                    py: 1.6,
+                    borderRadius: "12px",
+                    fontSize: "1rem",
+                    boxShadow: "0 8px 20px rgba(27,45,79,0.15)",
+                    textTransform: "none",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 12px 28px rgba(27,45,79,0.25)",
+                    },
+                  }}
+                  onClick={() => navigate("/profile")}
+                >
+                  TÔI ĐÃ CHUYỂN KHOẢN
+                </Button>
+
+                <Typography
+                  variant="body2"
+                  textAlign="center"
+                  sx={{
+                    color: LUXURY.warmGray,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    fontWeight: 600,
+                    mt: 1.5,
+                    fontSize: "0.85rem",
+                    "&:hover": { color: LUXURY.charcoal },
+                  }}
+                  onClick={() => setQrDialogOpen(false)}
+                >
+                  Đóng và kiểm tra lại đơn phòng
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         </DialogContent>
-        <DialogActions
-          sx={{ p: { xs: 3, md: 5 }, pt: 0, justifyContent: "center" }}
-        >
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{
-              background: `linear-gradient(135deg, ${LUXURY.navy} 0%, #2a4374 100%)`,
-              color: LUXURY.white,
-              fontWeight: "800",
-              py: 1.8,
-              borderRadius: "12px",
-              fontSize: "1.05rem",
-              boxShadow: "0 12px 24px rgba(27,45,79,0.2)",
-            }}
-            onClick={() => navigate("/profile")}
-          >
-            TÔI ĐÃ CHUYỂN KHOẢN
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ======================================================= */}
