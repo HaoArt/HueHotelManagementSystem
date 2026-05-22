@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const db = require("./config/db");
-import dns from "dns";
+const dns = require("dns");
 require("dotenv").config();
 require("./cron/holdRoomCron");
 require("./cron/reminderCron");
