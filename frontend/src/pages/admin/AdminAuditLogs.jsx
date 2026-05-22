@@ -275,7 +275,7 @@ const AdminAuditLogs = () => {
           bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
-        <TableContainer sx={{  }}>
+        <TableContainer sx={{}}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>

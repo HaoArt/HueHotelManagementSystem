@@ -8,10 +8,11 @@ const User = {
     return rows[0];
   },
   create: async (userData) => {
-    const { full_name, email, phone, password_hash, cccd_number } = userData;
+    const { full_name, email, phone, password_hash, identity_number } =
+      userData;
     const [result] = await db.query(
-      "INSERT INTO users (full_name,email,phone,password_hash,cccd_number) VALUE (?,?,?,?,?)",
-      [full_name, email, phone, password_hash, cccd_number],
+      "INSERT INTO users (full_name,email,phone,password_hash,identity_number) VALUE (?,?,?,?,?)",
+      [full_name, email, phone, password_hash, identity_number],
     );
     return result.insertId;
   },
@@ -55,10 +56,10 @@ const User = {
     ]);
     return newScore;
   },
-  updateProfile: async (id, full_name, phone, avatar_url, cccd_number) => {
+  updateProfile: async (id, full_name, phone, avatar_url, identity_number) => {
     return await db.query(
-      "UPDATE users SET full_name = ?, phone = ?, avatar_url = ?, cccd_number = ? WHERE id = ?",
-      [full_name, phone, avatar_url, cccd_number, id],
+      "UPDATE users SET full_name = ?, phone = ?, avatar_url = ?, identity_number = ? WHERE id = ?",
+      [full_name, phone, avatar_url, identity_number, id],
     );
   },
   getAllCustomers: async () => {
@@ -87,7 +88,6 @@ const User = {
     );
   },
   getAllAccounts: async () => {
-    // Lấy tất cả user (Admin, Receptionist, Customer)
     const [rows] = await db.query(
       "SELECT id, full_name, email, phone, role, trust_score, status, created_at FROM users ORDER BY CASE role WHEN 'Admin' THEN 1 WHEN 'Receptionist' THEN 2 ELSE 3 END, created_at DESC",
     );
@@ -101,10 +101,11 @@ const User = {
     );
     return result.insertId;
   },
-  findByCccd: async (cccd_number) => {
-    const [rows] = await db.query("SELECT * FROM users WHERE cccd_number = ?", [
-      cccd_number,
-    ]);
+  findByIdentity: async (identity_number) => {
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE identity_number = ?",
+      [identity_number],
+    );
     return rows[0];
   },
 };

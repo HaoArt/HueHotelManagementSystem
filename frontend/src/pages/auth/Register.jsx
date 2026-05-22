@@ -71,7 +71,7 @@ const Register = () => {
     fullName: "",
     email: "",
     phone: "",
-    cccd_number: "",
+    identity_number: "",
     password: "",
     confirmPassword: "",
   });
@@ -116,8 +116,8 @@ const Register = () => {
       );
     }
 
-    const cccdRegex = /^\d{12}$/;
-    if (!cccdRegex.test(formData.cccd_number)) {
+    const identityRegex = /^\d{12}$/;
+    if (!identityRegex.test(formData.identity_number)) {
       return setError(
         "Số CCCD phải bao gồm chính xác 12 chữ số (không chứa chữ cái).",
       );
@@ -141,7 +141,7 @@ const Register = () => {
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        cccd_number: formData.cccd_number,
+        identity_number: formData.identity_number,
         password: formData.password,
       });
       setSuccess("Mã OTP đã được gửi đến Email của bạn.");
@@ -394,9 +394,9 @@ const Register = () => {
                     <TextField
                       fullWidth
                       size="small"
-                      label="Số CCCD (12 số)"
-                      name="cccd_number"
-                      value={formData.cccd_number}
+                      label="Số CMND/CCCD (12 số)"
+                      name="identity_number"
+                      value={formData.identity_number}
                       onChange={handleChange}
                       inputProps={{ maxLength: 12 }}
                       required
