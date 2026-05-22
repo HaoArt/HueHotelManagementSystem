@@ -17,10 +17,10 @@ const PendingUser = {
       password_hash,
       otp_code,
       otp_expiry,
-      cccd_number,
+      identity_number,
     } = userData;
     const [result] = await db.query(
-      "INSERT INTO pending_users (full_name,email,phone,password_hash,otp_code,otp_expiry, cccd_number) VALUE (?,?,?,?,?,?,?)",
+      "INSERT INTO pending_users (full_name,email,phone,password_hash,otp_code,otp_expiry, identity_number) VALUE (?,?,?,?,?,?,?)",
       [
         full_name || null,
         email,
@@ -28,7 +28,7 @@ const PendingUser = {
         password_hash || null,
         otp_code,
         otp_expiry,
-        cccd_number,
+        identity_number,
       ],
     );
     return result.insertId;

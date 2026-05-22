@@ -97,21 +97,21 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id || req.user.userId;
-    let { full_name, phone, cccd_number } = req.body;
+    let { full_name, phone, identity_number } = req.body;
     let avatar_url = req.body.avatar_url;
     if (req.files) {
       if (req.files.avatar) avatar_url = req.files.avatar[0].path;
     }
     const currentUser = await User.findById(userId);
-    const finalCccdNumber = currentUser.cccd_number
-      ? currentUser.cccd_number
-      : cccd_number;
+    const finalIdentityNumber = currentUser.identity_number
+      ? currentUser.identity_number
+      : identity_number;
     await User.updateProfile(
       userId,
       full_name,
       phone,
       avatar_url,
-      finalCccdNumber,
+      finalIdentityNumber,
     );
     const updatedUser = await User.findById(userId);
     return res.status(200).json({

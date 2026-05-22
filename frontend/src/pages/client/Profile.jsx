@@ -140,7 +140,7 @@ const Profile = () => {
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
-    cccd_number: "",
+    identity_number: "",
     avatar_url: "",
   });
   const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
@@ -203,7 +203,7 @@ const Profile = () => {
       setEditForm({
         full_name: userInfo?.full_name || "",
         phone: userInfo?.phone || "",
-        cccd_number: userInfo?.cccd_number || "",
+        identity_number: userInfo?.identity_number || "",
         avatar_url: userInfo?.avatar_url || "",
       });
       setBookings(bookingsRes.data || bookingsRes || []);
@@ -241,7 +241,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("full_name", editForm.full_name);
       formData.append("phone", editForm.phone || "");
-      formData.append("cccd_number", editForm.cccd_number || "");
+      formData.append("identity_number", editForm.identity_number || "");
 
       if (selectedAvatarFile) formData.append("avatar", selectedAvatarFile);
       else formData.append("avatar_url", profileData?.avatar_url || "");
@@ -672,7 +672,7 @@ const Profile = () => {
                       }}
                     >
                       {profileData?.full_name}
-                      {profileData?.cccd_number && (
+                      {profileData?.identity_number && (
                         <Tooltip title="Đã xác minh danh tính">
                           <VerifiedIcon
                             sx={{
@@ -769,9 +769,9 @@ const Profile = () => {
                         <BadgeIcon fontSize="small" />
                       </Box>
                       <Typography variant="body2" fontWeight="500">
-                        {profileData?.cccd_number
-                          ? `CCCD: ${profileData.cccd_number}`
-                          : "Chưa cập nhật CCCD"}
+                        {profileData?.identity_number
+                          ? `CMND/CCCD: ${profileData.identity_number}`
+                          : "Chưa cập nhật CMND/CCCD"}
                       </Typography>
                     </Box>
                   </Stack>
@@ -1350,20 +1350,20 @@ const Profile = () => {
               <TextField
                 fullWidth
                 label="Căn cước công dân"
-                value={editForm.cccd_number}
-                disabled={!!profileData?.cccd_number}
+                value={editForm.identity_number}
+                disabled={!!profileData?.identity_number}
                 onChange={(e) =>
-                  setEditForm({ ...editForm, cccd_number: e.target.value })
+                  setEditForm({ ...editForm, identity_number: e.target.value })
                 }
                 inputProps={{ maxLength: 12 }}
                 helperText={
-                  profileData?.cccd_number
+                  profileData?.identity_number
                     ? "🔒 Thông tin đã được xác thực."
                     : "Nhập 12 số CCCD để định danh bảo vệ tài khoản."
                 }
                 sx={{
                   ...inputStyle,
-                  bgcolor: profileData?.cccd_number
+                  bgcolor: profileData?.identity_number
                     ? LUXURY.offwhite
                     : "transparent",
                 }}
