@@ -26,7 +26,7 @@ exports.createBooking = async (req, res) => {
     } = req.body;
     const user_id = req.user.id || req.user.userId;
     const user = await User.findById(user_id);
-
+    //Lấy cấu hình đặt cọc
     const configs = await SystemConfig.getAll();
     const depositConfig = configs.find(
       (c) => c.config_key === "deposit_percent",
@@ -119,7 +119,7 @@ exports.createBooking = async (req, res) => {
       totalSurchargePercent = Math.max(...allSurcharges);
     }
 
-    // Chặn "thanh toán tại quầy" trong mùa cao điểm
+    // Chặn thanh toán tại quầy trong mùa cao điểm
     if (isHighSeason && payment_method === "PayAtDesk") {
       await Room.updateStatus(selectedRoom.id, "Available");
       return res.status(403).json({
@@ -149,8 +149,10 @@ exports.createBooking = async (req, res) => {
     }
     // Tổng tiền sau khi cộng Lễ Tết
     let surchargeAmount = (baseTotal * totalSurchargePercent) / 100;
+    //Tổng tiền sau khi cộng phụ thu và dịch vụ
     let finalTotalAmount = baseTotal + surchargeAmount + servicesTotalAmount;
 
+    // Lấy mức giảm giá theo rank
     const rankInfo = await User.getRankBySpending(user.total_spent || 0);
     let rankDiscountPercent = rankInfo ? rankInfo.discount_percent : 0;
     let rankName = rankInfo ? rankInfo.rank_name : "Đồng";
@@ -206,7 +208,7 @@ exports.createBooking = async (req, res) => {
     let deposit_amount = 0;
     let initial_status = "Pending";
     let hold_until = null;
-
+    //Giá trị mặc định phải đặt cọc
     const HIGH_VALUE_THRESHOLD = 4000000;
     if (
       finalTotalAmount >= HIGH_VALUE_THRESHOLD &&
@@ -233,7 +235,6 @@ exports.createBooking = async (req, res) => {
       deposit_amount = 0;
       initial_status = "Confirmed";
       let holdTime = new Date(check_in);
-
       if (leadTimeDays >= 1 && leadTimeDays <= 3) {
         holdTime.setHours(14, 0, 0, 0); // Giữ đến 14:00
       } else if (leadTimeDays > 3 && leadTimeDays <= 14) {
@@ -273,7 +274,6 @@ exports.createBooking = async (req, res) => {
 
     if (validServices.length > 0) {
       for (let s of validServices) {
-        // Sử dụng luôn hàm của FolioModel để thêm dịch vụ
         await Folio.addServiceToBooking(
           bookingId,
           s.service_id,
@@ -295,7 +295,7 @@ exports.createBooking = async (req, res) => {
       month: "2-digit",
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       status: "OK",
       message:
         payment_method === "PayAtDesk"
@@ -309,7 +309,7 @@ exports.createBooking = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi Controller Booking:", error);
-    res.status(500).json({ status: "error", message: "Lỗi server" });
+    return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
 
@@ -325,7 +325,7 @@ exports.createWalkInBooking = async (req, res) => {
       note,
     } = req.body;
 
-    // 1. Kiểm tra phòng qua Model Room
+    // 1. Kiểm tra phòng
     const room = await Room.getById(room_id);
     if (!room) {
       return res
@@ -339,7 +339,7 @@ exports.createWalkInBooking = async (req, res) => {
       });
     }
 
-    // 2. Tìm hoặc tạo tài khoản khách qua Model User
+    // 2. Kiểm tra tài khoản
     let user_id;
     const existingUser = await User.findByPhone(phone);
 
@@ -350,7 +350,7 @@ exports.createWalkInBooking = async (req, res) => {
       user_id = await User.createGuestUser(full_name, phone, dummyEmail);
     }
 
-    // 3. Tính toán giá tiền qua Model RoomType
+    // 3. Tính toán giá tiền
     const roomType = await RoomType.getById(room.room_type_id);
     const diffDays = Math.ceil(
       Math.abs(new Date(check_out) - new Date(check_in)) /
@@ -361,7 +361,6 @@ exports.createWalkInBooking = async (req, res) => {
     const paymentStatus =
       parseFloat(deposit_amount || 0) >= finalTotalAmount ? "Paid" : "Unpaid";
 
-    // 4. Tạo Booking qua Model Booking
     const bookingId = await Booking.createWalkIn({
       user_id: user_id,
       room_type_id: room.room_type_id,
@@ -376,10 +375,9 @@ exports.createWalkInBooking = async (req, res) => {
       note: note || "Khách Walk-in trực tiếp tại quầy lễ tân",
     });
 
-    // 5. Cập nhật trạng thái phòng qua Model Room
     await Room.updateStatus(room.id, "Occupied");
 
-    // 6. Ghi Audit Log qua Model Audit
+    // 6. Ghi audit log
     const adminId = req.user?.id || req.user?.userId || 1;
     const clientIp =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
@@ -393,7 +391,7 @@ exports.createWalkInBooking = async (req, res) => {
       clientIp,
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       status: "OK",
       message: `Check-in thành công! Đã giao phòng ${room.room_number} cho khách ${full_name}.`,
       booking_id: bookingId,
@@ -401,7 +399,7 @@ exports.createWalkInBooking = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi tạo đơn Walk-in:", error);
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Lỗi hệ thống khi xử lý Check-in tại quầy",
     });
@@ -423,10 +421,34 @@ exports.checkIn = async (req, res) => {
         .status(400)
         .json({ message: "Trạng thái đơn không hợp lệ để Check-in" });
     }
+
+    const room = await Room.getById(booking.room_id);
+    if (!room) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy phòng vật lý trên hệ thống!",
+      });
+    }
+
+    if (room.status === "Dirty") {
+      return res.status(400).json({
+        status: "error",
+        message: `Phòng ${room.room_number} đang chờ dọn dẹp (Dirty). Lễ tân vui lòng chờ bộ phận buồng phòng hoàn tất hoặc đổi sang phòng khác!`,
+      });
+    }
+
+    if (room.status !== "Available") {
+      return res.status(400).json({
+        status: "error",
+        message: `Phòng ${room.room_number} hiện không sẵn sàng (Đang ${room.status}).`,
+      });
+    }
+
     await Booking.updateStatus(id, "Checked_in");
     await Room.updateStatus(booking.room_id, "Occupied");
     await User.updateTrustScore(booking.user_id, 20);
-    res.status(200).json({
+
+    return res.status(200).json({
       status: "OK",
       message: `Đã Check-in thành công phòng ${booking.room_number}`,
     });
@@ -434,7 +456,6 @@ exports.checkIn = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
-
 exports.checkOut = async (req, res) => {
   try {
     const id = req.params.id;
@@ -477,7 +498,7 @@ exports.checkOut = async (req, res) => {
         newTotalAmount,
       );
     }
-
+    //Kiểm tra trả phòng muộn
     const todayForLateCheck = new Date();
     const expectedCheckOutDay = new Date(booking.check_out_date);
     expectedCheckOutDay.setHours(checkOutHour, 0, 0, 0);
@@ -510,21 +531,20 @@ exports.checkOut = async (req, res) => {
     await Booking.updatePaymentStatus(id, "Paid");
     await Room.updateStatus(booking.room_id, "Dirty");
 
-    // ===== CỘNG TIỀN VÀ ĐIỂM VÀO TÀI KHOẢN SAU KHI CHECKOUT =====
     const completedBooking = await Booking.getById(id);
     await User.updateSpending(
       completedBooking.user_id,
       completedBooking.total_amount,
     );
-    await User.updateTrustScore(completedBooking.user_id, 20); // Điểm ngoan ngoãn
+    await User.updateTrustScore(completedBooking.user_id, 20);
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "OK",
       message: "Check-out thành công! Tiền và XP đã được tích lũy cho khách.",
       bill_details: finalBill,
     });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Lỗi server" });
+    return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
 
@@ -591,6 +611,60 @@ exports.changeRoom = async (req, res) => {
       new_total_amount: finalTotal,
     });
   } catch (error) {
+    return res.status(500).json({ status: "error", message: "Lỗi server!" });
+  }
+};
+exports.reassignRoomBeforeCheckIn = async (req, res) => {
+  try {
+    const { id } = req.params; // ID của đơn đặt phòng (Booking)
+    const { new_room_id } = req.body; // ID phòng mới Lễ tân muốn đổi sang
+
+    const booking = await Booking.getById(id);
+    if (!booking) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy thông tin đặt phòng!",
+      });
+    }
+
+    // Chỉ cho phép đổi khi đơn hàng chưa Check-in
+    if (booking.status !== "Confirmed" && booking.status !== "Pending") {
+      return res.status(400).json({
+        status: "error",
+        message: "Chỉ được sắp xếp lại phòng khi khách chưa Check-in!",
+      });
+    }
+
+    const newRoom = await Room.getById(new_room_id);
+    if (!newRoom) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Phòng mới không tồn tại!" });
+    }
+
+    // Kiểm tra phòng mới bắt buộc phải đang trống
+    if (newRoom.status !== "Available") {
+      return res.status(400).json({
+        status: "error",
+        message: "Phòng này hiện không trống, vui lòng chọn phòng khác!",
+      });
+    }
+
+    // TÁCH LOGIC MODEL: Kiểm tra xem Lễ tân đang đổi cùng hạng hay nâng hạng (Free Upgrade)
+    if (newRoom.room_type_id !== booking.room_type_id) {
+      //Nâng hạng: Giữ nguyên giá tiền, cập nhật cả phòng vật lý, hạng phòng mới và Ghi chú
+      await Booking.upgradeRoomFree(id, new_room_id);
+    } else {
+      // cùng hạng: Chỉ cần cập nhật mã phòng vật lý
+      await Booking.updateRoomId(id, new_room_id);
+    }
+
+    return res.status(200).json({
+      status: "OK",
+      message: `Đã đổi sang phòng ${newRoom.room_number} thành công! Bây giờ Lễ tân có thể bấm Check-in.`,
+    });
+  } catch (error) {
+    console.error("Lỗi reassign room:", error);
     return res.status(500).json({ status: "error", message: "Lỗi server!" });
   }
 };

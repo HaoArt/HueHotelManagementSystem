@@ -66,7 +66,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-4px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -157,7 +158,7 @@ const DashboardOverview = () => {
     },
     {
       title: "Doanh thu tháng này",
-      value: `${(stats?.revenue || 0).toLocaleString("vi-VN")}đ`,
+      value: `${parseFloat(stats?.revenue || 0).toLocaleString("vi-VN")}đ`,
       icon: <RequestQuoteIcon />,
       iconBg: "rgba(94, 53, 177, 0.1)",
       iconColor: COLORS.primary,
@@ -389,7 +390,10 @@ const DashboardOverview = () => {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            lg: "minmax(0, 2fr) minmax(0, 1fr)",
+          },
           gap: { xs: 1.75, sm: 2.25, md: 2.5 },
           alignItems: "stretch",
         }}

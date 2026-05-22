@@ -1,5 +1,7 @@
 const cron = require("node-cron");
 const db = require("../config/db");
+const User = require("../models/userModel");
+const Audit = require("../models/auditModel");
 cron.schedule("* * * * *", async () => {
   try {
     // Tìm các đơn đặt phòng trạng thái Pending đã tạo quá 15 phút
@@ -36,6 +38,33 @@ cron.schedule("* * * * *", async () => {
         );
         console.log(
           `[CRON] Đã tự động hủy đơn ${booking.id} và giải phóng phòng ${booking.room_id} do quá 15 phút không thanh toán.`,
+        );
+      }
+    }
+    if (noShowBookings.length > 0) {
+      for (const booking of noShowBookings) {
+        // Hủy đơn
+        await db.query(
+          "UPDATE bookings SET status = 'Cancelled' WHERE id = ?",
+          [booking.id],
+        );
+        // Giải phóng phòng
+        await db.query("UPDATE rooms SET status = 'Available' WHERE id = ?", [
+          booking.room_id,
+        ]);
+        // Phạt nặng điểm tín nhiệm vì đã giữ phòng nhưng không đến
+        await User.updateTrustScore(booking.user_id, -20);
+
+        await Audit.logAction(
+          null,
+          "AUTO_CANCEL_NOSHOW",
+          booking.id,
+          { status: "Confirmed" },
+          { status: "Cancelled", penalty: "Trust Score -50" },
+          "SYSTEM_CRON",
+        );
+        console.log(
+          `[CRON] Đã hủy đơn No-Show ${booking.id} và giải phóng phòng ${booking.room_id}.`,
         );
       }
     }

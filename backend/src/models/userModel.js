@@ -101,6 +101,12 @@ const User = {
     );
     return result.insertId;
   },
+  findByCccd: async (cccd_number) => {
+    const [rows] = await db.query("SELECT * FROM users WHERE cccd_number = ?", [
+      cccd_number,
+    ]);
+    return rows[0];
+  },
 };
 
 module.exports = User;

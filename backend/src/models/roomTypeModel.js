@@ -2,14 +2,14 @@ const db = require("../config/db");
 
 const RoomType = {
   getAll: async () => {
-    const [roomTypes] = await db.query(
-      "SELECT * FROM room_types ORDER BY created_at DESC",
-    );
+    const [roomTypes] = await db.query(`
+      SELECT rt.*, 
+      (SELECT COUNT(id) FROM rooms WHERE room_type_id = rt.id AND status = 'Available') as available_count
+      FROM room_types rt ORDER BY created_at DESC`);
     const [allImages] = await db.query("SELECT * FROM room_images");
 
     return roomTypes.map((rt) => {
       const images = allImages
-        // SỬA: Dùng == để tránh lỗi so sánh String vs Number
         .filter((img) => img.room_type_id == rt.id)
         .map((img) => ({
           public_id: img.public_id,
@@ -121,29 +121,27 @@ const RoomType = {
   },
 
   searchAvailable: async (check_in, check_out, roomType, capacity) => {
-    let query = `SELECT rt.* FROM room_types rt WHERE rt.capacity >= ?`;
-    const params = [capacity];
+    let params = [];
+    let countQuery = `(SELECT COUNT(r.id) FROM rooms r WHERE r.room_type_id = rt.id AND r.status = 'Available')`;
 
+    if (check_in && check_out) {
+      countQuery = `(
+        SELECT COUNT(r.id) FROM rooms r
+        WHERE r.room_type_id = rt.id AND r.status = 'Available'
+        AND r.id NOT IN (
+          SELECT room_id FROM bookings
+          WHERE status NOT IN ('Cancelled', 'Checked_out')
+          AND (check_in_date < ? AND check_out_date > ?)
+        )
+      )`;
+      params.push(check_out, check_in);
+    }
+    let query = `SELECT rt.*, ${countQuery} as available_count FROM room_types rt WHERE rt.capacity >= ?`;
+    params.push(capacity);
     if (roomType && roomType !== "all") {
       query += ` AND rt.type_name LIKE ?`;
       params.push(`%${roomType}%`);
     }
-
-    if (check_in && check_out) {
-      query += `
-        AND EXISTS (
-          SELECT 1 FROM rooms r
-          WHERE r.room_type_id = rt.id AND r.status = 'Available'
-          AND r.id NOT IN (
-            SELECT room_id FROM bookings
-            WHERE status NOT IN ('Cancelled', 'Checked_out')
-            AND (check_in_date < ? AND check_out_date > ?)
-          )
-        )
-      `;
-      params.push(check_out, check_in);
-    }
-
     const [roomTypes] = await db.query(query, params);
 
     if (roomTypes.length === 0) return [];

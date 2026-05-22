@@ -78,6 +78,8 @@ const Rooms = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     if (location.state && location.state.initialSearchData) {
       handleSearch(location.state.initialSearchData);
     } else {
@@ -107,6 +109,20 @@ const Rooms = () => {
 
   // HÀM TẠO BADGE CÓ Ý NGHĨA DỰA VÀO TÊN PHÒNG
   const getBadge = (room) => {
+    if (room.available_count === 0) {
+      return {
+        label: "Đã hết phòng",
+        bgcolor: "#fef2f2",
+        color: "#dc2626", // Đỏ
+      };
+    }
+    if (room.available_count > 0 && room.available_count <= 2) {
+      return {
+        label: `Chỉ còn ${room.available_count} phòng`,
+        bgcolor: "#fffbeb",
+        color: "#d97706", // Vàng cam
+      };
+    }
     const roomName = (room.type_name || room.name || "").toLowerCase();
 
     if (roomName.includes("suite") || roomName.includes("vip")) {
@@ -367,9 +383,17 @@ const Rooms = () => {
               >
                 {roomTypes.map((room, index) => {
                   const badge = getBadge(room);
+                  const isSoldOut = room.available_count === 0; // Biến check hết phòng
+
                   return (
                     <Fade in={true} timeout={600 + index * 100} key={room.id}>
-                      <Box>
+                      <Box
+                        sx={{
+                          opacity: isSoldOut ? 0.7 : 1,
+                          pointerEvents: isSoldOut ? "none" : "auto", // Chặn click vào nút Đặt Ngay
+                          filter: isSoldOut ? "grayscale(80%)" : "none", // Làm xám ảnh
+                        }}
+                      >
                         <RoomCard
                           room={room}
                           badge={badge}
