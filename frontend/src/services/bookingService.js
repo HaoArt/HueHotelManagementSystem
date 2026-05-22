@@ -98,7 +98,16 @@ const BookingService = {
       throw error.response?.data?.message || "Lỗi khi đổi phòng";
     }
   },
-
+  reassignRoomBeforeCheckIn: async (bookingId, newRoomId) => {
+    try {
+      const response = await api.put(`/bookings/${bookingId}/reassign-room`, {
+        new_room_id: newRoomId,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || "Lỗi khi sắp xếp lại phòng trống";
+    }
+  },
   downloadInvoice: async (id) => {
     try {
       const response = await api.get(`/bookings/${id}/invoice`, {

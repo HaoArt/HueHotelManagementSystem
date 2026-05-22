@@ -4,6 +4,7 @@ const db = require("./config/db");
 require("dotenv").config();
 require("./cron/holdRoomCron");
 require("./cron/reminderCron");
+require("./cron/cleanupOtpCron");
 
 const authRoutes = require("./routes/authRoutes");
 const roomRoutes = require("./routes/roomRoutes");
@@ -20,7 +21,6 @@ const auditRoutes = require("./routes/auditRoutes");
 const surchargeRoutes = require("./routes/surchargeRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
 const configRoutes = require("./routes/configRoutes");
-
 
 const app = express();
 app.use(cors());
@@ -40,7 +40,6 @@ app.use("/api/audits", auditRoutes);
 app.use("/api/surcharges", surchargeRoutes);
 app.use("/api/destinations", destinationRoutes);
 app.use("/api/configs", configRoutes);
-
 
 app.use((err, req, res, next) => {
   console.error("Lỗi Middleware/Hệ thống:", err.message || err);

@@ -15,13 +15,14 @@ import AdminRoomsPage from "../pages/admin/AdminRoomsPage";
 import AdminBookingsPage from "../pages/admin/AdminBookingsPage";
 import AdminServicesPage from "../pages/admin/AdminServicesPage";
 import AdminRoomSettingsPage from "../pages/admin/AdminRoomSettingPage";
-import AdminCustomersPage from "../pages/admin/AdminCustomersPage";
 import AdminAuditLogs from "../pages/admin/AdminAuditLogs";
 import AdminContacts from "../pages/admin/AdminContacts";
 import AdminCouponsPage from "../pages/admin/AdminCouponsPage";
 import AdminPricingPage from "../pages/admin/AdminPricingPage";
 import DiscoverHue from "../pages/client/DiscoverHue";
 import AdminSystemConfig from "../pages/admin/AdminSystemConfig";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import AdminAccountsPage from "../pages/admin/AdminAccountsPage";
 
 const AppRouter = () => {
   return (
@@ -65,7 +66,7 @@ const AppRouter = () => {
         <Route path="rooms" element={<AdminRoomsPage />} />
         <Route path="room-settings" element={<AdminRoomSettingsPage />} />
         <Route path="bookings" element={<AdminBookingsPage />} />
-        <Route path="customers" element={<AdminCustomersPage />} />
+        <Route path="customers" element={<AdminAccountsPage />} />
         <Route path="services" element={<AdminServicesPage />} />
         <Route path="contacts" element={<AdminContacts />} />
         <Route path="audit" element={<AdminAuditLogs />} />
@@ -77,6 +78,7 @@ const AppRouter = () => {
       {/* 3. Xác thực & Catch-all */}
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

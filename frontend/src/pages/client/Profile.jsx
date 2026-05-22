@@ -51,8 +51,13 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import StarIcon from "@mui/icons-material/Star";
+import QrCodeIcon from "@mui/icons-material/QrCode";
+import CancelIcon from "@mui/icons-material/Cancel";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 import { AuthContext } from "../../context/AuthContext";
+import ConfigService from "../../services/configService";
 import AuthService from "../../services/authService";
 import BookingService from "../../services/bookingService";
 import UserService from "../../services/userService";
@@ -101,6 +106,8 @@ const Profile = () => {
 
   const [profileData, setProfileData] = useState(null);
   const [userRank, setUserRank] = useState(null);
+  const [qrModal, setQrModal] = useState({ open: false, booking: null });
+  const [sysConfigs, setSysConfigs] = useState({});
 
   const [bookings, setBookings] = useState([]);
   const [filterStatus, setFilterStatus] = useState("All"); // THÊM STATE CHO BỘ LỌC
@@ -124,6 +131,10 @@ const Profile = () => {
     roomName: "",
   });
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [cancelModal, setCancelModal] = useState({
+    open: false,
+    bookingId: null,
+  });
 
   const [editModal, setEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -176,11 +187,14 @@ const Profile = () => {
       setLoading(true);
       setGlobalError("");
 
-      const [profileRes, bookingsRes, servicesRes] = await Promise.all([
-        UserService.getProfile(),
-        BookingService.getUserBookings(),
-        ServiceService.getAllServices(),
-      ]);
+      // Thêm ConfigService.getConfigs() vào Promise.all
+      const [profileRes, bookingsRes, servicesRes, configRes] =
+        await Promise.all([
+          UserService.getProfile(),
+          BookingService.getUserBookings(),
+          ServiceService.getAllServices(),
+          ConfigService.getConfigs(), // <--- THÊM VÀO ĐÂY
+        ]);
 
       const { userInfo, rank } = profileRes.data || profileRes;
       setProfileData(userInfo);
@@ -194,6 +208,13 @@ const Profile = () => {
       });
       setBookings(bookingsRes.data || bookingsRes || []);
       setAvailableServices(servicesRes.data || servicesRes || []);
+
+      const configsArray = configRes.data || configRes || [];
+      const configMap = {};
+      configsArray.forEach((c) => {
+        configMap[c.config_key] = c.config_value;
+      });
+      setSysConfigs(configMap);
     } catch (err) {
       setGlobalError("Có lỗi xảy ra ở phần tải dữ liệu hồ sơ và lịch sử.");
     } finally {
@@ -202,6 +223,8 @@ const Profile = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     fetchData();
   }, []);
 
@@ -309,7 +332,26 @@ const Profile = () => {
       setIsSubmitting(false);
     }
   };
-
+  const handleOpenCancelConfirm = (bookingId) => {
+    setCancelModal({ open: true, bookingId });
+  };
+  const confirmCancelBooking = async () => {
+    if (!cancelModal.bookingId) return;
+    try {
+      setIsSubmitting(true);
+      const res = await BookingService.cancelBooking(cancelModal.bookingId);
+      setGlobalSuccess(res.message || "Đã hủy đơn thành công.");
+      setCancelModal({ open: false, bookingId: null });
+      fetchData(); // Tải lại danh sách
+    } catch (err) {
+      setGlobalError(
+        err.response?.data?.message || err.toString() || "Lỗi khi hủy đơn.",
+      );
+      setCancelModal({ open: false, bookingId: null });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const handleSubmitReview = async () => {
     try {
       setIsSubmitting(true);
@@ -854,7 +896,7 @@ const Profile = () => {
                         fontSize: { xs: "2rem", md: "2.5rem" },
                       }}
                     >
-                      Hành Trình Của Bạn
+                      Lịch sử đặt phòng
                     </Typography>
                     <Typography variant="body1" color={LUXURY.warmGray}>
                       Ghi dấu những khoảnh khắc tuyệt vời tại Huế Hotel
@@ -1128,6 +1170,51 @@ const Profile = () => {
                                 >
                                   Xem Hóa Đơn
                                 </Button>
+
+                                {/* NÚT THANH TOÁN CỌC (Chỉ hiện khi Pending) */}
+                                {booking.status === "Pending" && (
+                                  <Button
+                                    variant="contained"
+                                    startIcon={<QrCodeIcon />}
+                                    onClick={() =>
+                                      setQrModal({ open: true, booking })
+                                    }
+                                    sx={{
+                                      bgcolor: LUXURY.navy,
+                                      color: LUXURY.gold,
+                                      fontWeight: "800",
+                                      borderRadius: "10px",
+                                      boxShadow: "none",
+                                      "&:hover": {
+                                        bgcolor: "black",
+                                        boxShadow: "none",
+                                      },
+                                    }}
+                                  >
+                                    Thanh Toán Cọc
+                                  </Button>
+                                )}
+
+                                {/* NÚT HỦY ĐƠN (Hiện khi Pending hoặc Confirmed) */}
+                                {(booking.status === "Pending" ||
+                                  booking.status === "Confirmed") && (
+                                  <Button
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<CancelIcon />}
+                                    onClick={() =>
+                                      handleOpenCancelConfirm(booking.id)
+                                    } // <-- SỬA DÒNG NÀY
+                                    disabled={isSubmitting}
+                                    sx={{
+                                      borderRadius: "10px",
+                                      fontWeight: "700",
+                                      textTransform: "none",
+                                    }}
+                                  >
+                                    Hủy Đơn
+                                  </Button>
+                                )}
                                 {booking.status === "Checked_out" && (
                                   <Button
                                     variant="contained"
@@ -1862,6 +1949,233 @@ const Profile = () => {
               sx={{ fontWeight: "700", color: LUXURY.charcoal, px: 5, py: 1 }}
             >
               ĐÓNG TÓM TẮT
+            </Button>
+          </DialogActions>
+        </Dialog>
+        {/* 5. DIALOG HIỂN THỊ LẠI MÃ QR THANH TOÁN */}
+        <Dialog
+          open={qrModal.open}
+          onClose={() => setQrModal({ open: false, booking: null })}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: "32px",
+              bgcolor: LUXURY.white,
+              overflow: "hidden",
+            },
+          }}
+        >
+          <DialogTitle sx={{ pt: 4, pb: 1, textAlign: "center" }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 900,
+                color: LUXURY.charcoal,
+              }}
+            >
+              Thanh Toán Đặt Cọc
+            </Typography>
+            <Typography variant="body2" color={LUXURY.warmGray} sx={{ mt: 1 }}>
+              Mã đơn:{" "}
+              <b style={{ color: LUXURY.navy }}>#{qrModal.booking?.id}</b>
+            </Typography>
+          </DialogTitle>
+
+          <DialogContent
+            sx={{ px: { xs: 3, md: 5 }, pb: 4, textAlign: "center" }}
+          >
+            <Box
+              sx={{
+                p: 3,
+                bgcolor: LUXURY.offwhite,
+                borderRadius: "20px",
+                border: `2px dashed ${LUXURY.gold}`,
+                mb: 3,
+              }}
+            >
+              <Typography
+                variant="caption"
+                fontWeight="800"
+                color={LUXURY.warmGray}
+                letterSpacing={1}
+              >
+                SỐ TIỀN CẦN THANH TOÁN
+              </Typography>
+              <Typography
+                variant="h3"
+                fontWeight="900"
+                color={LUXURY.navy}
+                sx={{ mt: 1, mb: 3 }}
+              >
+                {parseFloat(
+                  qrModal.booking?.deposit_amount || 0,
+                ).toLocaleString()}
+                đ
+              </Typography>
+
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: "white",
+                  borderRadius: "24px",
+                  display: "inline-block",
+                  boxShadow: "0 20px 50px rgba(0,0,0,0.1)",
+                  border: `1px solid ${LUXURY.softGray}`,
+                }}
+              >
+                {qrModal.booking && (
+                  <img
+                    src={`https://img.vietqr.io/image/${sysConfigs.bank_id || "MB"}-${sysConfigs.bank_account || "0866861876"}-compact2.png?amount=${qrModal.booking.deposit_amount}&addInfo=DatPhong%20${qrModal.booking.id}&accountName=${sysConfigs.bank_account_name ? encodeURIComponent(sysConfigs.bank_account_name) : "HUE%20HOTEL"}`}
+                    alt="QR Payment"
+                    style={{
+                      width: "100%",
+                      maxWidth: "260px",
+                      height: "auto",
+                      display: "block",
+                      borderRadius: "12px",
+                    }}
+                  />
+                )}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    mt: 2,
+                    display: "block",
+                    color: LUXURY.warmGray,
+                    fontWeight: 700,
+                  }}
+                >
+                  Quét bằng ứng dụng Ngân hàng hoặc MoMo
+                </Typography>
+              </Box>
+
+              <Typography
+                variant="body1"
+                sx={{ mt: 3, color: LUXURY.charcoal }}
+              >
+                Nội dung CK:{" "}
+                <b style={{ fontSize: "1.2rem", color: LUXURY.navy }}>
+                  DatPhong {qrModal.booking?.id}
+                </b>
+              </Typography>
+            </Box>
+
+            <Alert
+              severity="warning"
+              icon={<AccessTimeIcon />}
+              sx={{ borderRadius: "16px", textAlign: "left" }}
+            >
+              Hãy hoàn tất chuyển khoản trước{" "}
+              <b>
+                {qrModal.booking?.hold_until
+                  ? new Date(qrModal.booking.hold_until).toLocaleTimeString(
+                      "vi-VN",
+                    )
+                  : "15 phút"}
+              </b>
+              . Quá hạn hệ thống sẽ tự động hủy đơn.
+            </Alert>
+          </DialogContent>
+
+          <DialogActions
+            sx={{
+              p: { xs: 3, md: 5 },
+              pt: 0,
+              justifyContent: "center",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => {
+                setQrModal({ open: false, booking: null });
+                fetchData(); // Load lại trạng thái xem lễ tân duyệt chưa
+              }}
+              sx={{
+                background: `linear-gradient(135deg, ${LUXURY.navy} 0%, #2a4374 100%)`,
+                color: LUXURY.white,
+                fontWeight: "800",
+                py: 2,
+                borderRadius: "16px",
+                fontSize: "1.1rem",
+              }}
+            >
+              Tôi đã chuyển khoản xong
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          open={cancelModal.open}
+          onClose={() => setCancelModal({ open: false, bookingId: null })}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: "24px", bgcolor: LUXURY.white } }}
+        >
+          <DialogTitle
+            sx={{
+              fontWeight: "900",
+              fontFamily: '"Playfair Display", serif',
+              color: "#dc2626", // Màu đỏ cảnh báo
+              pt: 4,
+              textAlign: "center",
+              fontSize: "1.8rem",
+            }}
+          >
+            Xác Nhận Hủy Đơn
+          </DialogTitle>
+          <DialogContent sx={{ px: 4, pt: 1, pb: 2, textAlign: "center" }}>
+            <Typography variant="body1" color={LUXURY.charcoal} sx={{ mb: 3 }}>
+              Bạn có chắc chắn muốn hủy đơn đặt phòng{" "}
+              <b>#{cancelModal.bookingId}</b> này không?
+            </Typography>
+
+            {/* ALERT CỦA MATERIAL UI */}
+            <Alert
+              severity="warning"
+              sx={{
+                borderRadius: "12px",
+                textAlign: "left",
+                bgcolor: "#fffbeb",
+                color: "#92400e",
+                border: "1px solid #fef3c7",
+              }}
+            >
+              <b>Lưu ý nghiêm ngặt:</b> Việc hủy phòng có thể áp dụng chính sách
+              trừ điểm tín nhiệm tài khoản hoặc phạt trừ tiền cọc tùy thuộc vào
+              thời điểm bạn hủy so với ngày Check-in.
+            </Alert>
+          </DialogContent>
+          <DialogActions sx={{ p: 4, pt: 2, justifyContent: "center", gap: 2 }}>
+            <Button
+              onClick={() => setCancelModal({ open: false, bookingId: null })}
+              sx={{ fontWeight: "700", color: LUXURY.warmGray }}
+              disabled={isSubmitting}
+            >
+              Suy nghĩ lại
+            </Button>
+            <Button
+              onClick={confirmCancelBooking}
+              disabled={isSubmitting}
+              variant="contained"
+              color="error"
+              sx={{
+                fontWeight: "800",
+                px: 4,
+                py: 1.2,
+                borderRadius: "10px",
+                boxShadow: "none",
+                "&:hover": { boxShadow: "0 8px 16px rgba(220, 38, 38, 0.3)" },
+              }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "XÁC NHẬN HỦY"
+              )}
             </Button>
           </DialogActions>
         </Dialog>

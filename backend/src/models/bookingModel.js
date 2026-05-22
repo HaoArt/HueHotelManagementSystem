@@ -186,6 +186,21 @@ const Booking = {
     );
     return result.insertId;
   },
+  updateRoomId: async (booking_id, new_room_id) => {
+    return await db.query("UPDATE bookings SET room_id = ? WHERE id = ?", [
+      new_room_id,
+      booking_id,
+    ]);
+  },
+  upgradeRoomFree: async (bookingId, newRoomId) => {
+    return await db.query(
+      `UPDATE bookings 
+       SET room_id = ?, 
+           note = CONCAT(IFNULL(note, ''), ' [Hệ thống: Khách được Free Upgrade do sự cố]') 
+       WHERE id = ?`,
+      [newRoomId, bookingId],
+    );
+  },
 };
 
 module.exports = Booking;

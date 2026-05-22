@@ -31,6 +31,18 @@ router.put(
   authorizeRoles("Admin", "Receptionist"),
   bookingController.changeRoom,
 );
+router.put(
+  "/change-room/:id",
+  verifyToken,
+  authorizeRoles("Admin", "Receptionist"),
+  bookingController.changeRoom,
+);
+router.put(
+  "/:id/reassign-room",
+  verifyToken,
+  authorizeRoles("Admin", "Receptionist"),
+  bookingController.reassignRoomBeforeCheckIn,
+);
 router.get("/my-bookings", verifyToken, bookingController.getUserBookings);
 router.post("/:id/review", verifyToken, bookingController.addReview);
 router.get(
