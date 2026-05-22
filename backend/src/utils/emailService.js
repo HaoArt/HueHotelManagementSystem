@@ -15,8 +15,9 @@ const transporter = nodemailer.createTransport({
 const FROM_EMAIL = `"HuếHotel Support" <${process.env.EMAIL_BREVO_NAME}>`;
 
 
-verifySMTP();
+
 exports.sendEmailOtp = async (email, otp) => {
+
   const mailOptions = {
     from: FROM_EMAIL,
     to: email,
@@ -29,6 +30,7 @@ exports.sendEmailOtp = async (email, otp) => {
   };
 
   return await transporter.sendMail(mailOptions);
+
 };
 
 exports.sendReminderEmail = async (userEmail, userName, bookingDetails) => {
@@ -205,7 +207,9 @@ exports.sendCancellationEmail = async (
         </p>
       </div>
     `,
+
   };
 
   return await transporter.sendMail(mailOptions);
+
 };
