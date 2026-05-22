@@ -19,8 +19,16 @@ const transporter = nodemailer.createTransport({
   greetingTimeout: 30000,
   socketTimeout: 30000,
 });
-await transporter.verify();
-console.log("SMTP OK");
+async function verifySMTP() {
+  try {
+    await transporter.verify();
+    console.log("SMTP READY");
+  } catch (error) {
+    console.log("SMTP ERROR:", error);
+  }
+}
+
+verifySMTP();
 exports.sendEmailOtp = async (email, otp) => {
   const mailOptions = {
     from: `"HuếHotel Support" <${process.env.EMAIL_USER}>`,
