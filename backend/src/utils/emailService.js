@@ -8,16 +8,25 @@ const FROM_EMAIL = "HuếHotel <onboarding@resend.dev>";
 
 
 exports.sendEmailOtp = async (email, otp) => {
-  return await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Mã xác thực OTP cho tài khoản HuếHotel",
-    html: `
-      <h3>Chào mừng bạn đến với HuếHotel!</h3>
-      <p>Mã OTP của bạn là: <b>${otp}</b></p>
-      <p>Mã này sẽ hết hạn sau 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
-    `,
-  });
+  try {
+    const response = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: "Mã xác thực OTP cho tài khoản HuếHotel",
+      html: `
+        <h3>Chào mừng bạn đến với HuếHotel!</h3>
+        <p>Mã OTP của bạn là: <b>${otp}</b></p>
+      `,
+    });
+
+    console.log("RESEND SUCCESS:", response);
+
+    return response;
+  } catch (error) {
+    console.log("RESEND ERROR:", error);
+
+    throw error;
+  }
 };
 
 exports.sendReminderEmail = async (userEmail, userName, bookingDetails) => {
