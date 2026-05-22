@@ -1,9 +1,9 @@
 const axios = require("axios");
 require("dotenv").config();
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_API_KEY = process.env.BREVO_API_KEY.trim();
 
-const FROM_EMAIL = process.env.EMAIL_BREVO_NAME;
+const FROM_EMAIL = process.env.EMAIL_BREVO_NAME.trim();
 
 async function sendEmail(to, subject, htmlContent, emailType) {
   try {
