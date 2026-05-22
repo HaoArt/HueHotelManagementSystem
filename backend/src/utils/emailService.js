@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  host: "74.125.24.108",
   port: 465,
   secure: true,
 
@@ -13,11 +13,10 @@ const transporter = nodemailer.createTransport({
 
   tls: {
     rejectUnauthorized: false,
+    servername: "smtp.gmail.com",
   },
 
   connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000,
 });
 async function verifySMTP() {
   try {
