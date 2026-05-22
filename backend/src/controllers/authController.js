@@ -6,7 +6,7 @@ const emailService = require("../utils/emailService");
 
 exports.preRegister = async (req, res) => {
   try {
-    const { full_name, email, phone, password, cccd_number } = req.body;
+    const { full_name, email, phone, password, identity_number } = req.body;
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res
@@ -19,12 +19,13 @@ exports.preRegister = async (req, res) => {
         .status(400)
         .json({ status: "Error", message: "Số điện thoại đã tồn tại" });
     }
-    const existingCccd = await User.findByCccd(cccd_number);
-    if (existingCccd) {
+    const existingIdentity = await User.findByIdentity(identity_number);
+    if (existingIdentity) {
       return res
         .status(400)
         .json({ status: "Error", message: "Căn cước công dân đã tồn tại" });
     }
+    await PendingUser.delete(email);
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -36,7 +37,7 @@ exports.preRegister = async (req, res) => {
       password_hash,
       otp_code,
       otp_expiry,
-      cccd_number,
+      identity_number,
     });
 
     await emailService.sendEmailOtp(email, otp_code);
@@ -73,7 +74,7 @@ exports.verifyAndCreate = async (req, res) => {
       email: pendingUser.email,
       phone: pendingUser.phone,
       password_hash: pendingUser.password_hash,
-      cccd_number: pendingUser.cccd_number,
+      identity_number: pendingUser.identity_number,
     });
     await PendingUser.delete(email);
     return res
