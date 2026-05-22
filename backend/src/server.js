@@ -1,5 +1,4 @@
-const dns = require("dns");
-dns.setDefaultResultOrder("ipv4first");
+
 const express = require("express");
 const cors = require("cors");
 const db = require("./config/db");
@@ -23,8 +22,6 @@ const auditRoutes = require("./routes/auditRoutes");
 const surchargeRoutes = require("./routes/surchargeRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
 const configRoutes = require("./routes/configRoutes");
-
-
 
 const app = express();
 app.use(cors());
