@@ -14,8 +14,9 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 10000,
   tls: {
     rejectUnauthorized: false,
+    family: 4,
   },
-  family: 4,
+  
 });
 
 exports.sendEmailOtp = async (email, otp) => {
