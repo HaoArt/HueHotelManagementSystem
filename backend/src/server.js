@@ -1,7 +1,8 @@
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 const express = require("express");
 const cors = require("cors");
 const db = require("./config/db");
-const dns = require("dns");
 require("dotenv").config();
 require("./cron/holdRoomCron");
 require("./cron/reminderCron");
@@ -23,7 +24,7 @@ const surchargeRoutes = require("./routes/surchargeRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
 const configRoutes = require("./routes/configRoutes");
 
-dns.setDefaultResultOrder("ipv4first");
+
 
 const app = express();
 app.use(cors());
