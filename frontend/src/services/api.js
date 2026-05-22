@@ -1,7 +1,7 @@
 import axios from "axios";
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
-  timeout: 0, // Đặt bằng 0 (không giới hạn thời gian) để tránh trình duyệt ngắt kết nối
+  timeout: 0, 
 });
 api.interceptors.request.use(
   (config) => {
