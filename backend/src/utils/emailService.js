@@ -14,22 +14,33 @@ const transporter = nodemailer.createTransport({
 
 const FROM_EMAIL = `"HuếHotel Support" <${process.env.EMAIL_BREVO_NAME}>`;
 
-
-
 exports.sendEmailOtp = async (email, otp) => {
+  try {
+    console.log("SENDING OTP EMAIL TO:", email);
 
-  const mailOptions = {
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Mã xác thực OTP cho tài khoản HuếHotel",
-    html: `
-      <h3>Chào mừng bạn đến với HuếHotel!</h3>
-      <p>Mã OTP của bạn là: <b>${otp}</b></p>
-      <p>Mã này sẽ hết hạn sau 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
-    `,
-  };
+    const mailOptions = {
+      from: FROM_EMAIL,
+      to: email,
+      subject: "Mã xác thực OTP cho tài khoản HuếHotel",
+      html: `
+        <h3>Chào mừng bạn đến với HuếHotel!</h3>
+        <p>Mã OTP của bạn là: <b>${otp}</b></p>
+        <p>Mã này sẽ hết hạn sau 5 phút.</p>
+      `,
+    };
 
-  return await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("EMAIL SENT SUCCESSFULLY");
+    console.log("MESSAGE ID:", info.messageId);
+    console.log("RESPONSE:", info.response);
+
+    return info;
+  } catch (error) {
+    console.log("SEND OTP EMAIL ERROR:", error);
+
+    throw error;
+  }
 
 };
 
