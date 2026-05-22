@@ -13,6 +13,18 @@ exports.preRegister = async (req, res) => {
         .status(400)
         .json({ status: "Error", message: "Email đã tồn tại" });
     }
+    const existingPhone = await User.findByPhone(phone);
+    if (existingPhone) {
+      return res
+        .status(400)
+        .json({ status: "Error", message: "Số điện thoại đã tồn tại" });
+    }
+    const existingCccd = await User.findByCccd(cccd_number);
+    if (existingCccd) {
+      return res
+        .status(400)
+        .json({ status: "Error", message: "Căn cước công dân đã tồn tại" });
+    }
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -119,10 +131,11 @@ exports.forgotPassword = async (req, res) => {
         .status(400)
         .json({ status: "error", message: "Email không tồn tại" });
     }
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await PendingUser.delete(email);
+    const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
     const otp_expiry = new Date(Date.now() + 5 * 60000);
-    await PendingUser.create({ email, otp, otp_expiry });
-    await emailService.sendEmailOtp(email, otp);
+    await PendingUser.create({ email, otp_code, otp_expiry });
+    await emailService.sendEmailOtp(email, otp_code);
     return res
       .status(200)
       .json({ status: "OK", message: "Mã OTP đã được gửi đến email của bạn" });
@@ -132,14 +145,14 @@ exports.forgotPassword = async (req, res) => {
 };
 exports.verifyForgotPassword = async (req, res) => {
   try {
-    const { email, otp, new_password } = req.body;
+    const { email, otp_code, new_password } = req.body;
     const pendingUser = await PendingUser.findByEmail(email);
     if (!pendingUser) {
       return res
         .status(400)
         .json({ status: "error", message: "Yêu cầu không hợp lệ" });
     }
-    if (pendingUser.otp !== otp) {
+    if (pendingUser.otp_code !== otp_code) {
       return res
         .status(400)
         .json({ status: "error", message: "Mã OTP không hợp lệ" });

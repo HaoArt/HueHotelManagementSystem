@@ -18,6 +18,7 @@ const AuthService = {
       throw error.response?.data?.message || "Lỗi gửi yêu cầu đăng ký";
     }
   },
+
   verifyAndCreate: async (email, otp_code) => {
     try {
       const response = await api.post("/auth/verify-register", {
@@ -29,6 +30,31 @@ const AuthService = {
       throw error.response?.data?.message || "Mã OTP không hợp lệ";
     }
   },
+
+
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post("/auth/forgot-password", { email });
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data?.message || "Lỗi gửi yêu cầu khôi phục mật khẩu"
+      );
+    }
+  },
+
+  verifyForgotPassword: async (data) => {
+    try {
+      // data bao gồm: email, otp_code, new_password
+      const response = await api.post("/auth/verify-forgot-password", data);
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn"
+      );
+    }
+  },
+
   changePassword: async (data) => {
     try {
       const response = await api.post("/auth/change-password", data);

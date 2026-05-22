@@ -104,6 +104,10 @@ const gallery = [
     img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=600&fit=crop",
     title: "Hồ Bơi Riêng",
   },
+  {
+    img: "https://images.unsplash.com/photo-1559414059-34fe0a59e57a?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "View thành phố",
+  },
 ];
 
 const Home = () => {
@@ -121,6 +125,7 @@ const Home = () => {
   });
   const [showFacilities, setShowFacilities] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [pageMounted, setPageMounted] = useState(false);
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
@@ -130,6 +135,12 @@ const Home = () => {
   const handleSearch = (searchData) => {
     navigate("/rooms", { state: { initialSearchData: searchData } });
   };
+
+  useEffect(() => {
+    // Delay animation khung hình chính một nhịp để Main Thread kịp vẽ DOM
+    const mountTimer = setTimeout(() => setPageMounted(true), 100);
+    return () => clearTimeout(mountTimer);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -149,12 +160,6 @@ const Home = () => {
         if (checkIn) setCheckInTime(checkIn);
         const checkOut = await ConfigService.getConfigByKey("check_out_time");
         if (checkOut) setCheckOutTime(checkOut);
-
-        // Trigger animations
-        setTimeout(() => {
-          setShowFacilities(true);
-          setShowReviews(true);
-        }, 500);
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
         setSnackbar({
@@ -164,6 +169,12 @@ const Home = () => {
         });
       } finally {
         setLoading(false);
+        setTimeout(() => {
+          setShowFacilities(true);
+        }, 800); // Trì hoãn 800ms
+        setTimeout(() => {
+          setShowReviews(true);
+        }, 1200);
       }
     };
 
@@ -195,7 +206,7 @@ const Home = () => {
           maxWidth="lg"
           sx={{ position: "relative", zIndex: 2, mt: -5 }}
         >
-          <Fade in={true} timeout={1000}>
+          <Fade in={pageMounted} timeout={1000}>
             <Box sx={{ textAlign: "center", color: "white" }}>
               <Typography
                 variant="h1"
@@ -229,9 +240,6 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* =========================================================================
-          2. FLOATING BOOKING ENGINE (Nằm đè lên Hero)
-         ========================================================================= */}
       <Box
         sx={{
           position: "relative",
@@ -241,21 +249,51 @@ const Home = () => {
           px: { xs: 2, md: 0 },
         }}
       >
-        <Slide direction="up" in={true} timeout={800}>
+        <Slide direction="up" in={pageMounted} timeout={800}>
           <Container maxWidth="lg">
             <Paper
               elevation={0}
               sx={{
                 bgcolor: "rgba(255,255,255,0.95)",
                 backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
                 border: "1px solid rgba(26,26,26,0.08)",
                 borderRadius: "24px",
                 p: { xs: 2, md: 3 },
                 boxShadow: "0 20px 60px rgba(26,26,26,0.15)",
                 width: "100%",
+                willChange: "transform, opacity", // Ép trình duyệt dùng GPU để mượt hiệu ứng Blur
+                transform: "translateZ(0)",
               }}
             >
+              {/* KHÔI PHỤC LẠI THANH TÌM KIẾM BỊ XÓA NHẦM */}
               <SearchBar onSearch={handleSearch} />
+
+              {/* TẬN DỤNG STATE ĐỂ HIỂN THỊ GIỜ NHẬN / TRẢ PHÒNG */}
+              <Box sx={{ textAlign: "center", mt: 2.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: LUXURY.warmGray, fontWeight: 600 }}
+                >
+                  <AccessTimeIcon
+                    sx={{
+                      fontSize: 18,
+                      verticalAlign: "middle",
+                      mr: 0.5,
+                      color: LUXURY.gold,
+                      mt: "-2px",
+                    }}
+                  />
+                  Giờ nhận phòng:{" "}
+                  <span style={{ color: LUXURY.navy, fontWeight: 800 }}>
+                    {checkInTime}
+                  </span>
+                  &nbsp;&nbsp;|&nbsp;&nbsp; Giờ trả phòng:{" "}
+                  <span style={{ color: LUXURY.navy, fontWeight: 800 }}>
+                    {checkOutTime}
+                  </span>
+                </Typography>
+              </Box>
             </Paper>
           </Container>
         </Slide>
@@ -266,7 +304,7 @@ const Home = () => {
          ========================================================================= */}
       <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
         <Container maxWidth="lg">
-          <Fade in={true} timeout={800}>
+          <Fade in={pageMounted} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 8, md: 10 } }}>
               <Typography
                 variant="h2"
@@ -319,7 +357,7 @@ const Home = () => {
             >
               {coupons.slice(0, 3).map((item, index) => (
                 <Fade
-                  in={true}
+                  in={!loading}
                   timeout={800 + index * 100}
                   key={item.id || index}
                 >
@@ -494,7 +532,7 @@ const Home = () => {
         }}
       >
         <Container maxWidth="lg">
-          <Fade in={true} timeout={800}>
+          <Fade in={pageMounted} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 8, md: 10 } }}>
               <Typography
                 variant="h2"
@@ -504,7 +542,7 @@ const Home = () => {
                   color: LUXURY.charcoal,
                 }}
               >
-                Phòng & Suite Nổi Bật
+                Phòng Nổi Bật
               </Typography>
               <Box
                 sx={{
@@ -547,7 +585,7 @@ const Home = () => {
             >
               {topRooms && topRooms.length > 0
                 ? topRooms.slice(0, 3).map((room, idx) => (
-                    <Fade in={true} timeout={800 + idx * 100} key={room.id}>
+                    <Fade in={!loading} timeout={800 + idx * 100} key={room.id}>
                       <Box>
                         <RoomCard room={room} />
                       </Box>
@@ -669,6 +707,7 @@ const Home = () => {
                     <Box
                       className="facility-image"
                       component="img"
+                      loading="lazy"
                       src={item.img}
                       sx={{
                         width: { xs: "100%", md: "45%" },
@@ -793,7 +832,7 @@ const Home = () => {
             }}
           >
             {/* Large image - spans 8 columns */}
-            <Fade in={true} timeout={800}>
+            <Fade in={pageMounted} timeout={800}>
               <Box
                 sx={{
                   gridColumn: { xs: "1 / -1", md: "1 / span 8" },
@@ -817,6 +856,7 @@ const Home = () => {
               >
                 <Box
                   component="img"
+                  loading="lazy"
                   src={
                     gallery[0]?.img ||
                     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=600&fit=crop"
@@ -843,7 +883,11 @@ const Home = () => {
               }}
             >
               {gallery.slice(1, 3).map((item, idx) => (
-                <Fade in={true} timeout={800 + (idx + 1) * 100} key={idx}>
+                <Fade
+                  in={pageMounted}
+                  timeout={800 + (idx + 1) * 100}
+                  key={idx}
+                >
                   <Box
                     sx={{
                       height: { xs: 200, md: 190 },
@@ -866,6 +910,7 @@ const Home = () => {
                   >
                     <Box
                       component="img"
+                      loading="lazy"
                       src={item.img}
                       alt={item.title}
                       sx={{
@@ -883,7 +928,11 @@ const Home = () => {
 
             {/* Bottom row - 2 equal images */}
             {gallery.slice(3).map((item, idx) => (
-              <Fade in={true} timeout={800 + (idx + 3) * 100} key={idx + 3}>
+              <Fade
+                in={pageMounted}
+                timeout={800 + (idx + 3) * 100}
+                key={idx + 3}
+              >
                 <Box
                   sx={{
                     gridColumn: { xs: "1 / -1", md: "span 6" },
@@ -907,6 +956,7 @@ const Home = () => {
                 >
                   <Box
                     component="img"
+                    loading="lazy"
                     src={item.img}
                     alt={item.title}
                     sx={{
@@ -1042,7 +1092,12 @@ const Home = () => {
                       <Divider sx={{ mb: 3 }} />
 
                       {/* Author */}
-                      <Stack direction="row" spacing={2} alignItems="center">
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        sx={{ display: "flex", alignItems: "center" }}
+                      >
                         <Avatar
                           sx={{
                             width: 50,
@@ -1052,6 +1107,7 @@ const Home = () => {
                             color: LUXURY.charcoal,
                           }}
                         >
+                          {console.log(review)}
                           {(review.author_name ||
                             review.customer_name ||
                             "K")[0].toUpperCase()}
@@ -1064,20 +1120,9 @@ const Home = () => {
                               fontWeight: 700,
                             }}
                           >
-                            {review.author_name ||
+                            {review.full_name ||
                               review.customer_name ||
                               "Khách hàng"}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: LUXURY.warmGray,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {review.room_name ||
-                              review.room_type ||
-                              "Trải nghiệm tại Huế Hotel"}
                           </Typography>
                         </Box>
                       </Stack>
@@ -1120,7 +1165,7 @@ const Home = () => {
         }}
       >
         <Container maxWidth="md" sx={{ position: "relative", zIndex: 2 }}>
-          <Fade in={true} timeout={800}>
+          <Fade in={pageMounted} timeout={800}>
             <Box>
               <Typography
                 variant="h2"

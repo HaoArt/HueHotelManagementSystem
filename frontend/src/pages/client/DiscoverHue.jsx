@@ -69,6 +69,8 @@ const DiscoverHue = () => {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+
     const initData = async () => {
       try {
         const destRes = await DestinationService.getAll();
@@ -262,10 +264,11 @@ const DiscoverHue = () => {
                       },
                     }}
                   >
-                    {/* HÌNH ẢNH */}
+                    {/* HÌNH ẢNH (ĐÃ FIX LỖI ẢNH DỌC LÀM VỠ LAYOUT) */}
                     <Box
                       sx={{
                         width: { xs: "100%", md: "50%" },
+                        minHeight: { xs: 300, md: 380 }, // Ép chiều cao tối thiểu cho Card luôn đều và đẹp
                         flexShrink: 0,
                         overflow: "hidden",
                         position: "relative",
@@ -274,9 +277,12 @@ const DiscoverHue = () => {
                       <CardMedia
                         component="img"
                         sx={{
-                          height: { xs: 300, md: "100%" },
-                          minHeight: { md: 450 },
-                          objectFit: "cover",
+                          position: "absolute", // Tách ảnh khỏi luồng flex để không bị phình to
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover", // Tự động cắt cúp ảnh cho vừa khung
                           transition:
                             "transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1)",
                         }}

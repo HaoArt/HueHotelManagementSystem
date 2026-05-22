@@ -1,6 +1,5 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Row, Col } from "react-bootstrap";
 import {
   TextField,
   Button,
@@ -10,8 +9,10 @@ import {
   Box,
   Alert,
   Paper,
+  Fade,
 } from "@mui/material";
-// THÊM ICON ArrowBack ở đây:
+
+// Icons
 import {
   Visibility,
   VisibilityOff,
@@ -19,9 +20,41 @@ import {
   Lock,
   ArrowBack,
 } from "@mui/icons-material";
+
 import AuthService from "../../services/authService";
 import { jwtDecode } from "jwt-decode";
 import { AuthContext } from "../../context/AuthContext";
+
+// LUXURY DESIGN TOKENS (Đồng bộ toàn hệ thống)
+const LUXURY = {
+  white: "#FAFAF9",
+  offwhite: "#F8F8F6",
+  charcoal: "#1A1A1A",
+  navy: "#1B2D4F",
+  gold: "#D4AF37",
+  goldLight: "#E8D4B8",
+  warmGray: "#9B8B7E",
+  softGray: "#D4D0C8",
+};
+
+// Style cho ô nhập liệu chuẩn 5 sao
+const inputStyle = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "12px",
+    bgcolor: LUXURY.offwhite,
+    transition: "all 0.3s ease",
+    "& fieldset": { borderColor: "transparent" },
+    "&:hover fieldset": { borderColor: `${LUXURY.gold}80` },
+    "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
+  },
+  "& .MuiInputLabel-root": {
+    color: LUXURY.warmGray,
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: LUXURY.gold,
+    fontWeight: "bold",
+  },
+};
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -32,6 +65,10 @@ const Login = () => {
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const from = location.state?.from?.pathname || "/";
 
@@ -62,7 +99,7 @@ const Login = () => {
       ) {
         navigate("/dashboard", { replace: true });
       } else {
-        // FIX LỖI TẠI ĐÂY: Nếu Khách hàng bị điều hướng nhầm vào dashboard, ép về Trang chủ
+        // Nếu Khách hàng bị điều hướng nhầm vào dashboard, ép về Trang chủ
         if (from.startsWith("/dashboard")) {
           navigate("/", { replace: true });
         } else {
@@ -80,85 +117,73 @@ const Login = () => {
   };
 
   return (
-    <div className="vh-100 d-flex bg-light">
-      <Row className="w-100 m-0">
-        <Col lg={6} className="d-none d-lg-block p-0">
-          <Box
+    // Container bao bọc toàn bộ màn hình, sử dụng FLEXBOX
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        width: "100%",
+        bgcolor: LUXURY.white,
+      }}
+    >
+      {/* =========================================================
+          CỘT TRÁI: FORM ĐĂNG NHẬP (Flex 50%)
+          ========================================================= */}
+      <Box
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 50%" },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: { xs: 3, md: 6 },
+        }}
+      >
+        <Fade in={true} timeout={800}>
+          <Paper
+            elevation={0}
             sx={{
-              backgroundImage:
-                'url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1350")',
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              height: "100%",
+              p: { xs: 4, md: 6 },
+              borderRadius: "24px",
+              width: "100%",
+              maxWidth: "480px",
+              border: `1px solid ${LUXURY.softGray}`,
+              boxShadow: "0 24px 48px rgba(26,26,26,0.06)",
+              bgcolor: LUXURY.white,
             }}
           >
-            <Box
-              sx={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                bgcolor: "rgba(26, 35, 126, 0.6)",
-              }}
-            >
-              <Typography
-                variant="h2"
-                color="white"
-                fontWeight="bold"
-                sx={{ color: "#fff" }}
-              >
-                HUẾHOTEL
-              </Typography>
-              <Typography
-                variant="h6"
-                color="white"
-                sx={{ mt: 2, color: "#fff" }}
-              >
-                Trải nghiệm nghỉ dưỡng mang đậm dấu ấn Cố Đô
-              </Typography>
-            </Box>
-          </Box>
-        </Col>
-
-        <Col
-          lg={6}
-          className="d-flex align-items-center justify-content-center p-4"
-        >
-          <Paper
-            elevation={3}
-            sx={{ p: 5, borderRadius: 4, width: "100%", maxWidth: "450px" }}
-          >
             {/* NÚT QUAY LẠI TRANG CHỦ */}
-            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 4 }}>
               <Button
                 component={Link}
                 to="/"
                 startIcon={<ArrowBack />}
                 sx={{
-                  color: "text.secondary",
+                  color: LUXURY.warmGray,
                   textTransform: "none",
-                  fontWeight: "medium",
+                  fontWeight: 600,
+                  "&:hover": { color: LUXURY.gold, bgcolor: "transparent" },
                 }}
               >
-                Về trang chủ
+                Trang chủ
               </Button>
             </Box>
 
             <Typography
-              variant="h4"
-              fontWeight="bold"
+              variant="h3"
               align="center"
-              color="#1a237e"
-              gutterBottom
+              sx={{
+                color: LUXURY.navy,
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 900,
+                mb: 1,
+              }}
             >
               Đăng Nhập
             </Typography>
             <Typography
-              variant="body2"
-              color="text.secondary"
+              variant="body1"
               align="center"
-              sx={{ mb: 4 }}
+              sx={{ color: LUXURY.warmGray, mb: 4 }}
             >
               Chào mừng bạn quay trở lại với hệ thống
             </Typography>
@@ -167,7 +192,7 @@ const Login = () => {
               <Alert
                 severity="error"
                 onClose={() => setError("")}
-                sx={{ mb: 3 }}
+                sx={{ mb: 4, borderRadius: "12px" }}
               >
                 {error}
               </Alert>
@@ -179,33 +204,34 @@ const Login = () => {
                 label="Địa chỉ Email"
                 name="email"
                 type="email"
-                variant="outlined"
                 margin="normal"
                 value={formData.email}
                 onChange={handleChange}
                 required
+                sx={inputStyle}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Email color="action" />
+                      <Email sx={{ color: LUXURY.gold }} />
                     </InputAdornment>
                   ),
                 }}
               />
+
               <TextField
                 fullWidth
                 label="Mật khẩu"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                variant="outlined"
                 margin="normal"
                 value={formData.password}
                 onChange={handleChange}
                 required
+                sx={{ ...inputStyle, mt: 3 }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Lock color="action" />
+                      <Lock sx={{ color: LUXURY.gold }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -213,6 +239,7 @@ const Login = () => {
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
+                        sx={{ color: LUXURY.warmGray }}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -221,13 +248,16 @@ const Login = () => {
                 }}
               />
 
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+              <Box
+                sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}
+              >
                 <Link
                   to="/forgot-password"
                   style={{
-                    fontSize: "14px",
-                    color: "#1a237e",
+                    fontSize: "0.9rem",
+                    color: LUXURY.navy,
                     textDecoration: "none",
+                    fontWeight: 600,
                   }}
                 >
                   Quên mật khẩu?
@@ -238,27 +268,37 @@ const Login = () => {
                 type="submit"
                 fullWidth
                 variant="contained"
-                color="warning"
-                size="large"
                 disabled={loading}
                 sx={{
-                  mt: 3,
-                  mb: 2,
-                  py: 1.5,
-                  fontWeight: "bold",
-                  borderRadius: 2,
+                  mt: 5,
+                  mb: 3,
+                  py: 1.8,
+                  fontWeight: "800",
+                  borderRadius: "12px",
+                  fontSize: "1.05rem",
+                  background: `linear-gradient(135deg, ${LUXURY.gold} 0%, #B8962A 100%)`,
+                  color: LUXURY.white,
+                  boxShadow: `0 8px 24px ${LUXURY.gold}40`,
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: `0 12px 32px ${LUXURY.gold}60`,
+                  },
                 }}
               >
-                {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
+                {loading ? "ĐANG XỬ LÝ..." : "XÁC NHẬN ĐĂNG NHẬP"}
               </Button>
 
-              <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+              <Typography
+                variant="body1"
+                align="center"
+                sx={{ color: LUXURY.charcoal }}
+              >
                 Chưa có tài khoản?{" "}
                 <Link
                   to="/register"
                   style={{
-                    fontWeight: "bold",
-                    color: "#ff9800",
+                    fontWeight: "800",
+                    color: LUXURY.gold,
                     textDecoration: "none",
                   }}
                 >
@@ -267,9 +307,71 @@ const Login = () => {
               </Typography>
             </form>
           </Paper>
-        </Col>
-      </Row>
-    </div>
+        </Fade>
+      </Box>
+
+      {/* =========================================================
+          CỘT PHẢI: HÌNH ẢNH BANNER (Flex 50%, ẩn trên Mobile)
+          ========================================================= */}
+      <Box
+        sx={{
+          flex: { xs: "0", md: "1 1 50%" },
+          display: { xs: "none", md: "block" },
+          position: "relative",
+          backgroundImage:
+            'url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1920")',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Lớp phủ Gradient chuẩn Luxury */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: `linear-gradient(135deg, rgba(27,45,79,0.9) 0%, rgba(26,26,26,0.6) 100%)`,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
+            px: 6,
+          }}
+        >
+          <Fade in={true} timeout={1000}>
+            <Box>
+              <Typography
+                variant="h1"
+                sx={{
+                  color: LUXURY.white,
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 900,
+                  letterSpacing: "4px",
+                  mb: 2,
+                  textShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                }}
+              >
+                HUẾ HOTEL
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: LUXURY.goldLight,
+                  fontWeight: 400,
+                  letterSpacing: "2px",
+                  maxWidth: "500px",
+                  mx: "auto",
+                  lineHeight: 1.8,
+                }}
+              >
+                Nơi di sản hội tụ cùng đẳng cấp nghỉ dưỡng. Trải nghiệm không
+                gian Đông Dương sang trọng.
+              </Typography>
+            </Box>
+          </Fade>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
