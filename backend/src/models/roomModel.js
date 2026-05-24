@@ -4,7 +4,7 @@ const { findById } = require("./userModel");
 const Room = {
   getAll: async () => {
     const [rows] = await db.query(
-      "SELECT * FROM Rooms ORDER BY room_number ASC",
+      "SELECT * FROM rooms ORDER BY room_number ASC",
     );
     return rows;
   },
@@ -19,13 +19,13 @@ const Room = {
   },
   updateStatus: async (roomId, status) => {
     // status phải thuộc: Available, Occupied, Dirty, Maintenance [cite: 7, 8]
-    return await db.query("UPDATE Rooms SET status = ? WHERE id = ?", [
+    return await db.query("UPDATE rooms SET status = ? WHERE id = ?", [
       status,
       roomId,
     ]);
   },
   findByNumber: async (room_number) => {
-    const [rows] = await db.query("SELECT * FROM Rooms WHERE room_number = ?", [
+    const [rows] = await db.query("SELECT * FROM rooms WHERE room_number = ?", [
       room_number,
     ]);
     return rows[0];
@@ -37,7 +37,7 @@ const Room = {
   create: async (data) => {
     const { room_number, room_type_id, status } = data;
     const [result] = await db.query(
-      "INSERT INTO Rooms (room_number, room_type_id, status) VALUES (?, ?, ? )",
+      "INSERT INTO rooms (room_number, room_type_id, status) VALUES (?, ?, ? )",
       [room_number, room_type_id, status || "Available"],
     );
     return result.insertId;
@@ -50,7 +50,7 @@ const Room = {
     );
   },
   delete: async (id) => {
-    return await db.query("DELETE FROM Rooms WHERE id = ?", [id]);
+    return await db.query("DELETE FROM rooms WHERE id = ?", [id]);
   },
 };
 

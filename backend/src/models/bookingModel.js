@@ -4,7 +4,7 @@ const Booking = {
   findAvailableRooms: async (room_type_id, check_in, check_out) => {
     const [rows] = await db.query(
       `
-      SELECT r.* FROM Rooms r
+      SELECT r.* FROM rooms r
       WHERE r.room_type_id = ? 
       AND r.status = 'Available'
       AND r.id NOT IN (
@@ -18,7 +18,6 @@ const Booking = {
     return rows;
   },
 
-  // Trong src/models/bookingModel.js
   create: async (data) => {
     const {
       user_id,
