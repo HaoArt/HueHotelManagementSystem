@@ -8,7 +8,7 @@ const Booking = {
       WHERE r.room_type_id = ? 
       AND r.status = 'Available'
       AND r.id NOT IN (
-        SELECT room_id FROM Bookings 
+        SELECT room_id FROM bookings 
         WHERE status NOT IN ('Cancelled', 'Checked_out')
         AND (check_in_date < ? AND check_out_date > ?)
       )
