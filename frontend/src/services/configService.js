@@ -21,7 +21,6 @@ const ConfigService = {
   getConfigByKey: async (key) => {
     try {
       const res = await api.get("/configs");
-      // res.data.data vì trong Controller trả về: { status: "OK", data: configs }
       const configs = res.data.data;
       const target = configs.find((c) => c.config_key === key);
       return target ? target.config_value : null;

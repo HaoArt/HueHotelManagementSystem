@@ -27,7 +27,7 @@ import AdminAccountsPage from "../pages/admin/AdminAccountsPage";
 const AppRouter = () => {
   return (
     <Routes>
-      {/* 1. Tuyến đường công khai & Khách hàng */}
+      {/* Tuyến đường công khai & Khách hàng */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
         <Route path="rooms" element={<Rooms />} />
@@ -53,7 +53,7 @@ const AppRouter = () => {
           }
         />
       </Route>
-
+      {/*Tuyến đường private cho nội bộ quản trị và lễ tân */}
       <Route
         path="/dashboard"
         element={
@@ -75,7 +75,7 @@ const AppRouter = () => {
         <Route path="system-config" element={<AdminSystemConfig />} />
       </Route>
 
-      {/* 3. Xác thực & Catch-all */}
+      {/* Xác thực */}
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="forgot-password" element={<ForgotPassword />} />

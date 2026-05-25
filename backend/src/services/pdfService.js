@@ -33,7 +33,6 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
     doc.on("data", dataCallback);
     doc.on("end", endCallback);
 
-    // --- CẤU HÌNH MÀU SẮC (LUXURY THEME) ---
     const primaryColor = "#1B2D4F";
     const secondaryColor = "#9B8B7E";
     const accentColor = "#D4AF37"; 
@@ -205,7 +204,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
 
     if (invoiceData.discount > 0) {
       currentY += 20;
-      doc.fillColor("red"); // Chuyển màu đỏ cho khoản trừ tiền
+      doc.fillColor("red"); 
       doc.text("Giam gia (Discount / Voucher)", 50, currentY);
       doc.text("-", 250, currentY, { width: 50, align: "center" });
       doc.text("-", 310, currentY, { width: 100, align: "right" });

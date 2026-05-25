@@ -1,4 +1,3 @@
-// src/components/specific/SearchBar.jsx
 import { useState, useEffect } from "react";
 import {
   TextField,
@@ -10,13 +9,11 @@ import {
   Box,
 } from "@mui/material";
 
-// Icons
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import HotelIcon from "@mui/icons-material/Hotel";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import RoomTypeService from "../../services/roomTypeService";
 
-// LUXURY DESIGN TOKENS (Đồng bộ với Home & Rooms)
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -61,7 +58,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
     }
   };
 
-  // Style chung cho ô nhập liệu chuẩn 5 sao
   const luxuryInputStyle = {
     "& .MuiOutlinedInput-root": {
       borderRadius: "12px",
@@ -81,13 +77,9 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
     },
   };
 
-  // ============================================================
-  // GIAO DIỆN 1: DẠNG DỌC (DÙNG LÀM SIDEBAR CHO TRANG ROOMS)
-  // ============================================================
   if (isSidebar) {
     return (
       <Box sx={{ p: { xs: 1, md: 2 } }}>
-        {/* Đã bỏ đi Header TÌM KIẾM thừa vì file Rooms.jsx đã có Header Navy bao bọc */}
         <form onSubmit={handleSearch}>
           <Stack spacing={2.5}>
             <Box>
@@ -251,9 +243,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
     );
   }
 
-  // ============================================================
-  // GIAO DIỆN 2: DẠNG NGANG NỔI LÊN (DÙNG CHO TRANG CHỦ HOME)
-  // ============================================================
   return (
     <Box sx={{ p: { xs: 1, md: 1 }, width: "100%" }}>
       <form onSubmit={handleSearch}>
@@ -266,7 +255,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             width: "100%",
           }}
         >
-          {/* CHECK IN */}
           <Box sx={{ flex: 1, minWidth: 200 }}>
             <Typography
               variant="caption"
@@ -298,7 +286,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             />
           </Box>
 
-          {/* CHECK OUT */}
           <Box sx={{ flex: 1, minWidth: 200 }}>
             <Typography
               variant="caption"
@@ -330,7 +317,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             />
           </Box>
 
-          {/* ROOM TYPE */}
           <Box sx={{ flex: 1.2, minWidth: 220 }}>
             <Typography
               variant="caption"
@@ -370,7 +356,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             </TextField>
           </Box>
 
-          {/* CAPACITY */}
           <Box sx={{ flex: 0.8, minWidth: 160 }}>
             <Typography
               variant="caption"
@@ -407,7 +392,6 @@ const SearchBar = ({ onSearch, isSidebar = false }) => {
             </TextField>
           </Box>
 
-          {/* BUTTON */}
           <Box sx={{ flex: "0 0 160px", minWidth: 160, mt: { xs: 2, md: 0 } }}>
             <Button
               type="submit"

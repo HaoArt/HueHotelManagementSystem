@@ -7,7 +7,6 @@ import Sidebar from "../../components/common/dashboard/Sidebar";
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // THÊM STATE QUẢN LÝ THU GỌN Ở ĐÂY
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -24,20 +23,16 @@ const DashboardLayout = () => {
           "radial-gradient(circle at 20% 5%, rgba(0,150,136,0.08), transparent 28%), radial-gradient(circle at 95% 95%, rgba(11,27,63,0.08), transparent 24%)",
       }}
     >
-      {/* TRUYỀN isCollapsed CHO TOPBAR */}
       <Topbar
         handleDrawerToggle={handleDrawerToggle}
         isCollapsed={isCollapsed}
       />
-
-      {/* TRUYỀN isCollapsed VÀ HÀM SET CHO SIDEBAR */}
       <Sidebar
         mobileOpen={mobileOpen}
         handleDrawerToggle={handleDrawerToggle}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
       />
-
       <Box
         component="main"
         sx={{

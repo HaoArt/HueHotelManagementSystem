@@ -4,20 +4,17 @@ const bcrypt = require("bcrypt");
 exports.getAllAccounts = async (req, res) => {
   try {
     const accounts = await User.getAllAccounts();
-    res.status(200).json({ status: "OK", data: accounts });
+    return res.status(200).json({ status: "OK", data: accounts });
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ status: "error", message: "Lỗi tải danh sách tài khoản" });
   }
 };
 
-// Hàm mới: Tạo tài khoản nội bộ (Admin/Receptionist/Customer)
 exports.createAccount = async (req, res) => {
   try {
     const { full_name, email, phone, password, role } = req.body;
-
-    // Kiểm tra email trùng
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res
@@ -35,12 +32,12 @@ exports.createAccount = async (req, res) => {
       password_hash,
       role,
     });
-    res
+    return res
       .status(201)
       .json({ status: "OK", message: "Đã tạo tài khoản thành công!" });
   } catch (error) {
     console.error("Lỗi tạo tài khoản:", error);
-    res
+    return res
       .status(500)
       .json({ status: "error", message: "Lỗi server khi tạo tài khoản" });
   }
@@ -60,7 +57,7 @@ exports.updateCustomerStatus = async (req, res) => {
     }
 
     await User.updateStatus(id, status);
-    res.status(200).json({
+    return res.status(200).json({
       status: "OK",
       message:
         status === "Blacklisted"
@@ -68,7 +65,7 @@ exports.updateCustomerStatus = async (req, res) => {
           : "Đã mở khóa tài khoản!",
     });
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ status: "error", message: "Lỗi cập nhật trạng thái" });
   }

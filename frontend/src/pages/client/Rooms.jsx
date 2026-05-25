@@ -23,7 +23,7 @@ import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
-// LUXURY DESIGN TOKENS (Đồng bộ với Home_Luxury)
+
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -106,23 +106,27 @@ const Rooms = () => {
 
     setRoomTypes(sortedArray);
   }, [sortBy]);
-
-  // HÀM TẠO BADGE CÓ Ý NGHĨA DỰA VÀO TÊN PHÒNG
   const getBadge = (room) => {
-    if (room.available_count === 0) {
-      return {
-        label: "Đã hết phòng",
-        bgcolor: "#fef2f2",
-        color: "#dc2626", // Đỏ
-      };
+    if (room.available_count !== undefined && room.available_count !== null) {
+      const count = Number(room.available_count);
+
+      if (count === 0) {
+        return {
+          label: "Đã hết phòng",
+          bgcolor: "#fef2f2",
+          color: "#dc2626", 
+        };
+      }
+      if (count > 0 && count <= 2) {
+        return {
+          label: `Chỉ còn ${count} phòng`,
+          bgcolor: "#fffbeb",
+          color: "#d97706", 
+        };
+      }
     }
-    if (room.available_count > 0 && room.available_count <= 2) {
-      return {
-        label: `Chỉ còn ${room.available_count} phòng`,
-        bgcolor: "#fffbeb",
-        color: "#d97706", // Vàng cam
-      };
-    }
+
+   
     const roomName = (room.type_name || room.name || "").toLowerCase();
 
     if (roomName.includes("suite") || roomName.includes("vip")) {
@@ -175,9 +179,7 @@ const Rooms = () => {
 
   return (
     <Box sx={{ bgcolor: LUXURY.offwhite, minHeight: "100vh", pb: 12 }}>
-      {/* =========================================================================
-          1. IMMERSIVE HERO BANNER
-         ========================================================================= */}
+      {/* Hero banner*/}
       <Box
         sx={{
           height: { xs: "50vh", md: "60vh" },
@@ -242,9 +244,7 @@ const Rooms = () => {
             alignItems: "flex-start",
           }}
         >
-          {/* =========================================================================
-              2. LUXURY SIDEBAR (SEARCH)
-             ========================================================================= */}
+          {/* Search */}
           <Box
             sx={{
               flex: { xs: "1 1 100%", lg: "0 0 340px" },
@@ -281,9 +281,7 @@ const Rooms = () => {
             </Box>
           </Box>
 
-          {/* =========================================================================
-              3. ROOM LISTINGS & SORTING
-             ========================================================================= */}
+          {/* Rooms list*/}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Top Bar Area */}
             <Box
@@ -383,15 +381,15 @@ const Rooms = () => {
               >
                 {roomTypes.map((room, index) => {
                   const badge = getBadge(room);
-                  const isSoldOut = room.available_count === 0; // Biến check hết phòng
+                  const isSoldOut = Number(room.available_count) === 0; 
 
                   return (
                     <Fade in={true} timeout={600 + index * 100} key={room.id}>
                       <Box
                         sx={{
                           opacity: isSoldOut ? 0.7 : 1,
-                          pointerEvents: isSoldOut ? "none" : "auto", // Chặn click vào nút Đặt Ngay
-                          filter: isSoldOut ? "grayscale(80%)" : "none", // Làm xám ảnh
+                          pointerEvents: isSoldOut ? "none" : "auto", 
+                          filter: isSoldOut ? "grayscale(80%)" : "none", 
                         }}
                       >
                         <RoomCard

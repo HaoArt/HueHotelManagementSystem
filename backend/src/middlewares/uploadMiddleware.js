@@ -2,7 +2,6 @@ const uploadCloud = require("../config/cloudinary");
 const multer = require("multer");
 
 const uploadMiddleware = (req, res, next) => {
-  // Cho phép tối đa 10 ảnh mỗi lần upload
   const upload = uploadCloud.array("images", 10);
 
   upload(req, res, (err) => {

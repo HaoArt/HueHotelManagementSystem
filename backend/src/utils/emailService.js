@@ -4,9 +4,6 @@ require("dotenv").config();
 const BREVO_API_KEY = (process.env.BREVO_API_KEY || "").trim();
 const FROM_EMAIL = (process.env.EMAIL_BREVO_NAME || "").trim();
 
-// ======================
-// MAIN SEND EMAIL LOGIC
-// ======================
 async function sendEmail(to, subject, htmlContent, emailType) {
   try {
     console.log(`================ ${emailType} ================`);
@@ -17,7 +14,7 @@ async function sendEmail(to, subject, htmlContent, emailType) {
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {
-          name: "HuếHotel", // Tên hiển thị ngắn gọn, sang trọng hơn
+          name: "HuếHotel",
           email: FROM_EMAIL,
         },
         to: [
@@ -52,9 +49,6 @@ async function sendEmail(to, subject, htmlContent, emailType) {
   }
 }
 
-// ======================
-// HTML TEMPLATE WRAPPER (Giao diện chuẩn cho mọi Email)
-// ======================
 const generateHtmlTemplate = (content) => `
   <!DOCTYPE html>
   <html>
@@ -93,9 +87,6 @@ const generateHtmlTemplate = (content) => `
   </html>
 `;
 
-// ======================
-// OTP EMAIL
-// ======================
 exports.sendEmailOtp = async (email, otp) => {
   const content = `
     <h2 style="color: #1e3a8a; margin-top: 0; text-align: center;">Xác thực tài khoản</h2>
@@ -122,9 +113,6 @@ exports.sendEmailOtp = async (email, otp) => {
   );
 };
 
-// ======================
-// REMINDER EMAIL
-// ======================
 exports.sendReminderEmail = async (userEmail, userName, bookingDetails) => {
   const content = `
     <h2 style="color: #1e3a8a; margin-top: 0;">Nhắc nhở nhận phòng</h2>
@@ -154,9 +142,6 @@ exports.sendReminderEmail = async (userEmail, userName, bookingDetails) => {
   );
 };
 
-// ======================
-// CONTACT REPLY EMAIL
-// ======================
 exports.sendContactReplyEmail = async (
   userEmail,
   userName,
@@ -182,9 +167,6 @@ exports.sendContactReplyEmail = async (
   );
 };
 
-// ======================
-// DEPOSIT CONFIRM EMAIL
-// ======================
 exports.sendDepositConfirmationEmail = async (
   userEmail,
   userName,
@@ -223,9 +205,6 @@ exports.sendDepositConfirmationEmail = async (
   );
 };
 
-// ======================
-// CANCELLATION EMAIL
-// ======================
 exports.sendCancellationEmail = async (
   userEmail,
   userName,
@@ -264,4 +243,53 @@ exports.sendCancellationEmail = async (
     generateHtmlTemplate(content),
     "CANCELLATION EMAIL",
   );
+};
+
+exports.sendDepositConfirmationEmail = async (toEmail, userName, booking) => {
+  const subject = `[HuếHotel] Xác nhận thanh toán cọc thành công - Mã đặt phòng #${booking.id}`;
+
+  // Tính toán số tiền còn lại phải thanh toán tại quầy
+  const remainingAmount = booking.total_amount - booking.deposit_amount;
+
+  // Format ngày tháng chuẩn Việt Nam (DD/MM/YYYY)
+  const checkIn = new Date(booking.check_in_date).toLocaleDateString("vi-VN");
+  const checkOut = new Date(booking.check_out_date).toLocaleDateString("vi-VN");
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #166534; padding: 20px; text-align: center;">
+        <h2 style="color: #ffffff; margin: 0;">Xác Nhận Thanh Toán Cọc</h2>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p>Kính chào quý khách <strong>${userName}</strong>,</p>
+        <p><strong>HuếHotel</strong> xin chân thành cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.</p>
+        <p>Hệ thống xin xác nhận đã nhận được khoản thanh toán cọc cho đơn đặt phòng của quý khách. Dưới đây là thông tin chi tiết:</p>
+
+        <div style="background-color: #f0fdf4; border-left: 4px solid #166534; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+          <h3 style="color: #15803d; margin-top: 0; font-size: 16px;">Chi tiết đơn phòng <span style="color: #1e3a8a;">#${booking.id}</span></h3>
+          <ul style="list-style: none; padding-left: 0; line-height: 2; margin-bottom: 0;">
+            <li><strong>Ngày nhận phòng:</strong> ${checkIn}</li>
+            <li><strong>Ngày trả phòng:</strong> ${checkOut}</li>
+            <li><strong>Tổng tiền hóa đơn:</strong> ${Number(booking.total_amount).toLocaleString("vi-VN")} VNĐ</li>
+            <li><strong>Số tiền ĐÃ CỌC:</strong> <span style="color: #166534; font-size: 16px;"><strong>${Number(booking.deposit_amount).toLocaleString("vi-VN")} VNĐ</strong></span></li>
+            <li style="border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 10px;">
+              <strong>Số tiền cần thanh toán tại quầy:</strong> <strong style="color: #dc2626; font-size: 16px;">${Number(remainingAmount).toLocaleString("vi-VN")} VNĐ</strong>
+            </li>
+          </ul>
+        </div>
+
+        <p style="margin-top: 20px;">Quý khách vui lòng xuất trình email này hoặc thẻ CCCD/CMND khi làm thủ tục nhận phòng tại quầy Lễ tân.</p>
+        <p>Nếu cần hỗ trợ thêm, quý khách vui lòng phản hồi lại email này.</p>
+      </div>
+
+      <div style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 15px; text-align: center; color: #6b7280; font-size: 13px;">
+        <p style="margin: 0;">Trân trọng,</p>
+        <p style="margin: 5px 0 0 0; font-weight: bold; color: #374151;">Đội ngũ HuếHotel</p>
+      </div>
+    </div>
+  `;
+
+  // Gọi lại hàm sendEmail gốc của em
+  return await sendEmail(toEmail, subject, htmlContent, "DEPOSIT_CONFIRMATION");
 };

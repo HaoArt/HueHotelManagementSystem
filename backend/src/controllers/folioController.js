@@ -68,11 +68,11 @@ exports.markItemDelivered = async (req, res) => {
   try {
     const { id } = req.params;
     await Folio.updateItemStatus(id, "Delivered");
-    res
+    return res
       .status(200)
       .json({ status: "OK", message: "Đã đánh dấu phục vụ thành công!" });
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ status: "error", message: "Lỗi cập nhật trạng thái dịch vụ" });
   }

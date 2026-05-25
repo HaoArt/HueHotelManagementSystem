@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>
-      {/* Chỉ render UI khi quá trình kiểm tra và tải User đã hoàn tất */}
       {!loading && children}
     </AuthContext.Provider>
   );

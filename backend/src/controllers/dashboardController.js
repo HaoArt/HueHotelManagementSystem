@@ -27,12 +27,10 @@ exports.getDashboardData = async (req, res) => {
 exports.getStats = async (req, res) => {
   try {
     const stats = await Dashboard.getOverviewStats();
-
     const currentYear = new Date().getFullYear();
     const monthlyData = await Dashboard.getMonthlyRevenue(currentYear);
     const yearlyData = await Dashboard.getYearlyRevenue();
 
-    // Format mảng 12 tháng
     const formattedMonthlyData = Array.from({ length: 12 }, (_, i) => {
       const monthItem = monthlyData.find((item) => item.month === i + 1);
       return {
@@ -42,14 +40,13 @@ exports.getStats = async (req, res) => {
       };
     });
 
-    // Format mảng theo Năm
     const formattedYearlyData = yearlyData.map((item) => ({
       name: `${item.year}`,
       fullLabel: `Năm ${item.year}`,
       revenue: parseFloat(item.revenue),
     }));
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "OK",
       data: {
         ...stats,
@@ -58,7 +55,7 @@ exports.getStats = async (req, res) => {
       },
     });
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ status: "error", message: "Lỗi tải thống kê Dashboard" });
   }

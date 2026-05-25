@@ -11,8 +11,6 @@ const LUXURY = {
 
 const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
-
-  // Lắng nghe sự kiện cuộn chuột
   useEffect(() => {
     const toggleVisibility = () => {
       if (window.scrollY > 400) {
@@ -26,7 +24,6 @@ const ScrollToTopButton = () => {
     return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
 
-  // Hàm xử lý cuộn lên đầu trang mượt mà
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -45,7 +42,7 @@ const ScrollToTopButton = () => {
             right: { xs: 24, md: 40 },
             bgcolor: LUXURY.navy,
             color: LUXURY.gold,
-            zIndex: 9999, // Luôn nổi lên trên cùng
+            zIndex: 9999,
             boxShadow: `0 8px 24px ${LUXURY.navy}60`,
             transition: "all 0.3s ease",
             "&:hover": {

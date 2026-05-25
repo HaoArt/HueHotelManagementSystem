@@ -36,6 +36,12 @@ const PendingUser = {
   delete: async (email) => {
     return await db.query("DELETE FROM pending_users WHERE email=?", [email]);
   },
+  cleanupExpiredOTPs: async () => {
+    const [result] = await db.query(
+      "DELETE FROM pending_users WHERE otp_expiry < NOW()",
+    );
+    return result.affectedRows; 
+  },
 };
 
 module.exports = PendingUser;

@@ -472,7 +472,6 @@ const AdminCouponsPage = () => {
         </Table>
       </TableContainer>
 
-      {/* DIALOG THÊM / SỬA */}
       <Dialog
         disableScrollLock={true}
         open={dialog.open}
@@ -667,7 +666,6 @@ const AdminCouponsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG XÁC NHẬN XÓA */}
       <Dialog
         open={confirmDialog.open}
         onClose={() =>

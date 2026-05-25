@@ -23,7 +23,7 @@ import {
 
 import AuthService from "../../services/authService";
 
-// LUXURY DESIGN TOKENS (Đồng bộ)
+
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -40,7 +40,7 @@ const inputStyle = {
     borderRadius: "10px",
     bgcolor: LUXURY.offwhite,
     transition: "all 0.3s ease",
-    "& fieldset": { borderColor: "transparent" },
+    "& fieldset": { borderColor: LUXURY.softGray },
     "&:hover fieldset": { borderColor: `${LUXURY.gold}80` },
     "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
   },
@@ -67,7 +67,7 @@ const ForgotPassword = () => {
 
   const navigate = useNavigate();
 
-  // BƯỚC 1: Gửi yêu cầu xin cấp OTP
+
   const handleRequestOTP = async (e) => {
     e.preventDefault();
     setError("");
@@ -82,7 +82,7 @@ const ForgotPassword = () => {
     try {
       await AuthService.forgotPassword(email);
       setSuccess("Mã OTP khôi phục đã được gửi đến email của bạn.");
-      setStep(2); // Chuyển sang bước 2
+      setStep(2); 
     } catch (err) {
       setError(
         typeof err === "string"
@@ -94,7 +94,7 @@ const ForgotPassword = () => {
     }
   };
 
-  // BƯỚC 2: Xác thực OTP và đổi mật khẩu mới
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
@@ -145,7 +145,7 @@ const ForgotPassword = () => {
         bgcolor: LUXURY.white,
       }}
     >
-      {/* CỘT TRÁI: HÌNH ẢNH BANNER (ZIGZAG NHƯ TRANG REGISTER) */}
+  
       <Box
         sx={{
           flex: { xs: "0", md: "1 1 50%" },
@@ -201,7 +201,7 @@ const ForgotPassword = () => {
         </Box>
       </Box>
 
-      {/* CỘT PHẢI: FORM QUÊN MẬT KHẨU */}
+   
       <Box
         sx={{
           flex: { xs: "1 1 100%", md: "1 1 50%" },
