@@ -8,11 +8,8 @@ cron.schedule("* * * * *", async () => {
   try {
     const expiredBookings = await Booking.getExpiredPendingBookings();
     const noShowBookings = await Booking.getNoShowBookings();
-
-    //Đơn hàng quá hạn mà chưa ck
     if (expiredBookings.length > 0) {
       for (const booking of expiredBookings) {
-        // Tái sử dụng các hàm đã có trong Model
         await Booking.updateStatus(booking.id, "Cancelled");
         await Room.updateStatus(booking.room_id, "Available");
         await User.updateTrustScore(booking.user_id, -20);

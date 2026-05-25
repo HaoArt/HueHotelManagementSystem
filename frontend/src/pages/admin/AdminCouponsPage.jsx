@@ -54,7 +54,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -131,7 +132,7 @@ const AdminCouponsPage = () => {
         discount_value: "",
         min_order_value: 0,
         max_discount_value: "",
-        expiry_date: "",
+        expiry_date: new Date().toISOString().split("T")[0],
         usage_limit: 100,
         status: "Active",
       });
@@ -319,22 +320,50 @@ const AdminCouponsPage = () => {
             }}
           >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 Mã Coupon
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 Giá trị giảm
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 Thời hạn & Lượt dùng
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em", textAlign: "center" }}
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                  textAlign: "center",
+                }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, letterSpacing: "0.03em", textAlign: "right", color: "white" }}
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  textAlign: "right",
+                  color: "white",
+                }}
               >
                 Thao tác
               </TableCell>
@@ -575,14 +604,17 @@ const AdminCouponsPage = () => {
               <TextField
                 label="Ngày hết hạn"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 fullWidth
                 size="small"
                 value={formData.expiry_date}
                 onChange={(e) =>
                   setFormData({ ...formData, expiry_date: e.target.value })
                 }
-                sx={inputStyle}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  ...inputStyle,
+                  "& .MuiInputBase-root": { whiteSpace: "nowrap" },
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>

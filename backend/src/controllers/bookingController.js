@@ -302,7 +302,7 @@ exports.createBooking = async (req, res) => {
       original_price: finalTotalAmount + totalDiscountAmount, // Tiền trước khi giảm
       discount: totalDiscountAmount,
       total_amount: finalTotalAmount, // Tiền cuối cùng khách phải chịu
-      deposit_required: deposit_amount, // Số tiền cọc cần chuyển ngay 
+      deposit_required: deposit_amount, // Số tiền cọc cần chuyển ngay
     });
   } catch (error) {
     console.error("Lỗi Controller Booking:", error);
@@ -608,8 +608,8 @@ exports.changeRoom = async (req, res) => {
 };
 exports.reassignRoomBeforeCheckIn = async (req, res) => {
   try {
-    const { id } = req.params; 
-    const { new_room_id } = req.body; 
+    const { id } = req.params;
+    const { new_room_id } = req.body;
 
     const booking = await Booking.getById(id);
     if (!booking) {
@@ -746,10 +746,13 @@ exports.cancelBooking = async (req, res) => {
 exports.downloadInvoice = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Gọi Model lấy thông tin đơn hàng
     const booking = await Booking.getById(id);
 
-    if (!booking)
+    if (!booking) {
       return res.status(404).json({ message: "Không thấy đơn hàng" });
+    }
 
     const checkInDate = new Date(booking.check_in_date);
     const checkOutDate = new Date(booking.check_out_date);
@@ -758,20 +761,38 @@ exports.downloadInvoice = async (req, res) => {
     );
     if (totalDays === 0) totalDays = 1;
 
+    const services = await Folio.getServicesByBookingId(id);
+
+    const basePrice = parseFloat(booking.base_price || 0);
+    const totalAmount = parseFloat(booking.total_amount || 0);
+    const discountAmount = parseFloat(booking.discount_amount || 0);
+    const depositAmount = parseFloat(booking.deposit_amount || 0);
+
+    const roomTotal = basePrice * totalDays;
+    const servicesTotal = services.reduce(
+      (sum, svc) => sum + parseFloat(svc.total || 0),
+      0,
+    );
+
+    const surcharge = totalAmount + discountAmount - roomTotal - servicesTotal;
+
     const invoiceData = {
       booking_id: booking.id,
-      full_name: booking.full_name || "Khách vãng lai", 
+      full_name: booking.full_name || "Khách vãng lai",
       check_in: checkInDate,
       check_out: checkOutDate,
       room_number: booking.room_number || "---",
-      base_price: parseFloat(booking.base_price || 0),
+      base_price: basePrice,
       total_days: totalDays,
-      discount: parseFloat(booking.discount_amount || 0),
-      total_amount: parseFloat(booking.total_amount || 0),
+      discount: discountAmount,
+      total_amount: totalAmount,
+      deposit_amount: depositAmount,
+      surcharge: surcharge > 0 ? surcharge : 0,
+      services: services,
     };
 
-    return res.setHeader("Content-Type", "application/pdf");
-    return res.setHeader(
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
       "Content-Disposition",
       `attachment; filename=Invoice-HueHotel-${id}.pdf`,
     );
@@ -809,7 +830,7 @@ exports.getUserBookings = async (req, res) => {
 
 exports.addReview = async (req, res) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
     const { rating, comment } = req.body;
     const user_id = req.user.id || req.user.userId;
 
@@ -870,7 +891,9 @@ exports.getAllBookingsAdmin = async (req, res) => {
     const bookings = await Booking.getAllForAdmin();
     return res.status(200).json({ status: "OK", data: bookings });
   } catch (error) {
-    return res.status(500).json({ status: "error", message: "Lỗi tải danh sách đơn" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Lỗi tải danh sách đơn" });
   }
 };
 
@@ -893,7 +916,7 @@ exports.confirmDeposit = async (req, res) => {
       await emailService.sendDepositConfirmationEmail(
         user.email,
         user.full_name,
-        booking
+        booking,
       );
     }
     return res

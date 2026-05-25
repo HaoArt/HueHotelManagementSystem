@@ -35,8 +35,8 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
 
     const primaryColor = "#1B2D4F";
     const secondaryColor = "#9B8B7E";
-    const accentColor = "#D4AF37"; 
-    const blackColor = "#1A1A1A"; 
+    const accentColor = "#D4AF37";
+    const blackColor = "#1A1A1A";
 
     doc
       .fillColor(primaryColor)
@@ -64,14 +64,12 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
 
     doc.moveDown(1);
 
-
     doc
       .moveTo(50, doc.y)
       .lineTo(545, doc.y)
       .lineWidth(1)
       .strokeColor(accentColor)
       .stroke();
-
 
     doc.moveDown(2);
     doc
@@ -84,9 +82,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       });
     doc.moveDown(2);
 
-  
     const customerInfoTop = doc.y;
-
 
     doc.fillColor(blackColor).font("Helvetica-Bold").fontSize(10);
     doc.text("THONG TIN KHACH HANG (Guest Info)", 50, customerInfoTop);
@@ -107,7 +103,6 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       50,
       customerInfoTop + 45,
     );
-
 
     doc.font("Helvetica-Bold").fontSize(10);
     doc.text("THONG TIN LUU TRU (Stay Info)", 300, customerInfoTop);
@@ -204,7 +199,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
 
     if (invoiceData.discount > 0) {
       currentY += 20;
-      doc.fillColor("red"); 
+      doc.fillColor("red");
       doc.text("Giam gia (Discount / Voucher)", 50, currentY);
       doc.text("-", 250, currentY, { width: 50, align: "center" });
       doc.text("-", 310, currentY, { width: 100, align: "right" });
@@ -212,7 +207,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
         width: 115,
         align: "right",
       });
-      doc.fillColor(blackColor); 
+      doc.fillColor(blackColor);
     }
 
     currentY += 20;
@@ -245,9 +240,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       align: "right",
     });
 
-    doc
-      .rect(420, currentY - 5, 125, 20)
-      .fillAndStroke(`${accentColor}20`, accentColor);
+    doc.rect(420, currentY - 5, 125, 20).fillAndStroke("#F5EEDB", accentColor);
 
     doc.fillColor(blackColor).font("Helvetica-Bold").fontSize(12);
     doc.text(`${formatCurrency(invoiceData.total_amount)}`, 430, currentY, {
