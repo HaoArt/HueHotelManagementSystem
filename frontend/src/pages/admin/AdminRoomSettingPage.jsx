@@ -46,7 +46,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import RoomService from "../../services/roomService";
 import RoomTypeService from "../../services/roomTypeService";
 
-// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY
 const COLORS = {
   primary: "#5e35b1",
   navy: "#0b1b3f",
@@ -58,7 +57,6 @@ const COLORS = {
   textMain: "#1a1a1a",
 };
 
-// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
 const glassCardSx = {
   borderRadius: 1,
   border: "1px solid rgba(255,255,255,0.4)",
@@ -80,7 +78,6 @@ const AdminRoomSettingsPage = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // States quản lý thông báo Snackbar & Confirm Dialog
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -97,12 +94,10 @@ const AdminRoomSettingsPage = () => {
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
 
-  // --- STATE QUẢN LÝ ẢNH UPLOAD ---
   const [selectedImages, setSelectedImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
-  // Dialog States - Hạng Phòng
   const [typeDialog, setTypeDialog] = useState({
     open: false,
     isEdit: false,
@@ -116,7 +111,7 @@ const AdminRoomSettingsPage = () => {
     area: "",
   });
 
-  // Dialog States - Phòng
+
   const [roomDialog, setRoomDialog] = useState({
     open: false,
     isEdit: false,
@@ -149,7 +144,6 @@ const AdminRoomSettingsPage = () => {
     fetchData();
   }, []);
 
-  // --- HANDLERS CHO ẢNH ---
   const handleImageChange = (e) => {
     if (e.target.files) {
       setSelectedImages((prev) => [...prev, ...Array.from(e.target.files)]);
@@ -169,7 +163,6 @@ const AdminRoomSettingsPage = () => {
     );
   };
 
-  // --- QUẢN LÝ HẠNG PHÒNG ---
   const handleOpenTypeDialog = (type = null) => {
     setSelectedImages([]);
     setExistingImages([]);
@@ -249,7 +242,7 @@ const AdminRoomSettingsPage = () => {
     }
   };
 
-  // --- QUẢN LÝ PHÒNG ---
+
   const handleOpenRoomDialog = (room = null) => {
     if (room) {
       setRoomForm({
@@ -422,7 +415,7 @@ const AdminRoomSettingsPage = () => {
         pb: 10,
       }}
     >
-      {/* HEADER ĐỒNG BỘ MỚI */}
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -458,7 +451,7 @@ const AdminRoomSettingsPage = () => {
               startIcon={<AddIcon />}
               disableElevation
               sx={{
-                background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Nút cam nổi bật
+                background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
                 fontWeight: 700,
                 borderRadius: 1,
                 textTransform: "none",
@@ -478,7 +471,7 @@ const AdminRoomSettingsPage = () => {
               startIcon={<AddIcon />}
               disableElevation
               sx={{
-                background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", // Nút xanh Navy/Teal
+                background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", 
                 fontWeight: 700,
                 borderRadius: 1,
                 textTransform: "none",
@@ -500,7 +493,7 @@ const AdminRoomSettingsPage = () => {
         </Alert>
       )}
 
-      {/* CONTAINER GLASSMORPHISM */}
+    
       <Paper
         elevation={0}
         sx={{
@@ -545,7 +538,7 @@ const AdminRoomSettingsPage = () => {
           </Tabs>
         </Box>
 
-        {/* TAB 1: ROOM TYPES */}
+        {/* loại phòng */}
         {tabValue === 0 && (
           <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
             <Table sx={{ minWidth: 900 }}>
@@ -723,7 +716,7 @@ const AdminRoomSettingsPage = () => {
           </TableContainer>
         )}
 
-        {/* TAB 2: ROOMS */}
+        {/* Phòng */}
         {tabValue === 1 && (
           <TableContainer sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}>
             <Table sx={{ minWidth: 900 }}>
@@ -851,9 +844,6 @@ const AdminRoomSettingsPage = () => {
         )}
       </Paper>
 
-      {/* =============================================================== */}
-      {/* DIALOG HẠNG PHÒNG (ĐÃ TÍCH HỢP FORM TẢI ẢNH) */}
-      {/* =============================================================== */}
       <Dialog
         disableScrollLock={true}
         open={typeDialog.open}
@@ -966,7 +956,6 @@ const AdminRoomSettingsPage = () => {
               </Grid>
             </Grid>
 
-            {/* KHU VỰC TẢI ẢNH */}
             <Box
               sx={{
                 p: 3,
@@ -1148,9 +1137,6 @@ const AdminRoomSettingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* =============================================================== */}
-      {/* DIALOG SỐ PHÒNG CHUẨN */}
-      {/* =============================================================== */}
       <Dialog
         disableScrollLock={true}
         open={roomDialog.open}
@@ -1270,7 +1256,7 @@ const AdminRoomSettingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* CONFIRM DIALOG ĐỒNG BỘ */}
+      
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}
@@ -1315,7 +1301,7 @@ const AdminRoomSettingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR THÔNG BÁO CHUNG */}
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

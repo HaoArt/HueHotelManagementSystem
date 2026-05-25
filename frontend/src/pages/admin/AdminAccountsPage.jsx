@@ -46,19 +46,17 @@ import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import UserService from "../../services/userService";
 import { AuthContext } from "../../context/AuthContext";
 
-// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY (Ảnh 2 & Admin Bookings)
 const COLORS = {
   primary: "#5e35b1",
-  navy: "#0b1b3f", // Màu xanh Navy đậm cho Header bảng
+  navy: "#0b1b3f",
   teal: "#009688",
-  orange: "#e65100", // Màu Cam nổi bật cho nút bấm
+  orange: "#e65100",
   error: "#d32f2f",
   bgLight: "#f4f6f8",
   border: "#e0e0e0",
   textMain: "#1a1a1a",
 };
 
-// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
 const glassCardSx = {
   borderRadius: 1,
   border: "1px solid rgba(255,255,255,0.4)",
@@ -310,7 +308,6 @@ const AdminAccountsPage = () => {
         pb: 10,
       }}
     >
-      {/* HEADER ĐỒNG BỘ */}
       <Box
         sx={{
           display: "flex",
@@ -357,7 +354,7 @@ const AdminAccountsPage = () => {
               onClick={() => setAddDialog(true)}
               disableElevation
               sx={{
-                background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Màu cam chuẩn theo ảnh mẫu
+                background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
                 fontWeight: 700,
                 borderRadius: 1,
                 textTransform: "none",
@@ -379,7 +376,6 @@ const AdminAccountsPage = () => {
         </Alert>
       )}
 
-      {/* TABLE CONTAINER ĐỒNG BỘ */}
       <Paper
         elevation={0}
         sx={{
@@ -389,7 +385,6 @@ const AdminAccountsPage = () => {
           overflow: "hidden",
         }}
       >
-        {/* THANH TÌM KIẾM */}
         <Box
           sx={{
             p: 2,
@@ -424,7 +419,6 @@ const AdminAccountsPage = () => {
           sx={{ bgcolor: "rgba(255,255,255,0.72)", overflowX: "auto" }}
         >
           <Table sx={{ minWidth: 900 }}>
-            {/* HEADER BẢNG XANH NAVY CHUẨN */}
             <TableHead
               sx={{
                 background:
@@ -701,13 +695,13 @@ const AdminAccountsPage = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredAccounts.length} // Tổng số lượng tài khoản sau khi lọc
+          count={filteredAccounts.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
           onRowsPerPageChange={(e) => {
             setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0); // Reset về trang đầu khi đổi số lượng dòng hiển thị
+            setPage(0);
           }}
           labelRowsPerPage="Số dòng hiển thị:"
           labelDisplayedRows={({ from, to, count }) =>
@@ -716,9 +710,9 @@ const AdminAccountsPage = () => {
           sx={{
             borderTop: "1px solid rgba(11,27,63,0.08)",
             bgcolor: "rgba(255, 255, 255, 0.85)",
-            color: "#0b1b3f", // Màu COLORS.navy chủ đạo của Admin
+            color: "#0b1b3f",
             fontWeight: "bold",
-            // Thanh Toolbar tổng của phân trang
+
             "& .MuiTablePagination-toolbar": {
               display: "flex",
               alignItems: "center",
@@ -726,7 +720,7 @@ const AdminAccountsPage = () => {
               minHeight: "56px !important",
               py: 0,
             },
-            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+
             "& .MuiTablePagination-selectLabel": {
               fontWeight: 700,
               color: "text.secondary",
@@ -735,7 +729,7 @@ const AdminAccountsPage = () => {
               display: "flex",
               alignItems: "center",
             },
-            // Khung bao ngoài ô select số dòng
+
             "& .MuiTablePagination-input": {
               display: "inline-flex",
               alignItems: "center",
@@ -744,10 +738,10 @@ const AdminAccountsPage = () => {
               marginLeft: "8px",
               height: "100%",
             },
-            // Ô chọn số dòng hiển thị
+
             "& .MuiTablePagination-select": {
               fontWeight: 800,
-              color: "#5e35b1", // Màu COLORS.primary (Tím)
+              color: "#5e35b1",
               bgcolor: "rgba(94, 53, 177, 0.05)",
               borderRadius: "8px",
               border: "1px solid rgba(94, 53, 177, 0.15)",
@@ -758,18 +752,18 @@ const AdminAccountsPage = () => {
               pt: "4px !important",
               pb: "4px !important",
               pl: "12px !important",
-              pr: "32px !important", // Khoảng trống an toàn tránh đè icon mũi tên
+              pr: "32px !important",
               "&:focus": {
                 borderRadius: "8px",
               },
             },
-            // Định vị icon mũi tên của ô select nằm chuẩn ở giữa dọc
+
             "& .MuiTablePagination-selectIcon": {
               color: "#5e35b1",
               top: "calc(50% - 10px)",
               right: "4px",
             },
-            // Dòng chữ hiển thị "1-10 trong số..."
+
             "& .MuiTablePagination-displayedRows": {
               fontWeight: 800,
               color: "#0b1b3f",
@@ -779,7 +773,7 @@ const AdminAccountsPage = () => {
               display: "flex",
               alignItems: "center",
             },
-            // Cụm 2 nút bấm điều hướng trang (Mũi tên trái/phải)
+
             "& .MuiTablePagination-actions": {
               marginLeft: "16px",
               display: "inline-flex",
@@ -790,7 +784,7 @@ const AdminAccountsPage = () => {
                 border: "1px solid rgba(11,27,63,0.08)",
                 borderRadius: "8px",
                 padding: "5px",
-                color: "#009688", // Màu COLORS.teal (Xanh ngọc)
+                color: "#009688",
                 boxShadow: "0 2px 6px rgba(11,27,63,0.04)",
                 transition: "all 0.2s ease",
                 display: "flex",
@@ -816,7 +810,6 @@ const AdminAccountsPage = () => {
         />
       </Paper>
 
-      {/* DIALOG THÊM TÀI KHOẢN MỚI ĐỒNG BỘ MÀU CAM */}
       <Dialog
         disableScrollLock={true}
         open={addDialog}
@@ -834,8 +827,7 @@ const AdminAccountsPage = () => {
       >
         <DialogTitle
           sx={{
-            background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Nền Cam
-            color: "white",
+            background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
             fontWeight: 800,
             textAlign: "center",
             py: 2,
@@ -978,7 +970,7 @@ const AdminAccountsPage = () => {
             disabled={isSubmitting}
             sx={{
               fontWeight: 700,
-              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Nút bấm Cam
+              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
               px: 4,
               py: 1,
               borderRadius: 1,
@@ -996,7 +988,6 @@ const AdminAccountsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* CONFIRM DIALOG ĐỒNG BỘ */}
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}

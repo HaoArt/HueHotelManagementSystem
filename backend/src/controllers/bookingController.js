@@ -57,7 +57,7 @@ exports.createBooking = async (req, res) => {
       });
     }
 
-    // Dùng setHours để so sánh bỏ qua giờ/phút/giây, tránh lỗi đặt phòng trong ngày
+    // Dùng setHours tránh lỗi đặt phòng trong ngày
     if (
       new Date().setHours(0, 0, 0, 0) > new Date(check_in).setHours(0, 0, 0, 0)
     ) {
@@ -149,7 +149,6 @@ exports.createBooking = async (req, res) => {
     }
     // Tổng tiền sau khi cộng Lễ Tết
     let surchargeAmount = (baseTotal * totalSurchargePercent) / 100;
-    //Tổng tiền sau khi cộng phụ thu và dịch vụ
     let finalTotalAmount = baseTotal + surchargeAmount + servicesTotalAmount;
 
     // Lấy mức giảm giá theo rank
@@ -166,8 +165,6 @@ exports.createBooking = async (req, res) => {
 
     if (coupon_code) {
       const coupon = await Coupon.findByCode(coupon_code);
-
-      // Mã giảm giá
       if (!coupon || new Date() > new Date(coupon.expiry_date)) {
         await Room.updateStatus(selectedRoom.id, "Available");
         return res
@@ -245,7 +242,7 @@ exports.createBooking = async (req, res) => {
       }
       hold_until = holdTime;
     } else {
-      // Nếu khách thanh toán Online Lễ tết ép cọc 50%, bình thường cọc 30%
+      // Nếu khách thanh toán Online Lễ tết ép cọc 50%
       let depositRate = isHighSeason ? 0.5 : baseDepositRate;
       deposit_amount = finalTotalAmount * depositRate;
       initial_status = "Pending";
@@ -305,7 +302,7 @@ exports.createBooking = async (req, res) => {
       original_price: finalTotalAmount + totalDiscountAmount, // Tiền trước khi giảm
       discount: totalDiscountAmount,
       total_amount: finalTotalAmount, // Tiền cuối cùng khách phải chịu
-      deposit_required: deposit_amount, // Số tiền cọc cần chuyển ngay lúc này
+      deposit_required: deposit_amount, // Số tiền cọc cần chuyển ngay 
     });
   } catch (error) {
     console.error("Lỗi Controller Booking:", error);
@@ -324,8 +321,6 @@ exports.createWalkInBooking = async (req, res) => {
       deposit_amount,
       note,
     } = req.body;
-
-    // 1. Kiểm tra phòng
     const room = await Room.getById(room_id);
     if (!room) {
       return res
@@ -339,7 +334,6 @@ exports.createWalkInBooking = async (req, res) => {
       });
     }
 
-    // 2. Kiểm tra tài khoản
     let user_id;
     const existingUser = await User.findByPhone(phone);
 
@@ -350,7 +344,6 @@ exports.createWalkInBooking = async (req, res) => {
       user_id = await User.createGuestUser(full_name, phone, dummyEmail);
     }
 
-    // 3. Tính toán giá tiền
     const roomType = await RoomType.getById(room.room_type_id);
     const diffDays = Math.ceil(
       Math.abs(new Date(check_out) - new Date(check_in)) /
@@ -377,7 +370,6 @@ exports.createWalkInBooking = async (req, res) => {
 
     await Room.updateStatus(room.id, "Occupied");
 
-    // 6. Ghi audit log
     const adminId = req.user?.id || req.user?.userId || 1;
     const clientIp =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
@@ -616,8 +608,8 @@ exports.changeRoom = async (req, res) => {
 };
 exports.reassignRoomBeforeCheckIn = async (req, res) => {
   try {
-    const { id } = req.params; // ID của đơn đặt phòng (Booking)
-    const { new_room_id } = req.body; // ID phòng mới Lễ tân muốn đổi sang
+    const { id } = req.params; 
+    const { new_room_id } = req.body; 
 
     const booking = await Booking.getById(id);
     if (!booking) {
@@ -641,8 +633,6 @@ exports.reassignRoomBeforeCheckIn = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "Phòng mới không tồn tại!" });
     }
-
-    // Kiểm tra phòng mới bắt buộc phải đang trống
     if (newRoom.status !== "Available") {
       return res.status(400).json({
         status: "error",
@@ -650,7 +640,7 @@ exports.reassignRoomBeforeCheckIn = async (req, res) => {
       });
     }
 
-    // TÁCH LOGIC MODEL: Kiểm tra xem Lễ tân đang đổi cùng hạng hay nâng hạng (Free Upgrade)
+    // Kiểm tra xem Lễ tân đang đổi cùng hạng hay nâng hạng (Free Upgrade)
     if (newRoom.room_type_id !== booking.room_type_id) {
       //Nâng hạng: Giữ nguyên giá tiền, cập nhật cả phòng vật lý, hạng phòng mới và Ghi chú
       await Booking.upgradeRoomFree(id, new_room_id);
@@ -731,8 +721,6 @@ exports.cancelBooking = async (req, res) => {
       { status: "Cancelled", penalty: penaltyAmount },
       clientIp,
     );
-
-    // GỌI HÀM GỬI EMAIL THÔNG BÁO HỦY PHÒNG (Sửa lỗi số 1)
     const user = await User.findById(booking.user_id);
     if (user && user.email) {
       await emailService.sendCancellationEmail(
@@ -743,7 +731,7 @@ exports.cancelBooking = async (req, res) => {
       );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "OK",
       message: penaltyMessage,
       penalty_amount: penaltyAmount,
@@ -772,7 +760,7 @@ exports.downloadInvoice = async (req, res) => {
 
     const invoiceData = {
       booking_id: booking.id,
-      full_name: booking.full_name || "Khách vãng lai", // Đã fix lấy từ bảng users
+      full_name: booking.full_name || "Khách vãng lai", 
       check_in: checkInDate,
       check_out: checkOutDate,
       room_number: booking.room_number || "---",
@@ -782,13 +770,12 @@ exports.downloadInvoice = async (req, res) => {
       total_amount: parseFloat(booking.total_amount || 0),
     };
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
+    return res.setHeader("Content-Type", "application/pdf");
+    return res.setHeader(
       "Content-Disposition",
       `attachment; filename=Invoice-HueHotel-${id}.pdf`,
     );
 
-    // Bọc trong try-catch riêng để tránh crash server nếu pdfService có vấn đề
     try {
       pdfService.generateInvoicePDF(
         (chunk) => res.write(chunk),
@@ -798,7 +785,7 @@ exports.downloadInvoice = async (req, res) => {
     } catch (pdfError) {
       console.error("Lỗi sâu bên trong PDFService:", pdfError);
       if (!res.headersSent) {
-        res
+        return res
           .status(500)
           .json({ status: "error", message: "Lỗi thư viện tạo PDF" });
       }
@@ -806,7 +793,7 @@ exports.downloadInvoice = async (req, res) => {
   } catch (error) {
     console.error("Lỗi Controller downloadInvoice:", error);
     if (!res.headersSent) {
-      res.status(500).json({ status: "error", message: "Lỗi server" });
+      return res.status(500).json({ status: "error", message: "Lỗi server" });
     }
   }
 };
@@ -814,15 +801,15 @@ exports.getUserBookings = async (req, res) => {
   try {
     const user_id = req.user.id || req.user.userId;
     const bookings = await Booking.getByUserId(user_id);
-    res.status(200).json({ status: "OK", data: bookings });
+    return res.status(200).json({ status: "OK", data: bookings });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Lỗi server" });
+    return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
 
 exports.addReview = async (req, res) => {
   try {
-    const { id } = req.params; // booking_id
+    const { id } = req.params; 
     const { rating, comment } = req.body;
     const user_id = req.user.id || req.user.userId;
 
@@ -854,13 +841,13 @@ exports.addReview = async (req, res) => {
 
     await User.updateTrustScore(user_id, 5);
 
-    res.status(201).json({
+    return res.status(201).json({
       status: "OK",
       message: "Cảm ơn bạn đã đánh giá! Bạn được cộng 5 điểm tín nhiệm.",
     });
   } catch (error) {
     console.error("Lỗi đánh giá:", error);
-    res.status(500).json({ message: "Lỗi server" });
+    return res.status(500).json({ message: "Lỗi server" });
   }
 };
 
@@ -881,9 +868,9 @@ exports.getCurrentBookingByRoomId = async (req, res) => {
 exports.getAllBookingsAdmin = async (req, res) => {
   try {
     const bookings = await Booking.getAllForAdmin();
-    res.status(200).json({ status: "OK", data: bookings });
+    return res.status(200).json({ status: "OK", data: bookings });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Lỗi tải danh sách đơn" });
+    return res.status(500).json({ status: "error", message: "Lỗi tải danh sách đơn" });
   }
 };
 
@@ -900,23 +887,20 @@ exports.confirmDeposit = async (req, res) => {
 
     await Booking.updateStatus(id, "Confirmed");
 
-    // GỌI HÀM GỬI EMAIL XÁC NHẬN CỌC (Sửa lỗi số 1)
     const user = await User.findById(booking.user_id);
     if (user && user.email) {
       const emailService = require("../services/emailService");
       await emailService.sendDepositConfirmationEmail(
         user.email,
         user.full_name,
-        id,
-        booking.deposit_amount,
+        booking
       );
     }
-
-    res
+    return res
       .status(200)
       .json({ status: "OK", message: "Đã xác nhận tiền cọc thành công!" });
   } catch (error) {
     console.error("Lỗi confirmDeposit:", error);
-    res.status(500).json({ status: "error", message: "Lỗi server" });
+    return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };

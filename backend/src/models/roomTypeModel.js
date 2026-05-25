@@ -4,7 +4,7 @@ const RoomType = {
   getAll: async () => {
     const [roomTypes] = await db.query(`
       SELECT rt.*, 
-      (SELECT COUNT(id) FROM rooms WHERE room_type_id = rt.id AND status = 'Available') as available_count
+      (SELECT COUNT(id) FROM rooms WHERE room_type_id = rt.id AND status != 'Maintenance') as available_count
       FROM room_types rt ORDER BY created_at DESC`);
     const [allImages] = await db.query("SELECT * FROM room_images");
 
@@ -127,7 +127,7 @@ const RoomType = {
     if (check_in && check_out) {
       countQuery = `(
         SELECT COUNT(r.id) FROM rooms r
-        WHERE r.room_type_id = rt.id AND r.status = 'Available'
+        WHERE r.room_type_id = rt.id AND r.status != 'Maintenance'
         AND r.id NOT IN (
           SELECT room_id FROM bookings
           WHERE status NOT IN ('Cancelled', 'Checked_out')

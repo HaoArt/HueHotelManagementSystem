@@ -34,7 +34,6 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import SurchargeService from "../../services/surchargeService";
 
-// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY
 const COLORS = {
   primary: "#5e35b1",
   navy: "#0b1b3f",
@@ -46,7 +45,7 @@ const COLORS = {
   textMain: "#1a1a1a",
 };
 
-// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
+
 const glassCardSx = {
   borderRadius: 1,
   border: "1px solid rgba(255,255,255,0.4)",
@@ -227,7 +226,7 @@ const AdminPricingPage = () => {
             onClick={() => handleOpenDialog()}
             disableElevation
             sx={{
-              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Nút cam chuẩn
+              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", 
               fontWeight: 700,
               borderRadius: 1,
               textTransform: "none",
@@ -419,7 +418,7 @@ const AdminPricingPage = () => {
         </Paper>
       )}
 
-      {/* DIALOG THÊM / CẬP NHẬT */}
+
       <Dialog
         disableScrollLock={true}
         open={dialog.open}
@@ -439,7 +438,7 @@ const AdminPricingPage = () => {
           sx={{
             background: dialog.isEdit 
                 ? "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)" 
-                : "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", // Cam cho Thêm mới, Teal/Navy cho Cập nhật
+                : "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)", 
             color: "white",
             fontWeight: 800,
             textAlign: "center",

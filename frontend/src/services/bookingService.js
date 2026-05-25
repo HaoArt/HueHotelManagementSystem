@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import api from "./api"; // Axios instance của bạn
+import api from "./api"; 
 
 const BookingService = {
   createBooking: async (data) => {

@@ -30,7 +30,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ContactService from "../../services/contactService";
-import api from "../../services/api"; // Lấy instance api để gọi hàm read
+import api from "../../services/api";
 
 const COLORS = {
   primary: "#5e35b1",
@@ -48,7 +48,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -150,11 +151,11 @@ const AdminContacts = () => {
 
   const handleOpenDetail = async (item) => {
     setDetailDialog({ open: true, data: item });
-    // Nếu là thư 'New', tự động chuyển thành 'Read'
+
     if (item.status === "New") {
       try {
         await api.put(`/contacts/${item.id}/read`);
-        fetchContacts(); // Gọi lại để update màu Chip
+        fetchContacts();
       } catch (e) {
         console.error("Lỗi khi update status", e);
       }
@@ -373,10 +374,15 @@ const AdminContacts = () => {
                         borderBottom: "1px solid rgba(11,27,63,0.08)",
                         py: 1.5,
                       },
-                      bgcolor: item.status === "New" ? "rgba(211,47,47,0.05)" : "inherit",
+                      bgcolor:
+                        item.status === "New"
+                          ? "rgba(211,47,47,0.05)"
+                          : "inherit",
                       "&:nth-of-type(even)": {
                         backgroundColor:
-                          item.status === "New" ? "rgba(211,47,47,0.05)" : "rgba(11,27,63,0.015)",
+                          item.status === "New"
+                            ? "rgba(211,47,47,0.05)"
+                            : "rgba(11,27,63,0.015)",
                       },
                       "&:hover": {
                         bgcolor: "rgba(0,150,136,0.06)",
@@ -518,7 +524,6 @@ const AdminContacts = () => {
         </TableContainer>
       </Paper>
 
-      {/* DIALOG XEM CHI TIẾT */}
       <Dialog
         disableScrollLock={true}
         open={detailDialog.open}
@@ -628,7 +633,6 @@ const AdminContacts = () => {
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG TRẢ LỜI EMAIL */}
       <Dialog
         disableScrollLock={true}
         open={replyDialog.open}
@@ -713,7 +717,6 @@ const AdminContacts = () => {
         </DialogActions>
       </Dialog>
 
-      {/* CONFIRM DIALOG CHUNG */}
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}
@@ -752,7 +755,6 @@ const AdminContacts = () => {
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR THÔNG BÁO */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

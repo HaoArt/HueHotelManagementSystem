@@ -13,7 +13,6 @@ import {
   Slide,
 } from "@mui/material";
 
-// Icons
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
@@ -21,7 +20,6 @@ import SendIcon from "@mui/icons-material/Send";
 
 import ContactService from "../../services/contactService";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -33,13 +31,12 @@ const LUXURY = {
   softGray: "#D4D0C8",
 };
 
-// ĐÃ SỬA LẠI: Thêm viền xám nhẹ để ô nhập liệu không bị "tàng hình"
 const inputStyle = {
   "& .MuiOutlinedInput-root": {
     borderRadius: "12px",
     bgcolor: "#ffffff",
     transition: "all 0.3s ease",
-    "& fieldset": { borderColor: "#d1d5db", borderWidth: "1px" }, // Viền xám nhạt
+    "& fieldset": { borderColor: "#d1d5db", borderWidth: "1px" },
     "&:hover fieldset": { borderColor: LUXURY.gold },
     "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
   },
@@ -86,7 +83,6 @@ const Contact = () => {
     }
   };
 
-  // Component Thẻ thông tin
   const InfoCard = ({ icon, title, content }) => (
     <Paper
       elevation={0}
@@ -150,9 +146,7 @@ const Contact = () => {
     <Box
       sx={{ bgcolor: LUXURY.white, minHeight: "100vh", pb: { xs: 8, md: 12 } }}
     >
-      {/* =========================================================================
-          HERO HEADER SECTION
-         ========================================================================= */}
+      {/* Header */}
       <Box
         sx={{
           height: { xs: "40vh", md: "50vh" },
@@ -207,17 +201,14 @@ const Contact = () => {
       </Box>
 
       <Container maxWidth="lg">
-        {/* =========================================================================
-            BỐ CỤC CHÍNH BẰNG FLEXBOX (Đảm bảo Side-by-side trên Laptop)
-           ========================================================================= */}
         <Box
           sx={{
             display: "flex",
-            flexDirection: { xs: "column", md: "row" }, // Điện thoại dọc, Laptop ngang
+            flexDirection: { xs: "column", md: "row" },
             gap: { xs: 6, lg: 8 },
           }}
         >
-          {/* CỘT TRÁI: THÔNG TIN LIÊN HỆ */}
+          {/*Thông tin liên hệ */}
           <Slide direction="right" in={true} timeout={800}>
             <Box sx={{ flex: { xs: "1 1 100%", md: "0 0 40%" } }}>
               <Stack
@@ -266,7 +257,7 @@ const Contact = () => {
             </Box>
           </Slide>
 
-          {/* CỘT PHẢI: FORM LIÊN HỆ */}
+          {/* Form liên lạc */}
           <Slide direction="left" in={true} timeout={1000}>
             <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 0%" } }}>
               <Paper
@@ -320,8 +311,6 @@ const Contact = () => {
                     {success}
                   </Alert>
                 )}
-
-                {/* SỬ DỤNG STACK THAY VÌ GRID ĐỂ FORM KHÔNG BỊ VỠ */}
                 <Box component="form" onSubmit={handleSubmit}>
                   <Stack spacing={3}>
                     {/* Hàng 1: Tên & Email (Xếp ngang trên PC, Dọc trên Mobile) */}
@@ -347,7 +336,7 @@ const Contact = () => {
                       />
                     </Stack>
 
-                    {/* Hàng 2 & 3: Chủ đề & Nội dung */}
+                    {/* Chủ đề & Nội dung */}
                     <TextField
                       fullWidth
                       label="Chủ đề quan tâm"
@@ -368,8 +357,6 @@ const Contact = () => {
                       required
                       sx={inputStyle}
                     />
-
-                    {/* Nút Gửi */}
                     <Box sx={{ mt: 2 }}>
                       <Button
                         type="submit"
@@ -403,9 +390,7 @@ const Contact = () => {
           </Slide>
         </Box>
 
-        {/* =========================================================================
-            KHU VỰC BẢN ĐỒ
-           ========================================================================= */}
+        {/* Map */}
         <Fade in={true} timeout={1200}>
           <Box sx={{ mt: { xs: 8, md: 12 } }}>
             <Box sx={{ textAlign: "center", mb: 6 }}>

@@ -38,7 +38,6 @@ import {
   Snackbar,
 } from "@mui/material";
 
-// Icons
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
@@ -54,7 +53,6 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 
-// Services
 import RoomService from "../../services/roomService";
 import BookingService from "../../services/bookingService";
 import FolioService from "../../services/folioService";
@@ -78,7 +76,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-2px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -150,10 +149,8 @@ const AdminRoomsPage = () => {
     onConfirm: null,
   });
 
-  // THÊM: STATE LƯU CÁC DỊCH VỤ ĐANG CHỜ PHỤC VỤ (CỦA TẤT CẢ CÁC PHÒNG)
   const [pendingOrders, setPendingOrders] = useState([]);
 
-  // HÀM QUÉT YÊU CẦU DỊCH VỤ TỪ KHÁCH HÀNG
   const fetchPendingOrders = async () => {
     try {
       const res = await FolioService.getPendingOrders();
@@ -377,7 +374,7 @@ const AdminRoomsPage = () => {
         severity: "success",
       });
       await reloadFolioData(currentBooking.id, currentBooking.total_amount);
-      await fetchPendingOrders(); // Cập nhật lại số lượng chuông cảnh báo ở ngoài
+      await fetchPendingOrders();
     } catch (error) {
       setSnackbar({ open: true, message: error.toString(), severity: "error" });
     }
@@ -646,7 +643,6 @@ const AdminRoomsPage = () => {
                   {groupedRooms[floor].map((room) => {
                     const config = getStatusConfig(room.status);
 
-                    // KIỂM TRA XEM PHÒNG NÀY CÓ ĐANG ORDER MÓN GÌ KHÔNG ĐỂ HIỆN CHUÔNG
                     const hasPendingOrder = pendingOrders.some(
                       (p) => p.room_number === room.room_number,
                     );
@@ -894,7 +890,7 @@ const AdminRoomsPage = () => {
         </TableContainer>
       )}
 
-      {/* DIALOG CHỈNH TRẠNG THÁI PHÒNG TRỐNG */}
+      {/* update trạng thái phòng */}
       <Dialog
         disableScrollLock={true}
         open={statusDialog.open}
@@ -969,8 +965,6 @@ const AdminRoomsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* DIALOG KHÁCH IN-HOUSE CÓ DỊCH VỤ */}
       <Dialog
         disableScrollLock={true}
         open={occupiedDialog.open}
@@ -1338,7 +1332,6 @@ const AdminRoomsPage = () => {
                   confirmColor: "success",
                   onConfirm: async () => {
                     try {
-                      // 1. Gọi API Check-out
                       await BookingService.checkOutBooking(currentBooking.id);
                       setSnackbar({
                         open: true,
@@ -1346,7 +1339,6 @@ const AdminRoomsPage = () => {
                         severity: "success",
                       });
 
-                      // 2. Kích hoạt tải PDF hóa đơn (Sửa lỗi số 3 - không in được hóa đơn ở sơ đồ phòng)
                       const blobData = await BookingService.downloadInvoice(
                         currentBooking.id,
                       );
@@ -1364,7 +1356,6 @@ const AdminRoomsPage = () => {
                       link.parentNode.removeChild(link);
                       window.URL.revokeObjectURL(url);
 
-                      // 3. Đóng popup và làm mới
                       setOccupiedDialog({ open: false, room: null });
                       fetchRoomsOnly();
                     } catch (error) {

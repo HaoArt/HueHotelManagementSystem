@@ -33,7 +33,6 @@ import {
 
 import AuthService from "../../services/authService";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -45,13 +44,12 @@ const LUXURY = {
   softGray: "#D4D0C8",
 };
 
-// Style cho ô nhập liệu chuẩn 5 sao (Đã thu gọn để tránh scroll)
 const inputStyle = {
   "& .MuiOutlinedInput-root": {
     borderRadius: "10px",
     bgcolor: LUXURY.offwhite,
     transition: "all 0.3s ease",
-    "& fieldset": { borderColor: "transparent" },
+    "& fieldset": { borderColor: LUXURY.softGray },
     "&:hover fieldset": { borderColor: `${LUXURY.gold}80` },
     "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
   },
@@ -84,7 +82,6 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // State cho quy định khách sạn
   const [agreed, setAgreed] = useState(false);
   const [openTerms, setOpenTerms] = useState(false);
 
@@ -176,9 +173,6 @@ const Register = () => {
         bgcolor: LUXURY.white,
       }}
     >
-      {/* =========================================================
-          CỘT TRÁI: HÌNH ẢNH BANNER (ZIGZAG)
-          ========================================================= */}
       <Box
         sx={{
           flex: { xs: "0", md: "1 1 50%" },
@@ -237,9 +231,6 @@ const Register = () => {
         </Box>
       </Box>
 
-      {/* =========================================================
-          CỘT PHẢI: FORM ĐĂNG KÝ (ĐÃ LÀM GỌN ANTI-SCROLL)
-          ========================================================= */}
       <Box
         sx={{
           flex: { xs: "1 1 100%", md: "1 1 50%" },
@@ -657,9 +648,6 @@ const Register = () => {
         </Fade>
       </Box>
 
-      {/* =========================================================
-          DIALOG: QUY ĐỊNH KHÁCH SẠN
-          ========================================================= */}
       <Dialog
         open={openTerms}
         onClose={() => setOpenTerms(false)}

@@ -37,7 +37,6 @@ import {
   TablePagination,
 } from "@mui/material";
 
-// Icons
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -51,7 +50,6 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import BookingService from "../../services/bookingService";
 import RoomService from "../../services/roomService";
 import FolioService from "../../services/folioService";
-// IMPORT THÊM USERSERVICE
 import UserService from "../../services/userService";
 
 const COLORS = {
@@ -422,7 +420,7 @@ const AdminBookingsPage = () => {
     }
   };
 
-  // TỰ ĐỘNG LẤY TÊN KHÁCH KHI LỄ TÂN NHẬP XONG SĐT
+  // Tự lấy thông tin khi nhập sđt
   const handlePhoneBlur = async () => {
     if (walkInForm.phone && walkInForm.phone.length >= 9) {
       try {
@@ -439,7 +437,10 @@ const AdminBookingsPage = () => {
           });
         }
       } catch (err) {
-        // Không làm gì nếu không tìm thấy (Khách mới)
+        throw (
+          err.response?.data?.message ||
+          "Lỗi khi tìm kiếm khách hàng theo số điện thoại"
+        );
       }
     }
   };
@@ -494,16 +495,14 @@ const AdminBookingsPage = () => {
       setIsSubmitting(false);
     }
   };
-  // Hàm mở hộp thoại đổi phòng và tải danh sách phòng khả dụng
+
   const handleOpenUpgradeDialog = async (booking) => {
     setSelectedBookingForUpgrade(booking);
     setSelectedNewRoomId("");
     try {
-      // Gọi RoomService lấy toàn bộ phòng trong hệ thống
       const res = await RoomService.getRooms();
       const roomsData = res.data || res;
 
-      // Lọc ra các phòng vật lý đang trống (Available)
       const emptyRooms = roomsData.filter((r) => r.status === "Available");
       setAvailableRoomsForUpgrade(emptyRooms);
       setUpgradeDialog(true);
@@ -516,7 +515,6 @@ const AdminBookingsPage = () => {
     }
   };
 
-  // Hàm xác nhận gửi yêu cầu nâng hạng/đổi phòng lên máy chủ
   const handleConfirmUpgrade = async () => {
     if (!selectedNewRoomId) {
       setSnackbar({
@@ -539,7 +537,6 @@ const AdminBookingsPage = () => {
       });
       setUpgradeDialog(false);
 
-      // Tải lại danh sách đơn đặt phòng để cập nhật dữ liệu mới nhất lên bảng
       if (typeof fetchBookings === "function") fetchBookings();
       else window.location.reload();
     } catch (err) {
@@ -575,7 +572,6 @@ const AdminBookingsPage = () => {
           "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
-      {/* HEADER VỚI NÚT BẤM KẾ BÊN TIÊU ĐỀ */}
       <Box
         sx={{
           display: "flex",
@@ -1026,7 +1022,7 @@ const AdminBookingsPage = () => {
             bgcolor: "rgba(255, 255, 255, 0.85)",
             color: COLORS.navy,
             fontWeight: "bold",
-            // Thanh Toolbar tổng của phân trang
+
             "& .MuiTablePagination-toolbar": {
               display: "flex",
               alignItems: "center",
@@ -1034,7 +1030,7 @@ const AdminBookingsPage = () => {
               minHeight: "56px !important",
               py: 0,
             },
-            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+
             "& .MuiTablePagination-selectLabel": {
               fontWeight: 700,
               color: "text.secondary",
@@ -1043,16 +1039,16 @@ const AdminBookingsPage = () => {
               display: "flex",
               alignItems: "center",
             },
-            // KHUNG BAO NGOÀI Ô SELECT (ĐÃ FIX: Bật flex căn tâm trục dọc để chống lệch hàng)
+
             "& .MuiTablePagination-input": {
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               marginRight: "20px",
               marginLeft: "8px",
-              height: "100%", // Đồng bộ chiều cao theo luồng chữ tĩnh
+              height: "100%",
             },
-            // CHÍNH XÁC Ô SELECT SỐ (ĐÃ FIX: Gỡ bỏ height cứng và padding sai lệch gây đè chữ)
+
             "& .MuiTablePagination-select": {
               fontWeight: 800,
               color: COLORS.primary,
@@ -1063,21 +1059,21 @@ const AdminBookingsPage = () => {
               alignItems: "center",
               justifyContent: "center",
               lineHeight: 1,
-              pt: "4px !important", // Căn đều khoảng cách trên dưới bằng padding nhạt
+              pt: "4px !important",
               pb: "4px !important",
-              pl: "12px !important", // Đảm bảo số không bị ép sát lề trái
-              pr: "32px !important", // Tạo khoảng trống an toàn bên phải cho icon mũi tên
+              pl: "12px !important",
+              pr: "32px !important",
               "&:focus": {
                 borderRadius: "8px",
               },
             },
-            // Định vị lại icon mũi tên nhỏ của ô select nằm chuẩn ở giữa
+
             "& .MuiTablePagination-selectIcon": {
               color: COLORS.primary,
               top: "calc(50% - 10px)",
               right: "4px",
             },
-            // Dòng chữ hiển thị "1-10 trong số 27"
+
             "& .MuiTablePagination-displayedRows": {
               fontWeight: 800,
               color: COLORS.navy,
@@ -1087,7 +1083,7 @@ const AdminBookingsPage = () => {
               display: "flex",
               alignItems: "center",
             },
-            // Cụm 2 nút bấm điều hướng trang (Mũi tên trái/phải)
+
             "& .MuiTablePagination-actions": {
               marginLeft: "16px",
               display: "inline-flex",
@@ -1124,7 +1120,6 @@ const AdminBookingsPage = () => {
         />
       </Paper>
 
-      {/* DIALOG: XÁC NHẬN CHUNG (CONFIRM) */}
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}
@@ -1172,7 +1167,6 @@ const AdminBookingsPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR THÔNG BÁO NỔI */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -1189,7 +1183,6 @@ const AdminBookingsPage = () => {
         </Alert>
       </Snackbar>
 
-      {/* DIALOG: XEM CHI TIẾT ĐƠN HÀNG */}
       <Dialog
         disableScrollLock={true}
         open={detailDialog.open}
@@ -1512,7 +1505,6 @@ const AdminBookingsPage = () => {
         )}
       </Dialog>
 
-      {/* DIALOG: TẠO ĐƠN KHÁCH WALK-IN */}
       <Dialog
         disableScrollLock={true}
         open={walkInDialog}
@@ -1560,7 +1552,6 @@ const AdminBookingsPage = () => {
             }}
           >
             <Grid container spacing={3}>
-              {/* CỘT 1: SỐ ĐIỆN THOẠI */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1589,7 +1580,6 @@ const AdminBookingsPage = () => {
                 />
               </Grid>
 
-              {/* CỘT 2: HỌ TÊN KHÁCH */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1617,7 +1607,6 @@ const AdminBookingsPage = () => {
                 />
               </Grid>
 
-              {/* HÀNG 2: CHỌN PHÒNG (CHIẾM 100% CHIỀU RỘNG) */}
               <Grid item xs={12}>
                 <Typography
                   variant="body2"
@@ -1650,7 +1639,6 @@ const AdminBookingsPage = () => {
                 </FormControl>
               </Grid>
 
-              {/* HÀNG 3: NGÀY NHẬN (LOCKED) */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1670,7 +1658,6 @@ const AdminBookingsPage = () => {
                 />
               </Grid>
 
-              {/* HÀNG 3: NGÀY TRẢ DỰ KIẾN */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1695,7 +1682,6 @@ const AdminBookingsPage = () => {
                 />
               </Grid>
 
-              {/* HÀNG 4: TIỀN ĐÃ THU */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1724,7 +1710,6 @@ const AdminBookingsPage = () => {
                 />
               </Grid>
 
-              {/* HÀNG 4: GHI CHÚ */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -1786,7 +1771,6 @@ const AdminBookingsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      {/* DIALOG GIAO DIỆN XỬ LÝ ĐỔI PHÒNG / NÂNG HẠNG MIỄN PHÍ */}
       <Dialog
         open={upgradeDialog}
         onClose={() => setUpgradeDialog(false)}

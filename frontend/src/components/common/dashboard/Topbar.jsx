@@ -10,14 +10,11 @@ import {
   Chip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-// import HotelRoundedIcon from "@mui/icons-material/HotelRounded";
 import { AuthContext } from "../../../context/AuthContext";
 
-// NHẬN PROPS isCollapsed ĐỂ TÍNH TOÁN WIDTH
 const Topbar = ({ handleDrawerToggle, isCollapsed }) => {
   const { user } = useContext(AuthContext);
 
-  // Xác định chính xác width giống với bên Sidebar
   const currentDrawerWidth = isCollapsed ? 92 : 284;
 
   return (
@@ -26,7 +23,6 @@ const Topbar = ({ handleDrawerToggle, isCollapsed }) => {
       sx={{
         width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
         ml: { sm: `${currentDrawerWidth}px` },
-        // THÊM TRANSITION ĐỂ TOPBAR CHUYỂN ĐỘNG MƯỢT MÀ CÙNG SIDEBAR
         transition: "width 0.24s ease, margin-left 0.24s ease",
         bgcolor: "rgba(255,255,255,0.86)",
         color: "text.primary",

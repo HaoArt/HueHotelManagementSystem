@@ -4,7 +4,7 @@ const brand = {
   teal: "#009688",
   navy: "#0b1b3f",
   white: "#ffffff",
-  gold: "#D4AF37", // Thêm màu gold nếu em muốn dùng ở nhiều nơi
+  gold: "#D4AF37", 
 };
 
 const surfaces = {
@@ -63,14 +63,9 @@ let theme = createTheme({
   shape: {
     borderRadius: radii.lg,
   },
-  // ==============================================================
-  // CẤU HÌNH FONT CHỮ CỐ ĐỊNH Ở ĐÂY
-  // ==============================================================
+
   typography: {
-    // Font mặc định cho toàn bộ văn bản (đoạn văn, button, label...)
     fontFamily: '"Inter", sans-serif',
-    
-    // Ép font Playfair Display cho toàn bộ thẻ Tiêu đề
     h1: {
       fontFamily: '"Playfair Display", serif',
       fontWeight: 800,

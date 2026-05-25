@@ -17,9 +17,9 @@ import {
   IconButton,
   Fade,
   Slide,
+  Snackbar,
 } from "@mui/material";
 
-// Icons
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
@@ -39,7 +39,6 @@ import StarIcon from "@mui/icons-material/Star";
 import { AuthContext } from "../../context/AuthContext";
 import RoomTypeService from "../../services/roomTypeService";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -65,6 +64,18 @@ const RoomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openGallery, setOpenGallery] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -87,8 +98,17 @@ const RoomDetail = () => {
 
   const handleBooking = () => {
     if (!user) {
-      alert("Vui lòng đăng nhập để thực hiện đặt phòng!");
-      return navigate("/login", { state: { from: location } });
+      setSnackbar({
+        open: true,
+        message: "Vui lòng đăng nhập để tiếp tục đặt phòng!",
+        severity: "warning",
+      });
+
+      setTimeout(() => {
+        navigate("/login", { state: { from: location } });
+      }, 1500);
+
+      return;
     }
     navigate("/booking", {
       state: {
@@ -150,7 +170,6 @@ const RoomDetail = () => {
     );
   }
 
-  // TỐI ƯU ẢNH CLOUDINARY
   const optimizeImageUrl = (url) => {
     if (!url) return FALLBACK_IMAGE;
     if (url.includes("cloudinary.com") && !url.includes("/upload/w_")) {
@@ -176,7 +195,6 @@ const RoomDetail = () => {
     Math.max(5, baseImages.length),
   );
 
-  // TẠO THẺ CHIP ĐỘNG
   const getDynamicChips = (roomName = "") => {
     const chips = [];
     const nameLower = roomName.toLowerCase();
@@ -221,7 +239,6 @@ const RoomDetail = () => {
       <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, sm: 3, md: 4 } }}>
         <Fade in={true} timeout={600}>
           <Box>
-            {/* BREADCRUMBS */}
             <Breadcrumbs
               separator={<NavigateNextIcon fontSize="small" />}
               sx={{
@@ -264,7 +281,7 @@ const RoomDetail = () => {
               </Typography>
             </Breadcrumbs>
 
-            {/* HEADER PHÒNG */}
+            {/* Header */}
             <Box
               sx={{
                 mb: 4,
@@ -331,9 +348,8 @@ const RoomDetail = () => {
               </Box>
             </Box>
 
-            {/* ============================================================== */}
-            {/* LƯỚI ẢNH (MASONRY GALLERY) - CHUẨN AIRBNB LUXE */}
-            {/* ============================================================== */}
+            {/* Lưới ảnh */}
+
             <Box sx={{ position: "relative", mb: { xs: 6, md: 8 } }}>
               <Box
                 sx={{
@@ -445,21 +461,17 @@ const RoomDetail = () => {
           </Box>
         </Fade>
 
-        {/* ============================================================== */}
-        {/* MAIN CONTENT VỚI FLEXBOX (RESPONSIVE CHUẨN) */}
-        {/* ============================================================== */}
         <Box
           sx={{
             display: "flex",
-            flexDirection: { xs: "column", md: "row" }, // Mobile dọc, Tablet/PC ngang
+            flexDirection: { xs: "column", md: "row" },
             gap: { xs: 4, lg: 8 },
-            alignItems: "flex-start", // Rất quan trọng để thẻ bên phải có thể trôi (sticky) được
+            alignItems: "flex-start",
           }}
         >
-          {/* CỘT TRÁI: THÔNG TIN CHI TIẾT */}
+          {/* Cột trái: thông tin chi tiết*/}
           <Slide direction="up" in={true} timeout={800}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              {/* THỐNG KÊ NHANH */}
               <Box
                 sx={{
                   display: "flex",
@@ -529,7 +541,6 @@ const RoomDetail = () => {
                 </Box>
               </Box>
 
-              {/* TỔNG QUAN */}
               <Box sx={{ mb: 6 }}>
                 <Typography
                   variant="h4"
@@ -556,7 +567,7 @@ const RoomDetail = () => {
                 </Typography>
               </Box>
 
-              {/* TIỆN NGHI */}
+              {/* Tiện nghi */}
               <Box sx={{ mb: 8 }}>
                 <Typography
                   variant="h4"
@@ -604,7 +615,7 @@ const RoomDetail = () => {
                 </Box>
               </Box>
 
-              {/* ĐÁNH GIÁ */}
+              {/* Đánh giá*/}
               <Box sx={{ pt: 6, borderTop: `1px solid ${LUXURY.softGray}` }}>
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}
@@ -719,13 +730,13 @@ const RoomDetail = () => {
             </Box>
           </Slide>
 
-          {/* CỘT PHẢI: FLOATING BOOKING CARD */}
+          {/* Cột phải: booking card */}
           <Slide direction="up" in={true} timeout={1000}>
             <Box
               sx={{
-                width: { xs: "100%", md: "360px", lg: "420px" }, // Giữ chiều rộng cố định trên PC
+                width: { xs: "100%", md: "360px", lg: "420px" },
                 flexShrink: 0,
-                position: { md: "sticky" }, // Trôi lơ lửng khi cuộn
+                position: { md: "sticky" },
                 top: 100,
               }}
             >
@@ -916,7 +927,7 @@ const RoomDetail = () => {
         </Box>
       </Box>
 
-      {/* DIALOG XEM TOÀN BỘ ẢNH */}
+      {/* xem toàn bộ ảnh */}
       <Dialog
         fullScreen
         open={openGallery}
@@ -972,6 +983,26 @@ const RoomDetail = () => {
           </Box>
         </Box>
       </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000} // Tự động biến mất sau 4 giây
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            borderRadius: "12px",
+            fontWeight: "600",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

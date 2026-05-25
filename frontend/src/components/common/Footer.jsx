@@ -9,7 +9,6 @@ import {
   Divider,
 } from "@mui/material";
 
-// Icons
 import FacebookIcon from "@mui/icons-material/Facebook";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import YouTubeIcon from "@mui/icons-material/YouTube";
@@ -18,7 +17,6 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import ConfigService from "../../services/configService";
 
-// LUXURY DESIGN TOKENS (Đồng bộ toàn hệ thống)
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -90,7 +88,6 @@ const Footer = () => {
             justifyContent: "space-between",
           }}
         >
-          {/* Ô 1: GIỚI THIỆU */}
           <Box sx={{ flex: 1.2 }}>
             <Typography
               variant="h4"
@@ -158,7 +155,6 @@ const Footer = () => {
             </Stack>
           </Box>
 
-          {/* Ô 2: LIÊN KẾT NHANH */}
           <Box sx={{ flex: 0.8 }}>
             <Typography
               variant="h6"
@@ -202,7 +198,6 @@ const Footer = () => {
             </Stack>
           </Box>
 
-          {/* Ô 3: THÔNG TIN LIÊN HỆ */}
           <Box sx={{ flex: 1 }}>
             <Typography
               variant="h6"
@@ -253,7 +248,6 @@ const Footer = () => {
 
         <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", my: 5 }} />
 
-        {/* BẢN QUYỀN */}
         <Box
           sx={{
             display: "flex",

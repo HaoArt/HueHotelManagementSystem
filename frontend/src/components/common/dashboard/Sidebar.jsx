@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-// Icons
+
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
@@ -36,7 +36,6 @@ import { AuthContext } from "../../../context/AuthContext";
 const drawerWidth = 284;
 const collapsedDrawerWidth = 92;
 
-// BẢNG MÀU VÀ THIẾT KẾ CỦA RIÊNG HÀO (GIỮ NGUYÊN 100%)
 const COLORS = {
   sidebarBg:
     "linear-gradient(180deg, rgba(11,27,63,0.94) 0%, rgba(14,34,76,0.92) 52%, rgba(10,22,51,0.95) 100%)",
@@ -117,7 +116,6 @@ const menuItems = [
   },
 ];
 
-// NHẬN isCollapsed VÀ setIsCollapsed TỪ COMPONENT CHA (DashboardLayout)
 const Sidebar = ({
   mobileOpen,
   handleDrawerToggle,
@@ -131,7 +129,7 @@ const Sidebar = ({
 
   const isCompactScreen = useMediaQuery(muiTheme.breakpoints.down("lg"));
 
-  // Tính toán trạng thái thu gọn cuối cùng để hiển thị
+
   const currentCollapsed = isCollapsed || isCompactScreen;
 
   const handleLogout = () => {
@@ -367,7 +365,7 @@ const Sidebar = ({
               variant="caption"
               display="block"
               color="rgba(255,255,255,0.5)"
-              mb={0.5} // ĐÃ FIX LỖI Ở ĐÂY
+              mb={0.5} 
             >
               Phiên bản hệ thống
             </Typography>

@@ -1,7 +1,6 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-// Kiểm tra môi trường
 const isLocal =
   process.env.DB_HOST === "localhost" || process.env.DB_HOST === "127.0.0.1";
 const pool = mysql.createPool({

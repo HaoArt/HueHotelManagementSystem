@@ -35,7 +35,6 @@ import {
   Slide,
 } from "@mui/material";
 
-// Icons
 import FilterListIcon from "@mui/icons-material/FilterList";
 import MailIcon from "@mui/icons-material/Mail";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -64,9 +63,6 @@ import UserService from "../../services/userService";
 import ServiceService from "../../services/serviceService";
 import FolioService from "../../services/folioService";
 
-// =========================================================================
-// LUXURY DESIGN TOKENS
-// =========================================================================
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -110,7 +106,7 @@ const Profile = () => {
   const [sysConfigs, setSysConfigs] = useState({});
 
   const [bookings, setBookings] = useState([]);
-  const [filterStatus, setFilterStatus] = useState("All"); // THÊM STATE CHO BỘ LỌC
+  const [filterStatus, setFilterStatus] = useState("All");
   const [availableServices, setAvailableServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -176,7 +172,6 @@ const Profile = () => {
     };
   }, [profileData]);
 
-  // LỌC DANH SÁCH BOOKING THEO TRẠNG THÁI
   const filteredBookings = useMemo(() => {
     if (filterStatus === "All") return bookings;
     return bookings.filter((b) => b.status === filterStatus);
@@ -187,13 +182,12 @@ const Profile = () => {
       setLoading(true);
       setGlobalError("");
 
-      // Thêm ConfigService.getConfigs() vào Promise.all
       const [profileRes, bookingsRes, servicesRes, configRes] =
         await Promise.all([
           UserService.getProfile(),
           BookingService.getUserBookings(),
           ServiceService.getAllServices(),
-          ConfigService.getConfigs(), // <--- THÊM VÀO ĐÂY
+          ConfigService.getConfigs(),
         ]);
 
       const { userInfo, rank } = profileRes.data || profileRes;
@@ -342,7 +336,7 @@ const Profile = () => {
       const res = await BookingService.cancelBooking(cancelModal.bookingId);
       setGlobalSuccess(res.message || "Đã hủy đơn thành công.");
       setCancelModal({ open: false, bookingId: null });
-      fetchData(); // Tải lại danh sách
+      fetchData();
     } catch (err) {
       setGlobalError(
         err.response?.data?.message || err.toString() || "Lỗi khi hủy đơn.",
@@ -520,9 +514,7 @@ const Profile = () => {
             alignItems: "flex-start",
           }}
         >
-          {/* =========================================================================
-              CỘT TRÁI: THÔNG TIN CÁ NHÂN & THẺ THÀNH VIÊN VIP
-             ========================================================================= */}
+          {/*Thông tin cá nhân*/}
           <Box
             sx={{
               width: { xs: "100%", md: "360px" },
@@ -533,7 +525,7 @@ const Profile = () => {
           >
             <Slide direction="right" in={true} timeout={600}>
               <Box>
-                {/* 1. THẺ HẠNG THÀNH VIÊN (VIP CARD) */}
+                {/* 1. Rank */}
                 <Paper
                   elevation={0}
                   sx={{
@@ -629,7 +621,7 @@ const Profile = () => {
                   />
                 </Paper>
 
-                {/* 2. THÔNG TIN HỒ SƠ CHÍNH */}
+                {/* Thông tin*/}
                 <Paper
                   elevation={0}
                   sx={{
@@ -868,9 +860,7 @@ const Profile = () => {
             </Slide>
           </Box>
 
-          {/* =========================================================================
-              CỘT PHẢI: LỊCH SỬ ĐẶT PHÒNG
-             ========================================================================= */}
+          {/* Lịch sử đặt phòng */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Slide direction="left" in={true} timeout={800}>
               <Box>
@@ -948,13 +938,12 @@ const Profile = () => {
                     </Typography>
                   </Paper>
                 ) : (
-                  // BỌC TRONG BOX SCROLL CỐ ĐỊNH CHIỀU CAO
                   <Box
                     sx={{
                       maxHeight: { xs: "600px", md: "800px" },
                       overflowY: "auto",
                       pr: 1.5,
-                      mr: -1.5, // Kéo ra một chút để thanh scroll không đè vào thẻ
+                      mr: -1.5,
                       "&::-webkit-scrollbar": { width: "6px" },
                       "&::-webkit-scrollbar-track": {
                         background: "transparent",
@@ -1204,7 +1193,7 @@ const Profile = () => {
                                     startIcon={<CancelIcon />}
                                     onClick={() =>
                                       handleOpenCancelConfirm(booking.id)
-                                    } // <-- SỬA DÒNG NÀY
+                                    }
                                     disabled={isSubmitting}
                                     sx={{
                                       borderRadius: "10px",
@@ -1254,11 +1243,7 @@ const Profile = () => {
           </Box>
         </Box>
 
-        {/* ======================================================= */}
-        {/* MODALS - LUXURY RESTYLING */}
-        {/* ======================================================= */}
-
-        {/* 1. SỬA HỒ SƠ */}
+        {/* Update thông tin*/}
         <Dialog
           open={editModal}
           onClose={() => setEditModal(false)}
@@ -1491,7 +1476,7 @@ const Profile = () => {
           </DialogActions>
         </Dialog>
 
-        {/* 3. ĐÁNH GIÁ (REVIEW) */}
+        {/* Đánh giá */}
         <Dialog
           open={reviewModal.open}
           onClose={() => setReviewModal({ ...reviewModal, open: false })}
@@ -1574,7 +1559,7 @@ const Profile = () => {
           </DialogActions>
         </Dialog>
 
-        {/* 4. HOÁ ĐƠN DỊCH VỤ VÀ GỌI MÓN (FOLIO) */}
+        {/* 4.hóa đơn và dịch vụ */}
         <Dialog
           disableScrollLock={true}
           open={detailModal.open}
@@ -1952,7 +1937,7 @@ const Profile = () => {
             </Button>
           </DialogActions>
         </Dialog>
-        {/* 5. DIALOG HIỂN THỊ LẠI MÃ QR THANH TOÁN */}
+        {/* QR thanh toán */}
         <Dialog
           open={qrModal.open}
           onClose={() => setQrModal({ open: false, booking: null })}
@@ -2093,7 +2078,7 @@ const Profile = () => {
               fullWidth
               onClick={() => {
                 setQrModal({ open: false, booking: null });
-                fetchData(); // Load lại trạng thái xem lễ tân duyệt chưa
+                fetchData();
               }}
               sx={{
                 background: `linear-gradient(135deg, ${LUXURY.navy} 0%, #2a4374 100%)`,
@@ -2119,7 +2104,7 @@ const Profile = () => {
             sx={{
               fontWeight: "900",
               fontFamily: '"Playfair Display", serif',
-              color: "#dc2626", // Màu đỏ cảnh báo
+              color: "#dc2626",
               pt: 4,
               textAlign: "center",
               fontSize: "1.8rem",
@@ -2133,7 +2118,6 @@ const Profile = () => {
               <b>#{cancelModal.bookingId}</b> này không?
             </Typography>
 
-            {/* ALERT CỦA MATERIAL UI */}
             <Alert
               severity="warning"
               sx={{

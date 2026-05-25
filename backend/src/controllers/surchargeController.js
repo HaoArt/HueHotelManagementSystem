@@ -4,9 +4,9 @@ const Audit = require("../models/auditModel");
 exports.getAllRules = async (req, res) => {
   try {
     const rules = await Surcharge.getAll();
-    res.status(200).json({ status: "OK", data: rules });
+    return res.status(200).json({ status: "OK", data: rules });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi tải dữ liệu giá" });
+    return res.status(500).json({ message: "Lỗi tải dữ liệu giá" });
   }
 };
 
@@ -14,10 +14,7 @@ exports.createRule = async (req, res) => {
   try {
     const adminId = req.user.id || req.user.userId;
     const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
     const newId = await Surcharge.create(req.body);
-
-    // GHI AUDIT LOG
     await Audit.logAction(
       adminId,
       "CREATE_SEASONAL_PRICE",
@@ -27,11 +24,11 @@ exports.createRule = async (req, res) => {
       clientIp,
     );
 
-    res
+    return res
       .status(201)
       .json({ status: "OK", message: "Đã thiết lập cấu hình giá thành công!" });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi tạo cấu hình giá" });
+    return res.status(500).json({ message: "Lỗi tạo cấu hình giá" });
   }
 };
 
@@ -56,9 +53,9 @@ exports.updateRule = async (req, res) => {
       clientIp,
     );
 
-    res.status(200).json({ status: "OK", message: "Cập nhật thành công!" });
+    return res.status(200).json({ status: "OK", message: "Cập nhật thành công!" });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi cập nhật cấu hình" });
+    return res.status(500).json({ message: "Lỗi cập nhật cấu hình" });
   }
 };
 
@@ -83,8 +80,8 @@ exports.deleteRule = async (req, res) => {
       clientIp,
     );
 
-    res.status(200).json({ status: "OK", message: "Đã xóa cấu hình giá!" });
+    return res.status(200).json({ status: "OK", message: "Đã xóa cấu hình giá!" });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi xóa cấu hình" });
+    return res.status(500).json({ message: "Lỗi xóa cấu hình" });
   }
 };

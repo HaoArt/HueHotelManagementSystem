@@ -45,7 +45,6 @@ const AuthService = {
 
   verifyForgotPassword: async (data) => {
     try {
-      // data bao gồm: email, otp_code, new_password
       const response = await api.post("/auth/verify-forgot-password", data);
       return response.data;
     } catch (error) {

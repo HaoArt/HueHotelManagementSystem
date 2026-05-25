@@ -25,7 +25,6 @@ import {
   Chip,
 } from "@mui/material";
 
-// Icons
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,7 +32,6 @@ import RoomServiceIcon from "@mui/icons-material/RoomService";
 
 import ServiceService from "../../services/serviceService";
 
-// Đồng bộ Theme Colors
 const COLORS = {
   primary: "#5e35b1",
   teal: "#009688",
@@ -53,7 +51,8 @@ const glassCardSx = {
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   boxShadow: "0 12px 30px rgba(11, 27, 63, 0.1)",
-  transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
+  transition:
+    "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
   "&:hover": {
     transform: "translateY(-3px)",
     boxShadow: "0 18px 36px rgba(11, 27, 63, 0.15)",
@@ -78,7 +77,6 @@ const AdminServicesPage = () => {
     description: "",
   });
 
-  // --- STATE QUẢN LÝ SNACKBAR & CONFIRM DIALOG ---
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -236,7 +234,7 @@ const AdminServicesPage = () => {
           "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
-      {/* HEADER */}
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -310,13 +308,19 @@ const AdminServicesPage = () => {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "minmax(0, 2fr) minmax(0, 1fr)" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "minmax(0, 2fr) minmax(0, 1fr)",
+            },
             gap: 1.25,
             px: { xs: 1.25, sm: 1.5 },
             py: 1,
           }}
         >
-          <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", fontWeight: 600 }}
+          >
             Danh sách dịch vụ bổ sung cho khách lưu trú
           </Typography>
           <Typography
@@ -338,7 +342,6 @@ const AdminServicesPage = () => {
         </Alert>
       )}
 
-      {/* BẢNG DỮ LIỆU */}
       <TableContainer
         component={Paper}
         elevation={0}
@@ -368,13 +371,31 @@ const AdminServicesPage = () => {
               >
                 ID
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 TÊN DỊCH VỤ
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 GIÁ TIỀN
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: "white", letterSpacing: "0.03em" }}>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  letterSpacing: "0.03em",
+                }}
+              >
                 MÔ TẢ
               </TableCell>
               <TableCell
@@ -520,11 +541,9 @@ const AdminServicesPage = () => {
         </Table>
       </TableContainer>
 
-      {/* =============================================================== */}
-      {/* DIALOG THÊM / SỬA DỊCH VỤ */}
-      {/* =============================================================== */}
+      {/* Thêm dịch vụ*/}
       <Dialog
-        disableScrollLock={true} // Ngăn lỗi đơ trang
+        disableScrollLock={true} 
         open={dialog.open}
         onClose={handleCloseDialog}
         maxWidth="xs"
@@ -615,12 +634,8 @@ const AdminServicesPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* =============================================================== */}
-      {/* DIALOG XÁC NHẬN XÓA (THAY THẾ WINDOW.CONFIRM) */}
-      {/* =============================================================== */}
       <Dialog
-        disableScrollLock={true} // Ngăn lỗi đơ trang
+        disableScrollLock={true} 
         open={confirmDialog.open}
         onClose={() =>
           setConfirmDialog({
@@ -676,9 +691,6 @@ const AdminServicesPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* =============================================================== */}
-      {/* SNACKBAR THÔNG BÁO (THAY THẾ ALERT) */}
-      {/* =============================================================== */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

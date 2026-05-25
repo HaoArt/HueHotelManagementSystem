@@ -20,7 +20,6 @@ import {
   useScrollTrigger,
 } from "@mui/material";
 
-// Icons
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -32,7 +31,6 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { AuthContext } from "../../context/AuthContext";
 import ConfigService from "../../services/configService";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -54,7 +52,6 @@ const Header = () => {
   const [hotelName, setHotelName] = useState("HUẾ HOTEL");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Hiệu ứng mờ/đổ bóng khi cuộn trang
   const trigger = useScrollTrigger({
     disableHysteresis: true,
     threshold: 20,
@@ -83,7 +80,6 @@ const Header = () => {
     navigate("/");
   };
 
-  // Logic tạo style cho Link (Hiệu ứng gạch dưới bằng Vàng Gold)
   const getLinkStyle = (path) => {
     const isActive = location.pathname === path;
     return {
@@ -140,7 +136,6 @@ const Header = () => {
             disableGutters
             sx={{ height: 80, justifyContent: "space-between" }}
           >
-            {/* 1. BRAND LOGO */}
             <Typography
               component={Link}
               to="/"
@@ -158,7 +153,6 @@ const Header = () => {
               {hotelName.toUpperCase()}
             </Typography>
 
-            {/* 2. DESKTOP NAVIGATION */}
             <Box
               sx={{
                 display: { xs: "none", md: "flex" },
@@ -178,7 +172,6 @@ const Header = () => {
               ))}
             </Box>
 
-            {/* 3. USER ACTIONS & MOBILE TOGGLE */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               {user ? (
                 <Box
@@ -262,7 +255,6 @@ const Header = () => {
                 </Button>
               )}
 
-              {/* Mobile Hamburger Icon */}
               <IconButton
                 color="inherit"
                 edge="end"
@@ -273,7 +265,6 @@ const Header = () => {
               </IconButton>
             </Box>
 
-            {/* 4. USER DROPDOWN MENU */}
             <Menu
               anchorEl={anchorEl}
               open={open}
@@ -372,7 +363,6 @@ const Header = () => {
         </Container>
       </AppBar>
 
-      {/* 5. MOBILE DRAWER MENU */}
       <Drawer
         anchor="right"
         open={mobileOpen}

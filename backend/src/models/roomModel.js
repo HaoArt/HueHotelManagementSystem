@@ -18,7 +18,6 @@ const Room = {
     return rows;
   },
   updateStatus: async (roomId, status) => {
-    // status phải thuộc: Available, Occupied, Dirty, Maintenance [cite: 7, 8]
     return await db.query("UPDATE rooms SET status = ? WHERE id = ?", [
       status,
       roomId,

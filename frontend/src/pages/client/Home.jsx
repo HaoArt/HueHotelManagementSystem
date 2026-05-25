@@ -25,7 +25,6 @@ import { useNavigate, Link } from "react-router-dom";
 import SearchBar from "../../components/specific/SearchBar";
 import RoomCard from "../../components/specific/RoomCard";
 
-// Icons
 import PoolIcon from "@mui/icons-material/Pool";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import SpaIcon from "@mui/icons-material/Spa";
@@ -35,20 +34,17 @@ import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StarIcon from "@mui/icons-material/Star";
 
-// Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 
-// Services
 import couponService from "../../services/couponService";
 import RoomTypeService from "../../services/roomTypeService";
 import reviewService from "../../services/reviewService";
 import ConfigService from "../../services/configService";
 
-// Luxury Design Tokens
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -137,7 +133,6 @@ const Home = () => {
   };
 
   useEffect(() => {
-    // Delay animation khung hình chính một nhịp để Main Thread kịp vẽ DOM
     const mountTimer = setTimeout(() => setPageMounted(true), 100);
     return () => clearTimeout(mountTimer);
   }, []);
@@ -171,7 +166,7 @@ const Home = () => {
         setLoading(false);
         setTimeout(() => {
           setShowFacilities(true);
-        }, 800); // Trì hoãn 800ms
+        }, 800);
         setTimeout(() => {
           setShowReviews(true);
         }, 1200);
@@ -183,13 +178,10 @@ const Home = () => {
 
   return (
     <Box sx={{ bgcolor: LUXURY.white }}>
-      {/* =========================================================================
-          1. IMMERSIVE HERO SECTION
-         ========================================================================= */}
       <Box
         sx={{
           position: "relative",
-          height: { xs: "75vh", md: "90vh" }, // Tăng chiều cao xíu để SearchBar có chỗ đè lên
+          height: { xs: "75vh", md: "90vh" },
           backgroundImage: `linear-gradient(135deg, rgba(26,26,26,0.5), rgba(27,45,79,0.4)), url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1920&q=100")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -244,7 +236,7 @@ const Home = () => {
         sx={{
           position: "relative",
           zIndex: 10,
-          mt: { xs: -12, md: -8 }, // Âm margin để kéo nguyên khối đè lên ảnh
+          mt: { xs: -12, md: -8 },
           mb: { xs: 6, md: 8 },
           px: { xs: 2, md: 0 },
         }}
@@ -262,14 +254,12 @@ const Home = () => {
                 p: { xs: 2, md: 3 },
                 boxShadow: "0 20px 60px rgba(26,26,26,0.15)",
                 width: "100%",
-                willChange: "transform, opacity", // Ép trình duyệt dùng GPU để mượt hiệu ứng Blur
+                willChange: "transform, opacity",
                 transform: "translateZ(0)",
               }}
             >
-              {/* KHÔI PHỤC LẠI THANH TÌM KIẾM BỊ XÓA NHẦM */}
               <SearchBar onSearch={handleSearch} />
 
-              {/* TẬN DỤNG STATE ĐỂ HIỂN THỊ GIỜ NHẬN / TRẢ PHÒNG */}
               <Box sx={{ textAlign: "center", mt: 2.5 }}>
                 <Typography
                   variant="body2"
@@ -298,10 +288,7 @@ const Home = () => {
           </Container>
         </Slide>
       </Box>
-
-      {/* =========================================================================
-          3. PREMIUM OFFERS SECTION
-         ========================================================================= */}
+      {/* Thẻ giảm giá */}
       <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
         <Container maxWidth="lg">
           <Fade in={pageMounted} timeout={800}>
@@ -519,10 +506,7 @@ const Home = () => {
           )}
         </Container>
       </Box>
-
-      {/* =========================================================================
-          4. FEATURED ROOMS SECTION
-         ========================================================================= */}
+      {/* Phòng nổi bật  */}
       <Box
         sx={{
           py: { xs: 10, md: 12 },
@@ -626,9 +610,7 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* =========================================================================
-          5. ASYMMETRICAL FACILITIES SECTION
-         ========================================================================= */}
+      {/* Dịch vụ  nổi bật */}
       <Fade in={showFacilities} timeout={1000}>
         <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: LUXURY.white }}>
           <Container maxWidth="lg">
@@ -782,9 +764,7 @@ const Home = () => {
         </Box>
       </Fade>
 
-      {/* =========================================================================
-          6. GALLERY SECTION - MASONRY EDITORIAL
-         ========================================================================= */}
+      {/* Ảnh nổi bật */}
       <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: LUXURY.offwhite }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: "center", mb: { xs: 8, md: 10 } }}>
@@ -819,8 +799,6 @@ const Home = () => {
               Vẻ đẹp giao thoa giữa nét cổ kính và hơi thở hiện đại
             </Typography>
           </Box>
-
-          {/* Masonry-style gallery grid */}
           <Box
             sx={{
               display: "grid",
@@ -831,7 +809,6 @@ const Home = () => {
               gap: 3,
             }}
           >
-            {/* Large image - spans 8 columns */}
             <Fade in={pageMounted} timeout={800}>
               <Box
                 sx={{
@@ -873,7 +850,6 @@ const Home = () => {
               </Box>
             </Fade>
 
-            {/* Small images column - 4 columns */}
             <Box
               sx={{
                 gridColumn: { xs: "1 / -1", md: "9 / span 4" },
@@ -974,9 +950,7 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* =========================================================================
-          7. REVIEWS SECTION - LUXURY SWIPER CAROUSEL (KHÔI PHỤC LẠI CHO EM ĐÂY)
-         ========================================================================= */}
+      {/* Top đánh giá */}
       <Fade in={showReviews} timeout={1000}>
         <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: LUXURY.white }}>
           <Container maxWidth="lg">
@@ -1021,7 +995,7 @@ const Home = () => {
                 centeredSlides
                 slidesPerView="auto"
                 coverflowEffect={{
-                  rotate: 0, // Không xoay để sang trọng hơn
+                  rotate: 0,
                   stretch: 0,
                   depth: 100,
                   modifier: 2,
@@ -1030,7 +1004,7 @@ const Home = () => {
                 pagination={{ clickable: true }}
                 autoplay={{ delay: 4000, disableOnInteraction: false }}
                 className="mySwiper"
-                style={{ paddingBottom: "50px" }} // Tránh cắt pagination
+                style={{ paddingBottom: "50px" }}
               >
                 {topReviews.map((review, idx) => (
                   <SwiperSlide
@@ -1143,9 +1117,6 @@ const Home = () => {
         </Box>
       </Fade>
 
-      {/* =========================================================================
-          8. CTA SECTION
-         ========================================================================= */}
       <Box
         sx={{
           py: { xs: 10, md: 12 },

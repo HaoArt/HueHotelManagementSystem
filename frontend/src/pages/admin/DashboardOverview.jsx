@@ -16,7 +16,6 @@ import {
   Divider,
 } from "@mui/material";
 
-// Thư viện Recharts cho Biểu đồ
 import {
   ResponsiveContainer,
   AreaChart,
@@ -40,7 +39,6 @@ import GroupsIcon from "@mui/icons-material/Groups";
 
 import DashboardService from "../../services/dashboardService";
 
-// Đồng bộ bảng màu Admin
 const COLORS = {
   primary: "#5e35b1",
   teal: "#009688",
@@ -51,10 +49,10 @@ const COLORS = {
   bgLight: "#f4f6f8",
   textMain: "#1a1a1a",
   status: {
-    Available: "#009688", // Xanh ngọc
-    Occupied: "#5e35b1", // Tím
-    Dirty: "#ed6c02", // Cam
-    Maintenance: "#d32f2f", // Đỏ
+    Available: "#009688",
+    Occupied: "#5e35b1",
+    Dirty: "#ed6c02",
+    Maintenance: "#d32f2f",
   },
 };
 
@@ -181,7 +179,6 @@ const DashboardOverview = () => {
     }
   };
 
-  // ĐÃ FIX: Sửa lại giao diện Tooltip nhỏ gọn khi hover vào biểu đồ
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
@@ -226,7 +223,7 @@ const DashboardOverview = () => {
           "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
-      {/* HEADER */}
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -293,7 +290,7 @@ const DashboardOverview = () => {
         </Box>
       </Box>
 
-      {/* ROW 1: SUMMARY CARDS */}
+      {/*Card*/}
       <Box
         sx={{
           display: "grid",
@@ -386,7 +383,7 @@ const DashboardOverview = () => {
         ))}
       </Box>
 
-      {/* ROW 2: CHART (TRÁI) & STATUS + GOALS (PHẢI) BẰNG FLEXBOX */}
+      {/* Biểu đồ */}
       <Box
         sx={{
           display: "grid",
@@ -398,7 +395,6 @@ const DashboardOverview = () => {
           alignItems: "stretch",
         }}
       >
-        {/* CỘT TRÁI: BIỂU ĐỒ DOANH THU */}
         <Box
           sx={{
             minWidth: 0,
@@ -525,7 +521,7 @@ const DashboardOverview = () => {
           </Paper>
         </Box>
 
-        {/* CỘT PHẢI: PHÂN BỔ PHÒNG & MỤC TIÊU CA LÀM VIỆC */}
+        {/*Phân bổ trạng thái phòng */}
         <Box
           sx={{
             minWidth: 0,
@@ -643,7 +639,7 @@ const DashboardOverview = () => {
             </Stack>
           </Paper>
 
-          {/* WIDGET 2: MỤC TIÊU CA LÀM VIỆC */}
+         
           <Paper
             elevation={0}
             sx={{

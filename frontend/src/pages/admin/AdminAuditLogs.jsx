@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
-// src/pages/AdminAuditLogs.jsx
 import { useState, useEffect, useMemo } from "react";
 import {
   Box,
@@ -22,9 +21,8 @@ import {
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AuditService from "../../services/auditService";
 
-// Đồng bộ Theme Colors
 const COLORS = {
-  primary: "#5e35b1", // Tím chủ đạo
+  primary: "#5e35b1",
   navy: "#0b1b3f",
   teal: "#009688",
   bgLight: "#f4f6f8",
@@ -76,7 +74,6 @@ const AdminAuditLogs = () => {
     fetchLogs();
   }, []);
 
-  // Cập nhật thẻ Action Chip theo phong cách Flat Design, bo góc 4px
   const getActionChip = (action) => {
     switch (action) {
       case "WALK_IN_CHECKIN":
@@ -149,7 +146,6 @@ const AdminAuditLogs = () => {
     }
   };
 
-  // Helper function để parse JSON từ Database (old_value, new_value)
   const renderJsonData = (dataStr) => {
     if (!dataStr)
       return (
@@ -158,7 +154,6 @@ const AdminAuditLogs = () => {
         </Typography>
       );
     try {
-      // Thử parse xem có phải Object JSON không
       const parsed =
         typeof dataStr === "string" ? JSON.parse(dataStr) : dataStr;
 
@@ -168,7 +163,6 @@ const AdminAuditLogs = () => {
         </Box>
       ));
     } catch (e) {
-      // Nếu không phải JSON thì in ra chuỗi bình thường
       return <Typography variant="caption">{dataStr}</Typography>;
     }
   };
@@ -197,7 +191,6 @@ const AdminAuditLogs = () => {
           "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
       }}
     >
-      {/* HEADER */}
       <Box
         sx={{
           display: "flex",
@@ -265,7 +258,6 @@ const AdminAuditLogs = () => {
         </Alert>
       )}
 
-      {/* BẢNG DỮ LIỆU */}
       <Paper
         elevation={0}
         sx={{
@@ -456,15 +448,15 @@ const AdminAuditLogs = () => {
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]} // Audit log thường cần xem nhiều dòng hơn
+          rowsPerPageOptions={[10, 25, 50, 100]}
           component="div"
-          count={logs.length} // Tổng số lượng nhật ký
+          count={logs.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
           onRowsPerPageChange={(e) => {
             setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0); // Reset về trang đầu khi đổi số lượng hiển thị
+            setPage(0);
           }}
           labelRowsPerPage="Số dòng hiển thị:"
           labelDisplayedRows={({ from, to, count }) =>
@@ -475,7 +467,7 @@ const AdminAuditLogs = () => {
             bgcolor: "rgba(255, 255, 255, 0.85)",
             color: COLORS.navy,
             fontWeight: "bold",
-            // Thanh Toolbar tổng
+
             "& .MuiTablePagination-toolbar": {
               display: "flex",
               alignItems: "center",
@@ -483,7 +475,7 @@ const AdminAuditLogs = () => {
               minHeight: "56px !important",
               py: 0,
             },
-            // Nhãn chữ tĩnh "Số dòng hiển thị:"
+
             "& .MuiTablePagination-selectLabel": {
               fontWeight: 700,
               color: "text.secondary",
@@ -492,7 +484,7 @@ const AdminAuditLogs = () => {
               display: "flex",
               alignItems: "center",
             },
-            // Khung bao ngoài ô select số dòng
+
             "& .MuiTablePagination-input": {
               display: "inline-flex",
               alignItems: "center",
@@ -501,7 +493,7 @@ const AdminAuditLogs = () => {
               marginLeft: "8px",
               height: "100%",
             },
-            // Ô chọn số dòng hiển thị
+
             "& .MuiTablePagination-select": {
               fontWeight: 800,
               color: COLORS.primary,
@@ -515,18 +507,18 @@ const AdminAuditLogs = () => {
               pt: "4px !important",
               pb: "4px !important",
               pl: "12px !important",
-              pr: "32px !important", // Khoảng trống an toàn tránh đè icon mũi tên
+              pr: "32px !important",
               "&:focus": {
                 borderRadius: "8px",
               },
             },
-            // Icon mũi tên
+
             "& .MuiTablePagination-selectIcon": {
               color: COLORS.primary,
               top: "calc(50% - 10px)",
               right: "4px",
             },
-            // Dòng chữ hiển thị số trang
+
             "& .MuiTablePagination-displayedRows": {
               fontWeight: 800,
               color: COLORS.navy,
@@ -536,7 +528,7 @@ const AdminAuditLogs = () => {
               display: "flex",
               alignItems: "center",
             },
-            // Cụm 2 nút bấm điều hướng
+
             "& .MuiTablePagination-actions": {
               marginLeft: "16px",
               display: "inline-flex",

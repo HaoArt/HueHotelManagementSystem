@@ -52,11 +52,11 @@ exports.updateRoom = async (req, res) => {
     }
 
     await Room.update(id, { room_number, room_type_id, description });
-    res
+    return res
       .status(200)
       .json({ status: "OK", message: "Cập nhật phòng thành công!" });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    return res.status(500).json({ status: "error", message: error.message });
   }
 };
 exports.deleteRoom = async (req, res) => {

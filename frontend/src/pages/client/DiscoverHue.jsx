@@ -22,7 +22,6 @@ import {
   Slide,
 } from "@mui/material";
 
-// Icons
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
@@ -35,10 +34,8 @@ import DestinationService from "../../services/destinationService";
 import BookingService from "../../services/bookingService";
 import FolioService from "../../services/folioService";
 
-// Context kiểm tra đăng nhập
 import { AuthContext } from "../../context/AuthContext";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -106,17 +103,17 @@ const DiscoverHue = () => {
     }
   };
 
-  // Đồng bộ màu Badge với Luxury Theme
+
   const getCategoryColor = (category) => {
     switch (category) {
       case "Di tích":
         return LUXURY.navy;
       case "Ẩm thực":
-        return "#d84315"; // Cam sậm ấm áp
+        return "#d84315"; 
       case "Check-in":
         return LUXURY.gold;
       default:
-        return "#2e7d32"; // Xanh rêu
+        return "#2e7d32";
     }
   };
 
@@ -125,7 +122,7 @@ const DiscoverHue = () => {
       setIsSubmitting(true);
       await FolioService.orderService({
         booking_id: activeBooking.id,
-        service_id: 3, // Giả sử ID 3 là thuê xe máy
+        service_id: 3, 
         quantity: 1,
       });
       setSnackbar({
@@ -168,9 +165,7 @@ const DiscoverHue = () => {
         pb: { xs: 8, md: 12 },
       }}
     >
-      {/* =========================================================================
-          HERO HEADER SECTION - LUXURY STYLE
-         ========================================================================= */}
+      {/*Header */}
       <Box
         sx={{
           height: { xs: "50vh", md: "60vh" },
@@ -227,9 +222,7 @@ const DiscoverHue = () => {
       </Box>
 
       <Container maxWidth="lg">
-        {/* =========================================================================
-            LIST DESTINATIONS - EDITORIAL ZIG-ZAG LAYOUT
-           ========================================================================= */}
+
         <Grid container spacing={{ xs: 6, md: 8 }}>
           {destinations.map((place, index) => {
             const isImageLeft = index % 2 === 0;
@@ -268,7 +261,7 @@ const DiscoverHue = () => {
                     <Box
                       sx={{
                         width: { xs: "100%", md: "50%" },
-                        minHeight: { xs: 300, md: 380 }, // Ép chiều cao tối thiểu cho Card luôn đều và đẹp
+                        minHeight: { xs: 300, md: 380 }, 
                         flexShrink: 0,
                         overflow: "hidden",
                         position: "relative",
@@ -277,12 +270,12 @@ const DiscoverHue = () => {
                       <CardMedia
                         component="img"
                         sx={{
-                          position: "absolute", // Tách ảnh khỏi luồng flex để không bị phình to
+                          position: "absolute", 
                           top: 0,
                           left: 0,
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover", // Tự động cắt cúp ảnh cho vừa khung
+                          objectFit: "cover", 
                           transition:
                             "transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1)",
                         }}
@@ -426,9 +419,7 @@ const DiscoverHue = () => {
           })}
         </Grid>
 
-        {/* =========================================================================
-            DIALOG THUÊ XE MÁY TỰ ĐỘNG - LUXURY STYLE
-           ========================================================================= */}
+        {/* Cho thuê xe máy */}
         <Dialog
           disableScrollLock
           open={rentDialog.open}
@@ -536,7 +527,7 @@ const DiscoverHue = () => {
           </DialogActions>
         </Dialog>
 
-        {/* SNACKBAR */}
+       
         <Snackbar
           open={snackbar.open}
           autoHideDuration={4000}

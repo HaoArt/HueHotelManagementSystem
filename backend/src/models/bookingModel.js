@@ -6,7 +6,7 @@ const Booking = {
       `
       SELECT r.* FROM rooms r
       WHERE r.room_type_id = ? 
-      AND r.status = 'Available'
+      AND r.status != 'Maintenance'
       AND r.id NOT IN (
         SELECT room_id FROM bookings 
         WHERE status NOT IN ('Cancelled', 'Checked_out')
@@ -102,7 +102,7 @@ const Booking = {
   lockRoomOptimistic: async (roomId, currentVersion) => {
     const [result] = await db.query(
       `UPDATE rooms 
-       SET status = 'Pending', version = version + 1 
+       SET status = 'Occupied', version = version + 1 
        WHERE id = ? AND version = ?`,
       [roomId, currentVersion],
     );
@@ -199,6 +199,33 @@ const Booking = {
        WHERE id = ?`,
       [newRoomId, bookingId],
     );
+  },
+  getExpiredPendingBookings: async () => {
+    const [rows] = await db.query(`
+      SELECT id, room_id, user_id 
+      FROM bookings 
+      WHERE status = 'Pending' 
+      AND created_at <= NOW() - INTERVAL 15 MINUTE
+    `);
+    return rows;
+  },
+  getNoShowBookings: async () => {
+    const [rows] = await db.query(`
+      SELECT id, room_id, user_id 
+      FROM bookings 
+      WHERE status = 'Confirmed' AND hold_until <= NOW()
+    `);
+    return rows;
+  },
+  getUpcomingBookingsForReminder: async () => {
+    const [rows] = await db.query(`
+      SELECT b.id, b.check_in_date, b.hold_until, u.email, u.full_name
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      WHERE b.status = 'Confirmed' 
+      AND DATE(b.check_in_date) = DATE(DATE_ADD(NOW(), INTERVAL 1 DAY))
+    `);
+    return rows;
   },
 };
 

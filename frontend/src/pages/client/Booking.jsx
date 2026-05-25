@@ -36,7 +36,6 @@ import couponService from "../../services/couponService";
 import ConfigService from "../../services/configService";
 import { AuthContext } from "../../context/AuthContext";
 
-// Icons
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -48,7 +47,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PaymentIcon from "@mui/icons-material/Payment";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
-// LUXURY DESIGN TOKENS
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -114,10 +112,8 @@ const Booking = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
 
-  // STATE ĐỂ LƯU CẤU HÌNH TỪ BACKEND
   const [sysConfigs, setSysConfigs] = useState({});
 
-  // ĐƯA BIẾN NGƯỠNG THANH TOÁN RA NGOÀI ĐỂ JSX CÓ THỂ ĐỌC ĐƯỢC
   const HIGH_VALUE_THRESHOLD = sysConfigs.high_value_threshold
     ? parseFloat(sysConfigs.high_value_threshold)
     : 4000000;
@@ -243,7 +239,6 @@ const Booking = () => {
       if (discount > subTotal) discount = subTotal;
       const finalTotal = subTotal - discount;
 
-      // KIỂM TRA XEM CÓ BỊ BẮT BUỘC ĐẶT CỌC HAY KHÔNG
       const isHigh = finalTotal >= HIGH_VALUE_THRESHOLD;
 
       if (isHigh) {
@@ -361,7 +356,6 @@ const Booking = () => {
     borderRadius: "16px",
   };
 
-  // CẤU HÌNH NGÂN HÀNG CHO MÃ QR TỪ DATABASE
   const bankId = sysConfigs.bank_id || "MB";
   const bankAccount = sysConfigs.bank_account || "0866861876";
   const accountName = sysConfigs.bank_account_name
@@ -380,7 +374,6 @@ const Booking = () => {
       <Container maxWidth="lg">
         <Fade in={true} timeout={600}>
           <Box>
-            {/* BREADCRUMBS */}
             <Breadcrumbs
               separator={<NavigateNextIcon fontSize="small" />}
               sx={{
@@ -446,14 +439,9 @@ const Booking = () => {
             alignItems: "flex-start",
           }}
         >
-          {/* ============================================================== */}
-          {/* CỘT TRÁI: FORM ĐIỀN THÔNG TIN */}
-          {/* ============================================================== */}
           <Box sx={{ flex: { xs: "1 1 100%", lg: "1 1 0%" } }}>
             <Slide direction="right" in={true} timeout={800}>
               <Box>
-                {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT --- */}
-                {/* --- KHUNG 1: THÔNG TIN NGƯỜI ĐẶT (ĐÃ CHUYỂN SANG FLEXBOX & THÊM BORDER) --- */}
                 <Paper elevation={0} sx={paperSectionStyle}>
                   <Stack
                     direction="row"
@@ -476,12 +464,11 @@ const Booking = () => {
                     </Typography>
                   </Stack>
 
-                  {/* THAY GRID THÀNH BOX FLEX ĐỂ CÂN XỨNG TUYỆT ĐỐI */}
                   <Box
                     sx={{
                       display: "flex",
                       flexWrap: "wrap",
-                      gap: 3, // Khoảng cách giữa các ô input
+                      gap: 3,
                     }}
                   >
                     {/* Ô 1: Họ và tên (Chiếm 50% hàng) */}
@@ -509,13 +496,12 @@ const Booking = () => {
                             "& fieldset": {
                               borderColor: LUXURY.softGray,
                               borderWidth: "1px",
-                            }, // Thêm border tĩnh
+                            },
                           },
                         }}
                       />
                     </Box>
 
-                    {/* Ô 2: Số điện thoại (Chiếm 50% hàng) */}
                     <Box
                       sx={{
                         flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
@@ -541,14 +527,13 @@ const Booking = () => {
                         sx={{
                           ...inputStyle,
                           "& .MuiOutlinedInput-root fieldset": {
-                            borderColor: LUXURY.softGray, // Thêm border hiện rõ ràng
+                            borderColor: LUXURY.softGray,
                             borderWidth: "1px",
                           },
                         }}
                       />
                     </Box>
 
-                    {/* Ô 3: Ngày nhận phòng (Chiếm 50% hàng) */}
                     <Box
                       sx={{
                         flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
@@ -616,7 +601,6 @@ const Booking = () => {
                       />
                     </Box>
 
-                    {/* Ô 5: Yêu cầu đặc biệt (Bao trọn 100% hàng) */}
                     <Box sx={{ flex: "1 1 100%" }}>
                       <Typography
                         variant="body2"
@@ -648,7 +632,7 @@ const Booking = () => {
                   </Box>
                 </Paper>
 
-                {/* --- KHUNG 2: DỊCH VỤ ĐI KÈM --- */}
+                {/*Dịch vụ */}
                 <Paper elevation={0} sx={paperSectionStyle}>
                   <Stack
                     direction="row"
@@ -767,7 +751,7 @@ const Booking = () => {
                   </Stack>
                 </Paper>
 
-                {/* --- KHUNG 3: PHƯƠNG THỨC THANH TOÁN --- */}
+                {/* Thanh toán */}
                 <Paper elevation={0} sx={paperSectionStyle}>
                   <Stack
                     direction="row"
@@ -800,7 +784,7 @@ const Booking = () => {
                       })
                     }
                   >
-                    {/* TRẢ TRƯỚC ONLINE */}
+                    {/* Trả trước */}
                     <Box
                       sx={{
                         p: 3,
@@ -880,7 +864,7 @@ const Booking = () => {
                         )}
                     </Box>
 
-                    {/* TRẢ SAU TẠI QUẦY */}
+                    {/* Trả tại quầy */}
                     <Box
                       sx={{
                         p: 3,
@@ -941,9 +925,6 @@ const Booking = () => {
             </Slide>
           </Box>
 
-          {/* ============================================================== */}
-          {/* CỘT PHẢI: FLOATING SUMMARY CARD */}
-          {/* ============================================================== */}
           <Box
             sx={{
               width: { xs: "100%", md: "380px", lg: "450px" },
@@ -1186,9 +1167,7 @@ const Booking = () => {
         </Box>
       </Container>
 
-      {/* ======================================================= */}
-      {/* DIALOG CHUYỂN KHOẢN QR TỰ ĐỘNG THEO CONFIG */}
-      {/* ======================================================= */}
+      {/* QR code */}
       <Dialog
         open={qrDialogOpen}
         maxWidth="md"
@@ -1208,16 +1187,13 @@ const Booking = () => {
             sx={{
               display: "flex",
               flexDirection: { xs: "column", md: "row" },
-              alignItems: "stretch", // Đảm bảo 2 bên cao bằng nhau, không bị hở đáy
-              minHeight: { md: "480px" }, // Khống chế chiều cao vừa vặn khung hình
+              alignItems: "stretch",
+              minHeight: { md: "480px" },
             }}
           >
-            {/* =================================================== */}
-            {/* KHỐI TRÁI: QR & TRẠNG THÁI (Gom cụm, dùng Flexbox dọc) */}
-            {/* =================================================== */}
             <Box
               sx={{
-                flex: { xs: "1 1 auto", md: "0 0 42%" }, // Chiếm 42% chiều ngang cố định ở màn hình lớn
+                flex: { xs: "1 1 auto", md: "0 0 42%" },
                 bgcolor: LUXURY.offwhite,
                 p: { xs: 3, md: 4 },
                 display: "flex",
@@ -1257,7 +1233,7 @@ const Booking = () => {
                 đã được tạo.
               </Typography>
 
-              {/* Khung chứa QR thu nhỏ vừa vặn */}
+            
               <Box
                 sx={{
                   p: 1.5,
@@ -1294,21 +1270,18 @@ const Booking = () => {
               </Typography>
             </Box>
 
-            {/* =================================================== */}
-            {/* KHỐI PHẢI: CHI TIẾT VÀ NÚT BẤM (Dùng Flexbox dọc) */}
-            {/* =================================================== */}
             <Box
               sx={{
-                flex: 1, // Tự động lấp đầy phần còn lại (58%)
+                flex: 1,
                 p: { xs: 3.5, md: 4.5 },
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between", // Đẩy các phần ra sát cạnh để cân xứng, không lo khoảng trống dư
+                justifyContent: "space-between",
               }}
             >
-              {/* Stack quản lý khoảng cách giữa các hàng nội dung phía trên */}
+              
               <Stack spacing={2.5} sx={{ width: "100%" }}>
-                {/* Hàng số tiền */}
+      
                 <Box>
                   <Typography
                     variant="caption"
@@ -1331,7 +1304,6 @@ const Booking = () => {
                   </Typography>
                 </Box>
 
-                {/* Hàng Nội dung chuyển khoản */}
                 <Box>
                   <Typography
                     variant="caption"
@@ -1365,7 +1337,6 @@ const Booking = () => {
                   </Paper>
                 </Box>
 
-                {/* Khối cảnh báo thời gian */}
                 <Alert
                   severity="warning"
                   icon={
@@ -1388,7 +1359,6 @@ const Booking = () => {
                 </Alert>
               </Stack>
 
-              {/* Khối Nút bấm cố định ở đáy hộp thoại phải */}
               <Box sx={{ mt: 3 }}>
                 <Button
                   variant="contained"
@@ -1435,9 +1405,7 @@ const Booking = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ======================================================= */}
-      {/* DIALOG MÃ GIẢM GIÁ */}
-      {/* ======================================================= */}
+      {/* MÃ giảm giá*/}
       <Dialog
         open={couponDialogOpen}
         onClose={() => setCouponDialogOpen(false)}

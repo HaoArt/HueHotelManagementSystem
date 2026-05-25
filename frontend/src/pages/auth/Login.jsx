@@ -12,7 +12,7 @@ import {
   Fade,
 } from "@mui/material";
 
-// Icons
+
 import {
   Visibility,
   VisibilityOff,
@@ -25,7 +25,7 @@ import AuthService from "../../services/authService";
 import { jwtDecode } from "jwt-decode";
 import { AuthContext } from "../../context/AuthContext";
 
-// LUXURY DESIGN TOKENS (Đồng bộ toàn hệ thống)
+
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -37,13 +37,13 @@ const LUXURY = {
   softGray: "#D4D0C8",
 };
 
-// Style cho ô nhập liệu chuẩn 5 sao
+
 const inputStyle = {
   "& .MuiOutlinedInput-root": {
     borderRadius: "12px",
     bgcolor: LUXURY.offwhite,
     transition: "all 0.3s ease",
-    "& fieldset": { borderColor: "transparent" },
+    "& fieldset": { borderColor: "LUXURY.softGray" },
     "&:hover fieldset": { borderColor: `${LUXURY.gold}80` },
     "&.Mui-focused fieldset": { borderColor: LUXURY.gold, borderWidth: "2px" },
   },
@@ -99,7 +99,7 @@ const Login = () => {
       ) {
         navigate("/dashboard", { replace: true });
       } else {
-        // Nếu Khách hàng bị điều hướng nhầm vào dashboard, ép về Trang chủ
+  
         if (from.startsWith("/dashboard")) {
           navigate("/", { replace: true });
         } else {
@@ -117,7 +117,7 @@ const Login = () => {
   };
 
   return (
-    // Container bao bọc toàn bộ màn hình, sử dụng FLEXBOX
+
     <Box
       sx={{
         minHeight: "100vh",
@@ -126,9 +126,7 @@ const Login = () => {
         bgcolor: LUXURY.white,
       }}
     >
-      {/* =========================================================
-          CỘT TRÁI: FORM ĐĂNG NHẬP (Flex 50%)
-          ========================================================= */}
+
       <Box
         sx={{
           flex: { xs: "1 1 100%", md: "1 1 50%" },
@@ -151,8 +149,7 @@ const Login = () => {
               bgcolor: LUXURY.white,
             }}
           >
-            {/* NÚT QUAY LẠI TRANG CHỦ */}
-            <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 4 }}>
+                        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 4 }}>
               <Button
                 component={Link}
                 to="/"
@@ -208,7 +205,7 @@ const Login = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                sx={inputStyle}
+                sx={{ ...inputStyle, borderColor: LUXURY.gold }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -227,7 +224,7 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                sx={{ ...inputStyle, mt: 3 }}
+                sx={{ ...inputStyle, mt: 3, borderColor: LUXURY.gold }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -310,9 +307,7 @@ const Login = () => {
         </Fade>
       </Box>
 
-      {/* =========================================================
-          CỘT PHẢI: HÌNH ẢNH BANNER (Flex 50%, ẩn trên Mobile)
-          ========================================================= */}
+
       <Box
         sx={{
           flex: { xs: "0", md: "1 1 50%" },
@@ -324,8 +319,7 @@ const Login = () => {
           backgroundPosition: "center",
         }}
       >
-        {/* Lớp phủ Gradient chuẩn Luxury */}
-        <Box
+                <Box
           sx={{
             position: "absolute",
             inset: 0,

@@ -1,4 +1,3 @@
-// backend/src/controllers/auditController.js
 const Audit = require("../models/auditModel");
 
 exports.getAuditLogs = async (req, res) => {

@@ -19,7 +19,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 import ConfigService from "../../services/configService"; 
 
-// ĐỒNG BỘ BẢNG MÀU CHUẨN TỪ MẪU CỦA THẦY
+
 const COLORS = {
   primary: "#5e35b1",
   navy: "#0b1b3f",
@@ -31,7 +31,7 @@ const COLORS = {
   textMain: "#1a1a1a",
 };
 
-// HIỆU ỨNG GLASSMORPHISM SANG TRỌNG
+
 const glassCardSx = {
   borderRadius: 1,
   border: "1px solid rgba(255,255,255,0.4)",
@@ -158,7 +158,7 @@ const AdminSystemConfig = () => {
             disabled={isSubmitting}
             disableElevation
             sx={{
-              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", // Nút gradient đồng bộ
+              background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)", 
               fontWeight: 700,
               borderRadius: 1,
               textTransform: "none",
@@ -177,7 +177,6 @@ const AdminSystemConfig = () => {
         </Box>
       </Box>
 
-      {/* CONTAINER FORM GLASSMORPHISM */}
       <Paper
         elevation={0}
         sx={{
@@ -225,7 +224,7 @@ const AdminSystemConfig = () => {
                     placeholder={`Nhập ${config.display_name}...`}
                     helperText={config.description}
                     InputProps={{
-                      // Tự động thêm đơn vị % nếu là trường đặt cọc
+                    
                       endAdornment:
                         config.config_key === "deposit_percent" ? (
                           <InputAdornment position="end">
@@ -235,7 +234,7 @@ const AdminSystemConfig = () => {
                     }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        bgcolor: "rgba(255,255,255,0.9)", // Nền trắng nhẹ cho ô input
+                        bgcolor: "rgba(255,255,255,0.9)", 
                         borderRadius: 1,
                         transition: "all 0.2s ease",
                         "&:hover": {
@@ -243,7 +242,7 @@ const AdminSystemConfig = () => {
                         },
                         "&.Mui-focused": {
                           bgcolor: "#fff",
-                          boxShadow: "0 0 0 2px rgba(0, 150, 136, 0.2)" // Viền xanh teal khi focus
+                          boxShadow: "0 0 0 2px rgba(0, 150, 136, 0.2)"
                         }
                       }
                     }}
