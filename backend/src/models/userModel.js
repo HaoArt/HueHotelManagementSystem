@@ -108,6 +108,12 @@ const User = {
     );
     return rows[0];
   },
+  cleanupExpiredOTPs: async () => {
+    const [result] = await db.query(
+      "DELETE FROM pending_users WHERE otp_expiry < NOW()",
+    );
+    return result.affectedRows;
+  },
 };
 
 module.exports = User;

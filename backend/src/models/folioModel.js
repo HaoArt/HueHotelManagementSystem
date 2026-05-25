@@ -103,6 +103,16 @@ const Folio = {
     );
     return rows;
   },
+  getServicesByBookingId: async (booking_id) => {
+    const [rows] = await db.query(
+      `SELECT s.name as service_name, bs.quantity, s.price, bs.total_price as total 
+       FROM booking_services bs
+       JOIN services s ON bs.service_id = s.id
+       WHERE bs.booking_id = ?`,
+      [booking_id],
+    );
+    return rows;
+  },
 };
 
 module.exports = Folio;
