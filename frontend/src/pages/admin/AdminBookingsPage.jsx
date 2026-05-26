@@ -180,7 +180,10 @@ const AdminBookingsPage = () => {
       setPage(page - 1);
     }
   }, [paginatedBookings, page]);
-  const getStatusChip = (status) => {
+
+  const getStatusChip = (booking) => {
+    const { status, deposit_amount } = booking;
+
     switch (status) {
       case "Pending":
         return (
@@ -195,19 +198,21 @@ const AdminBookingsPage = () => {
             size="small"
           />
         );
-      case "Confirmed":
+      case "Confirmed": { 
+        const isDeposited = parseFloat(deposit_amount || 0) > 0;
         return (
           <Chip
-            label="Sắp đến (Đã cọc)"
+            label={isDeposited ? "Sắp đến (Đã cọc)" : "Sắp đến (Thu tại quầy)"}
             sx={{
-              bgcolor: "#e3f2fd",
-              color: "#1976d2",
+              bgcolor: isDeposited ? "#e3f2fd" : "#f3e8ff",
+              color: isDeposited ? "#1976d2" : "#7e22ce", 
               fontWeight: 700,
               borderRadius: 1,
             }}
             size="small"
           />
         );
+      } // THÊM ĐÓNG NGOẶC NHỌN TRƯỚC KHI SANG CASE KHÁC
       case "Checked_in":
         return (
           <Chip
@@ -887,7 +892,7 @@ const AdminBookingsPage = () => {
                         {parseFloat(b.deposit_amount || 0).toLocaleString()}đ
                       </Typography>
                     </TableCell>
-                    <TableCell>{getStatusChip(b.status)}</TableCell>
+                    <TableCell>{getStatusChip(b)}</TableCell>
                     <TableCell align="right">
                       <Stack
                         direction="row"

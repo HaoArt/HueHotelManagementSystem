@@ -619,7 +619,7 @@ exports.reassignRoomBeforeCheckIn = async (req, res) => {
       });
     }
 
-    // Chỉ cho phép đổi khi đơn hàng chưa Check-in
+    // Chỉ đổi khi đơn hàng chưa Check-in
     if (booking.status !== "Confirmed" && booking.status !== "Pending") {
       return res.status(400).json({
         status: "error",
@@ -640,12 +640,12 @@ exports.reassignRoomBeforeCheckIn = async (req, res) => {
       });
     }
 
-    // Kiểm tra xem Lễ tân đang đổi cùng hạng hay nâng hạng (Free Upgrade)
+   
     if (newRoom.room_type_id !== booking.room_type_id) {
-      //Nâng hạng: Giữ nguyên giá tiền, cập nhật cả phòng vật lý, hạng phòng mới và Ghi chú
+      // Nâng hạng
       await Booking.upgradeRoomFree(id, new_room_id);
     } else {
-      // cùng hạng: Chỉ cần cập nhật mã phòng vật lý
+      // Cùng hạng
       await Booking.updateRoomId(id, new_room_id);
     }
 
@@ -747,7 +747,6 @@ exports.downloadInvoice = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Gọi Model lấy thông tin đơn hàng
     const booking = await Booking.getById(id);
 
     if (!booking) {
