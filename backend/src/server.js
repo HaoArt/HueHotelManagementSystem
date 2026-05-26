@@ -26,7 +26,10 @@ const configRoutes = require("./routes/configRoutes");
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://hue-hotel-management-system.vercel.app",
+    ],
     credentials: true,
   }),
 );
