@@ -43,7 +43,7 @@ api.interceptors.response.use(
       }
       if (error.response.status === 403) {
         console.warn("Bạn không có quyền truy cập chức năng này!");
-        window.location.href = "/login";
+        window.location.href = "/";
       }
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
