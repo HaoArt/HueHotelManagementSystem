@@ -23,7 +23,6 @@ import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
-
 const LUXURY = {
   white: "#FAFAF9",
   offwhite: "#F8F8F6",
@@ -106,6 +105,7 @@ const Rooms = () => {
 
     setRoomTypes(sortedArray);
   }, [sortBy]);
+
   const getBadge = (room) => {
     if (room.available_count !== undefined && room.available_count !== null) {
       const count = Number(room.available_count);
@@ -114,19 +114,18 @@ const Rooms = () => {
         return {
           label: "Đã hết phòng",
           bgcolor: "#fef2f2",
-          color: "#dc2626", 
+          color: "#dc2626",
         };
       }
       if (count > 0 && count <= 2) {
         return {
           label: `Chỉ còn ${count} phòng`,
           bgcolor: "#fffbeb",
-          color: "#d97706", 
+          color: "#d97706",
         };
       }
     }
 
-   
     const roomName = (room.type_name || room.name || "").toLowerCase();
 
     if (roomName.includes("suite") || roomName.includes("vip")) {
@@ -179,7 +178,6 @@ const Rooms = () => {
 
   return (
     <Box sx={{ bgcolor: LUXURY.offwhite, minHeight: "100vh", pb: 12 }}>
-      {/* Hero banner*/}
       <Box
         sx={{
           height: { xs: "50vh", md: "60vh" },
@@ -244,10 +242,10 @@ const Rooms = () => {
             alignItems: "flex-start",
           }}
         >
-          {/* Search */}
           <Box
             sx={{
               flex: { xs: "1 1 100%", lg: "0 0 340px" },
+              width: "100%",
               position: { lg: "sticky" },
               top: 100,
               bgcolor: LUXURY.white,
@@ -281,9 +279,7 @@ const Rooms = () => {
             </Box>
           </Box>
 
-          {/* Rooms list*/}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* Top Bar Area */}
+          <Box sx={{ flex: 1, minWidth: 0, width: "100%" }}>
             <Box
               sx={{
                 display: "flex",
@@ -353,7 +349,6 @@ const Rooms = () => {
               </Box>
             </Box>
 
-            {/* Room Grid */}
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", my: 15 }}>
                 <CircularProgress sx={{ color: LUXURY.gold }} />
@@ -374,31 +369,41 @@ const Rooms = () => {
             ) : (
               <Box
                 sx={{
-                  display: "grid",
-                  gap: { xs: 4, md: 5 },
-                  gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: { xs: 3, md: 4 },
                 }}
               >
                 {roomTypes.map((room, index) => {
                   const badge = getBadge(room);
-                  const isSoldOut = Number(room.available_count) === 0; 
+                  const isSoldOut = Number(room.available_count) === 0;
 
                   return (
-                    <Fade in={true} timeout={600 + index * 100} key={room.id}>
-                      <Box
-                        sx={{
-                          opacity: isSoldOut ? 0.7 : 1,
-                          pointerEvents: isSoldOut ? "none" : "auto", 
-                          filter: isSoldOut ? "grayscale(80%)" : "none", 
-                        }}
-                      >
-                        <RoomCard
-                          room={room}
-                          badge={badge}
-                          description={room.description || ""}
-                        />
-                      </Box>
-                    </Fade>
+                    <Box
+                      key={room.id}
+                      sx={{
+                        width: {
+                          xs: "100%",
+                          md: "calc(50% - 16px)",
+                          xl: "calc(33.333% - 21.33px)",
+                        },
+                        display: "flex",
+                        flexDirection: "column",
+                        opacity: isSoldOut ? 0.7 : 1,
+                        pointerEvents: isSoldOut ? "none" : "auto",
+                        filter: isSoldOut ? "grayscale(80%)" : "none",
+                      }}
+                    >
+                      <Fade in={true} timeout={400 + index * 150}>
+                        <Box sx={{ height: "100%", width: "100%" }}>
+                          <RoomCard
+                            room={room}
+                            badge={badge}
+                            description={room.description || ""}
+                          />
+                        </Box>
+                      </Fade>
+                    </Box>
                   );
                 })}
               </Box>
