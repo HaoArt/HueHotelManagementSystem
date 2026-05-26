@@ -1081,7 +1081,6 @@ const Home = () => {
                             color: LUXURY.charcoal,
                           }}
                         >
-                          {console.log(review)}
                           {(review.author_name ||
                             review.customer_name ||
                             "K")[0].toUpperCase()}

@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const db = require("./config/db");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 require("./cron/holdRoomCron");
 require("./cron/reminderCron");
@@ -23,7 +24,13 @@ const destinationRoutes = require("./routes/destinationRoutes");
 const configRoutes = require("./routes/configRoutes");
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", UserRoutes);

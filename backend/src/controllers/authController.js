@@ -106,8 +106,19 @@ exports.login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "15m" },
     );
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" },
+    );
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     return res.status(200).json({
       status: "OK",
       message: "Đăng nhập thành công",
@@ -122,6 +133,56 @@ exports.login = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
+};
+
+exports.refreshToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({
+        status: "error",
+        message: "Phiên làm việc hết hạn, vui lòng đăng nhập lại!",
+      });
+    }
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          return res
+            .status(403)
+            .json({ status: "error", message: "Quyền truy cập không hợp lệ!" });
+        }
+        const user = await User.findById(decoded.id);
+        if (!user) {
+          return res
+            .status(404)
+            .json({ status: "error", message: "Người dùng không tồn tại!" });
+        }
+        const newAccessToken = jwt.sign(
+          { id: user.id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: "15m" },
+        );
+
+        return res.status(200).json({ status: "ok", token: newAccessToken });
+      },
+    );
+  } catch (error) {
+    console.error("Lỗi Refresh Token:", error);
+    return res.status(500).json({ status: "error", message: "Lỗi hệ thống" });
+  }
+};
+
+exports.logout = async (req, res) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  return res
+    .status(200)
+    .json({ status: "ok", message: "Đã đăng xuất hệ thống an toàn!" });
 };
 exports.forgotPassword = async (req, res) => {
   try {
