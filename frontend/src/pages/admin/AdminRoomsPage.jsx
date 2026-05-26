@@ -182,7 +182,7 @@ const AdminRoomsPage = () => {
       fetchPendingOrders();
       RoomService.getRooms()
         .then((res) => setRooms(res.data || res))
-        .catch((e) => console.log("Lỗi quét ngầm phòng:", e));
+        .catch((e) => e);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
