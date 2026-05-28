@@ -36,6 +36,8 @@ import {
   Chip,
   IconButton,
   Snackbar,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -135,6 +137,7 @@ const AdminRoomsPage = () => {
   const [serviceQty, setServiceQty] = useState(1);
   const [changeRoomDialog, setChangeRoomDialog] = useState(false);
   const [selectedNewRoom, setSelectedNewRoom] = useState("");
+  const [isFreeUpgrade, setIsFreeUpgrade] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -1304,7 +1307,11 @@ const AdminRoomsPage = () => {
               color="secondary"
               startIcon={<SwapHorizIcon />}
               disabled={!currentBooking}
-              onClick={() => setChangeRoomDialog(true)}
+              onClick={() => {
+                setChangeRoomDialog(true);
+                setIsFreeUpgrade(false);
+                setSelectedNewRoom("");
+              }}
               sx={buttonStyle}
             >
               Nâng cấp / Đổi phòng
@@ -1490,6 +1497,32 @@ const AdminRoomsPage = () => {
                 ))}
             </Select>
           </FormControl>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={isFreeUpgrade}
+                onChange={(e) => setIsFreeUpgrade(e.target.checked)}
+                color="warning"
+                sx={{ "&.Mui-checked": { color: "#d4af37" } }}
+              />
+            }
+            label={
+              <Typography
+                variant="body2"
+                fontWeight="bold"
+                color="text.primary"
+              >
+                Đổi/Nâng hạng phòng miễn phí (Không tính thêm tiền)
+              </Typography>
+            }
+            sx={{
+              mt: 2,
+              bgcolor: "#fff8e1",
+              p: 1,
+              borderRadius: 1,
+              border: "1px dashed #ffe082",
+            }}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
           <Button
@@ -1504,23 +1537,43 @@ const AdminRoomsPage = () => {
             color="secondary"
             sx={buttonStyle}
             onClick={async () => {
+              if (!selectedNewRoom) {
+                setSnackbar({
+                  open: true,
+                  message: "Vui lòng chọn phòng!",
+                  severity: "warning",
+                });
+                return;
+              }
+
               try {
+                // Truyền đúng 3 tham số rời rạc để khớp 100% với bookingService.js của em
                 await BookingService.changeRoom(
                   currentBooking.id,
                   selectedNewRoom,
+                  isFreeUpgrade,
                 );
+
+                // Đợi load xong dữ liệu mới đóng hộp thoại
+                await fetchRoomsOnly();
+
+                // Bật thông báo xanh
                 setSnackbar({
                   open: true,
-                  message: "Đổi phòng thành công!",
+                  message: isFreeUpgrade
+                    ? "Đã nâng hạng phòng miễn phí!"
+                    : "Đổi phòng thành công!",
                   severity: "success",
                 });
+
                 setChangeRoomDialog(false);
                 setOccupiedDialog({ open: false, room: null });
-                fetchRoomsOnly();
               } catch (error) {
                 setSnackbar({
                   open: true,
-                  message: "Lỗi: " + error,
+                  message:
+                    "Lỗi: " +
+                    (error.response?.data?.message || error.toString()),
                   severity: "error",
                 });
               }
