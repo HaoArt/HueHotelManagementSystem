@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import api from "./api"; 
+import api from "./api";
 
 const BookingService = {
   createBooking: async (data) => {
@@ -88,10 +88,11 @@ const BookingService = {
       throw error.response?.data?.message || "Lỗi tải thông tin khách đang ở";
     }
   },
-  changeRoom: async (bookingId, idNewRoom) => {
+  changeRoom: async (bookingId, idNewRoom, isFreeUpgrade) => {
     try {
       const response = await api.put(`/bookings/change-room/${bookingId}`, {
         idNewRoom,
+        isFreeUpgrade,
       });
       return response.data;
     } catch (error) {

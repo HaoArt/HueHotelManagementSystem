@@ -543,7 +543,7 @@ exports.checkOut = async (req, res) => {
 exports.changeRoom = async (req, res) => {
   try {
     const bookingId = req.params.id;
-    const { idNewRoom } = req.body;
+    const { idNewRoom, isFreeUpgrade = false } = req.body;
 
     const booking = await Booking.getById(bookingId);
     if (!booking) {
@@ -552,6 +552,7 @@ exports.changeRoom = async (req, res) => {
         message: "Không tìm thấy thông tin đặt phòng!",
       });
     }
+
     if (booking.status !== "Checked_in") {
       return res.status(400).json({
         status: "error",
@@ -559,8 +560,10 @@ exports.changeRoom = async (req, res) => {
           "Khách chưa Check-in nên không thể dùng chức năng Đổi phòng tại quầy!",
       });
     }
+
     const oldRoom = await Room.getById(booking.room_id);
     const newRoom = await Room.getById(idNewRoom);
+
     if (!oldRoom) {
       return res
         .status(404)
@@ -577,32 +580,51 @@ exports.changeRoom = async (req, res) => {
         message: "Trạng thái phòng này không khả dụng để chuyển sang!",
       });
     }
+
     const oldRoomType = await RoomType.getById(oldRoom.room_type_id);
     const newRoomType = await RoomType.getById(newRoom.room_type_id);
 
     let finalTotal = parseFloat(booking.total_amount);
 
-    if (oldRoomType.base_price !== newRoomType.base_price) {
+    if (oldRoomType.base_price !== newRoomType.base_price && !isFreeUpgrade) {
       const today = new Date();
       const checkOutDate = new Date(booking.check_out_date);
       const remainingTime = checkOutDate.getTime() - today.getTime();
       const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
+
       if (remainingDays > 0) {
         const oldRemainingCost = remainingDays * oldRoomType.base_price;
         const newRemainingCost = remainingDays * newRoomType.base_price;
         finalTotal = finalTotal - oldRemainingCost + newRemainingCost;
       }
     }
+
     await Room.updateStatus(oldRoom.id, "Dirty");
     await Room.updateStatus(newRoom.id, "Occupied");
-    await Booking.changeRoom(newRoom.id, finalTotal, bookingId);
     await Booking.changeRoom(bookingId, newRoom.id, finalTotal);
+
+    const actionUserId = req.user?.id || req.user?.userId;
+    const clientIp =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+
+    await Audit.logAction(
+      actionUserId,
+      isFreeUpgrade ? "FREE_UPGRADE_ROOM" : "CHANGE_ROOM",
+      bookingId,
+      { room: oldRoom.room_number, total_amount: booking.total_amount },
+      { room: newRoom.room_number, total_amount: finalTotal, isFreeUpgrade },
+      clientIp,
+    );
+
     return res.status(200).json({
       status: "ok",
-      message: "Chuyển phòng thành công!",
+      message: isFreeUpgrade
+        ? "Đã nâng hạng phòng miễn phí cho khách!"
+        : "Chuyển phòng thành công!",
       new_total_amount: finalTotal,
     });
   } catch (error) {
+    console.error("Lỗi changeRoom:", error);
     return res.status(500).json({ status: "error", message: "Lỗi server!" });
   }
 };
@@ -640,7 +662,6 @@ exports.reassignRoomBeforeCheckIn = async (req, res) => {
       });
     }
 
-   
     if (newRoom.room_type_id !== booking.room_type_id) {
       // Nâng hạng
       await Booking.upgradeRoomFree(id, new_room_id);

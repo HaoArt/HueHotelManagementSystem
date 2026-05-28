@@ -12,8 +12,21 @@ exports.getAllRules = async (req, res) => {
 
 exports.createRule = async (req, res) => {
   try {
+    const { start_date, end_date } = req.body; // Lấy thêm ngày để kiểm tra
     const adminId = req.user.id || req.user.userId;
     const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    // ✨ BỔ SUNG: Kiểm tra trùng lặp thời gian (Ánh xạ Ngoại lệ 2 của Use Case)
+    // Giả sử em sẽ viết thêm hàm checkOverlap trong Surcharge Model
+    const isOverlap = await Surcharge.checkOverlap(start_date, end_date);
+    if (isOverlap) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Đã có quy tắc giá áp dụng cho khoảng thời gian này, vui lòng chọn ngày khác.",
+      });
+    }
+
     const newId = await Surcharge.create(req.body);
     await Audit.logAction(
       adminId,
@@ -28,6 +41,7 @@ exports.createRule = async (req, res) => {
       .status(201)
       .json({ status: "OK", message: "Đã thiết lập cấu hình giá thành công!" });
   } catch (error) {
+    console.error("Lỗi tạo cấu hình giá:", error);
     return res.status(500).json({ message: "Lỗi tạo cấu hình giá" });
   }
 };
@@ -53,7 +67,9 @@ exports.updateRule = async (req, res) => {
       clientIp,
     );
 
-    return res.status(200).json({ status: "OK", message: "Cập nhật thành công!" });
+    return res
+      .status(200)
+      .json({ status: "OK", message: "Cập nhật thành công!" });
   } catch (error) {
     return res.status(500).json({ message: "Lỗi cập nhật cấu hình" });
   }
@@ -80,7 +96,9 @@ exports.deleteRule = async (req, res) => {
       clientIp,
     );
 
-    return res.status(200).json({ status: "OK", message: "Đã xóa cấu hình giá!" });
+    return res
+      .status(200)
+      .json({ status: "OK", message: "Đã xóa cấu hình giá!" });
   } catch (error) {
     return res.status(500).json({ message: "Lỗi xóa cấu hình" });
   }
