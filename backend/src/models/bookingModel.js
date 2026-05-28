@@ -83,7 +83,7 @@ const Booking = {
       [payment_status, id],
     );
   },
-  changeRoom: async (idNewRoom, booking_id, total_amount) => {
+  changeRoom: async (booking_id, idNewRoom, total_amount) => {
     return await db.query(
       "UPDATE bookings SET room_id = ?, total_amount = ? WHERE id = ?",
       [idNewRoom, total_amount, booking_id],

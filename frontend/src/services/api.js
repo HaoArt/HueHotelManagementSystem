@@ -45,9 +45,9 @@ api.interceptors.response.use(
         console.warn("Bạn không có quyền truy cập chức năng này!");
         window.location.href = "/";
       }
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
+      // if (window.location.pathname !== "/login") {
+      //   window.location.href = "/login";
+      // }
     }
     return Promise.reject(error);
   },
