@@ -1,16 +1,15 @@
 const Folio = require("../models/folioModel");
 const db = require("../config/db");
+const Service = require("../models/serviceModel");
+
 exports.orderService = async (req, res) => {
   try {
     const { booking_id, service_id, quantity } = req.body;
-    const [serviceRows] = await db.query(
-      "SELECT price FROM Services WHERE id = ?",
-      [service_id],
-    );
-    if (serviceRows.length === 0) {
+    const service = await Service.getById(service_id);
+    if (!service) {
       return res.status(404).json({ message: "Dịch vụ không tồn tại!" });
     }
-    const unit_price = serviceRows[0].price;
+    const unit_price = service.price;
     const total_price = unit_price * quantity;
     await Folio.addServiceToBooking(
       booking_id,
@@ -18,7 +17,6 @@ exports.orderService = async (req, res) => {
       quantity,
       total_price,
     );
-
     return res.status(201).json({
       status: "OK",
       message: "Thêm dịch vụ thành công!",
