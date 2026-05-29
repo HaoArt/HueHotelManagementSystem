@@ -170,7 +170,7 @@ const Home = () => {
 
   return (
     <Box sx={{ bgcolor: LUXURY.offwhite, overflowX: "hidden" }}>
-            <Box
+      <Box
         sx={{
           position: "relative",
           height: { xs: "75vh", md: "90vh" },
@@ -223,7 +223,7 @@ const Home = () => {
         </Container>
       </Box>
 
-            <Box
+      <Box
         sx={{
           position: "relative",
           zIndex: 10,
@@ -257,7 +257,7 @@ const Home = () => {
                   textAlign: "center",
                 }}
               >
-                                <Box
+                <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -295,7 +295,7 @@ const Home = () => {
                   </Typography>
                 </Box>
 
-                                <Box
+                <Box
                   sx={{
                     display: { xs: "none", sm: "block" },
                     color: LUXURY.softGray,
@@ -304,7 +304,7 @@ const Home = () => {
                   |
                 </Box>
 
-                                <Box
+                <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -340,7 +340,7 @@ const Home = () => {
         </Slide>
       </Box>
 
-            <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
         <Container maxWidth="lg">
           <Fade in={pageMounted} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
@@ -439,7 +439,7 @@ const Home = () => {
                             mb: 2,
                           }}
                         >
-                          {item.discount_type === "PERCENTAGE"
+                          {item.discount_type === "Percentage"
                             ? `Giảm ${parseFloat(item.discount_value)}%`
                             : `Giảm ${Number(item.discount_value).toLocaleString("vi-VN")}đ`}
                         </Typography>
@@ -506,7 +506,7 @@ const Home = () => {
         </Container>
       </Box>
 
-            <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
         <Container maxWidth="lg">
           <Fade in={pageMounted} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
@@ -603,7 +603,7 @@ const Home = () => {
         </Container>
       </Box>
 
-            <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
         <Container maxWidth="lg">
           <Fade in={showFacilities} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
@@ -709,7 +709,7 @@ const Home = () => {
         </Container>
       </Box>
 
-            <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.white }}>
         <Container maxWidth="lg">
           <Fade in={pageMounted} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 5, md: 6 } }}>
@@ -757,14 +757,14 @@ const Home = () => {
               gap: 1.5,
             }}
           >
-                        <Box
+            <Box
               sx={{
                 display: "flex",
                 flexDirection: { xs: "column", md: "row" },
                 gap: 1.5,
               }}
             >
-                            <Box
+              <Box
                 sx={{
                   width: {
                     xs: "100%",
@@ -797,7 +797,7 @@ const Home = () => {
                 />
               </Box>
 
-                            <Box
+              <Box
                 sx={{
                   width: {
                     xs: "100%",
@@ -842,7 +842,7 @@ const Home = () => {
               </Box>
             </Box>
 
-                        <Box
+            <Box
               sx={{
                 display: "flex",
                 flexDirection: { xs: "column", md: "row" },
@@ -884,7 +884,7 @@ const Home = () => {
           </Box>
         </Container>
       </Box>
-            <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: LUXURY.offwhite }}>
         <Container maxWidth="lg">
           <Fade in={showReviews} timeout={800}>
             <Box sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
@@ -1014,7 +1014,7 @@ const Home = () => {
         </Container>
       </Box>
 
-            <Box
+      <Box
         sx={{
           py: { xs: 8, md: 10 },
           bgcolor: "#242424",
