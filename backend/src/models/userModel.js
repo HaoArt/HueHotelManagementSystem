@@ -114,6 +114,41 @@ const User = {
     );
     return result.affectedRows;
   },
+  getPaginatedAccounts: async (limit, offset, search, role) => {
+    let query = `
+      SELECT id, full_name, email, phone, role, trust_score, status, created_at 
+      FROM users 
+      WHERE 1=1
+    `;
+    let countQuery = `
+      SELECT COUNT(id) as total 
+      FROM users 
+      WHERE 1=1
+    `;
+    let params = [];
+    if (role && role !== "All") {
+      query += ` AND role = ?`;
+      countQuery += ` AND role = ?`;
+      params.push(role);
+    }
+    if (search) {
+      query += ` AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ?)`;
+      countQuery += ` AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    query += ` ORDER BY CASE role WHEN 'Admin' THEN 1 WHEN 'Receptionist' THEN 2 ELSE 3 END, created_at DESC LIMIT ? OFFSET ?`;
+
+    const countParams = [...params];
+    params.push(limit, offset);
+
+    const [rows] = await db.query(query, params);
+    const [countRows] = await db.query(countQuery, countParams);
+
+    return {
+      data: rows,
+      totalRecords: countRows[0].total,
+    };
+  },
 };
 
 module.exports = User;

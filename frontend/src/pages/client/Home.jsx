@@ -956,6 +956,7 @@ const Home = () => {
                         mb: 2,
                       }}
                     />
+                    {console.log("Review data:", review)}
                     <Rating
                       value={review.rating || 5}
                       readOnly

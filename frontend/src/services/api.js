@@ -1,4 +1,8 @@
 import axios from "axios";
+
+let isRefreshing = false;
+let failedQueue = [];
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   timeout: 0,
@@ -17,28 +21,64 @@ api.interceptors.request.use(
   },
 );
 
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+    
     if (error.response) {
+      // 1. Bỏ qua nếu chính request lỗi là API đăng nhập hoặc refresh-token để tránh vòng lặp vô hạn
+      if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh-token')) {
+        return Promise.reject(error);
+      }
+
       if (error.response.status === 401 && !originalRequest._retry) {
+        // 2. Nếu đang trong quá trình Refresh Token, cho các API khác xếp hàng chờ
+        if (isRefreshing) {
+          return new Promise(function (resolve, reject) {
+            failedQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }).catch((err) => {
+            return Promise.reject(err);
+          });
+        }
+
         originalRequest._retry = true;
+        isRefreshing = true; // Bật khóa
+
         try {
           const res = await api.post("/auth/refresh-token");
           const newAccessToken = res.data.token;
           localStorage.setItem("token", newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          
+          processQueue(null, newAccessToken); // Giải phóng hàng đợi, cho các API chạy tiếp
           return api(originalRequest);
         } catch (refreshError) {
+          processQueue(refreshError, null); // Hủy hàng đợi nếu refresh thất bại
           console.warn("Phiên đăng nhập đã hết hạn hoàn toàn!");
           localStorage.removeItem("token");
           if (window.location.pathname !== "/login") {
             window.location.href = "/login";
           }
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false; // Mở khóa
         }
       }
       if (error.response.status === 403) {

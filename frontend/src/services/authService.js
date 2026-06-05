@@ -20,17 +20,12 @@ const AuthService = {
   },
 
   verifyAndCreate: async (email, otp_code) => {
-    try {
-      const response = await api.post("/auth/verify-register", {
-        email,
-        otp_code,
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data?.message || "Mã OTP không hợp lệ";
-    }
+    const response = await api.post("/auth/verify-register", {
+      email,
+      otp_code,
+    });
+    return response.data;
   },
-
 
   forgotPassword: async (email) => {
     try {

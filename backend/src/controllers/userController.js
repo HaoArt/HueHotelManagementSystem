@@ -3,8 +3,25 @@ const bcrypt = require("bcrypt");
 
 exports.getAllAccounts = async (req, res) => {
   try {
-    const accounts = await User.getAllAccounts();
-    return res.status(200).json({ status: "OK", data: accounts });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+    const role = req.query.role || "All";
+
+    const offset = (page - 1) * limit;
+
+    const result = await User.getPaginatedAccounts(limit, offset, search, role);
+
+    return res.status(200).json({
+      status: "OK",
+      data: result.data,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(result.totalRecords / limit),
+        totalRecords: result.totalRecords,
+        limit: limit,
+      },
+    });
   } catch (error) {
     return res
       .status(500)

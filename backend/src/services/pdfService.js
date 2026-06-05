@@ -152,7 +152,61 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
     let currentY = tableTop + 25;
     doc.fillColor(blackColor).font("Helvetica").fontSize(10);
 
-    doc.text(`Tien phong (Room Charge)`, 50, currentY);
+    let holiday = 0,
+      earlyIn = 0,
+      lateOut = 0,
+      overstay = 0,
+      changeRoom = 0;
+    const noteStr = invoiceData.note || "";
+
+    const hMatch = noteStr.match(/\[HolidaySurcharge:(\d+(?:\.\d+)?)\]/);
+    if (hMatch) holiday = parseFloat(hMatch[1]);
+
+    const eMatch = noteStr.match(/\[EarlyInSurcharge:(\d+(?:\.\d+)?)\]/);
+    if (eMatch) earlyIn = parseFloat(eMatch[1]);
+
+    const lMatches = [
+      ...noteStr.matchAll(/\[LateOutSurcharge:(\d+(?:\.\d+)?)\]/g),
+    ];
+    lMatches.forEach((m) => (lateOut += parseFloat(m[1])));
+
+    const oMatch = noteStr.match(/\[OverstaySurcharge:(\d+(?:\.\d+)?)\]/);
+    if (oMatch) overstay = parseFloat(oMatch[1]);
+
+    const cMatch = noteStr.match(/\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/);
+    if (cMatch) changeRoom = parseFloat(cMatch[1]);
+
+    let knownTotal = holiday + earlyIn + lateOut + overstay + changeRoom;
+    let roomTotal = Number(invoiceData.base_price) * invoiceData.total_days;
+    let roomGoc = roomTotal;
+    let fallback =
+      Number(invoiceData.total_amount) +
+      Number(invoiceData.discount) -
+      roomTotal -
+      knownTotal;
+
+    if (fallback < 0) {
+      roomGoc =
+        Number(invoiceData.total_amount) +
+        Number(invoiceData.discount) -
+        knownTotal;
+      fallback = 0;
+    }
+
+    let fallbackReason = "";
+    const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+    if (sysNotes && sysNotes.length > 0) {
+      fallbackReason = sysNotes
+        .map((n) => n.replace("[Hệ thống:", "").replace("]", "").trim())
+        .join("; ");
+    }
+
+    if (fallback > 0 && !fallbackReason) {
+      roomGoc += fallback;
+      fallback = 0;
+    }
+
+    doc.text(`Tien phong luu tru (Room Charge)`, 50, currentY);
     doc.text(`${invoiceData.total_days}`, 250, currentY, {
       width: 50,
       align: "center",
@@ -161,12 +215,12 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       width: 100,
       align: "right",
     });
-    const roomTotal = Number(invoiceData.base_price) * invoiceData.total_days;
-    doc.text(`${formatCurrency(roomTotal)}`, 430, currentY, {
+    doc.text(`${formatCurrency(roomGoc)}`, 430, currentY, {
       width: 115,
       align: "right",
     });
 
+    let servicesTotal = 0;
     if (invoiceData.services && invoiceData.services.length > 0) {
       invoiceData.services.forEach((svc) => {
         currentY += 20;
@@ -183,15 +237,68 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
           width: 115,
           align: "right",
         });
+        servicesTotal += Number(svc.total || 0);
       });
     }
 
-    if (invoiceData.surcharge > 0) {
+    if (holiday > 0) {
       currentY += 20;
-      doc.text("Phu thu (Surcharge / Penalty)", 50, currentY);
+      doc.text("Phu thu Le/Tet (Holiday)", 50, currentY);
       doc.text("-", 250, currentY, { width: 50, align: "center" });
       doc.text("-", 310, currentY, { width: 100, align: "right" });
-      doc.text(`${formatCurrency(invoiceData.surcharge)}`, 430, currentY, {
+      doc.text(`${formatCurrency(holiday)}`, 430, currentY, {
+        width: 115,
+        align: "right",
+      });
+    }
+    if (earlyIn > 0) {
+      currentY += 20;
+      doc.text("Phu thu Check-in som (Early In)", 50, currentY);
+      doc.text("-", 250, currentY, { width: 50, align: "center" });
+      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(`${formatCurrency(earlyIn)}`, 430, currentY, {
+        width: 115,
+        align: "right",
+      });
+    }
+    if (lateOut > 0) {
+      currentY += 20;
+      doc.text("Phu thu Check-out tre (Late Out)", 50, currentY);
+      doc.text("-", 250, currentY, { width: 50, align: "center" });
+      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(`${formatCurrency(lateOut)}`, 430, currentY, {
+        width: 115,
+        align: "right",
+      });
+    }
+    if (overstay > 0) {
+      currentY += 20;
+      doc.text("Phu thu o lo ngay (Overstay)", 50, currentY);
+      doc.text("-", 250, currentY, { width: 50, align: "center" });
+      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(`${formatCurrency(overstay)}`, 430, currentY, {
+        width: 115,
+        align: "right",
+      });
+    }
+    if (changeRoom !== 0) {
+      currentY += 20;
+      doc.text("Phi doi phong (Room Change)", 50, currentY);
+      doc.text("-", 250, currentY, { width: 50, align: "center" });
+      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(`${formatCurrency(changeRoom)}`, 430, currentY, {
+        width: 115,
+        align: "right",
+      });
+      if (changeRoom < 0) doc.fillColor("green");
+      else doc.fillColor(blackColor);
+    }
+    if (fallback > 0) {
+      currentY += 20;
+      doc.text("Phu thu khac (Surcharge)", 50, currentY);
+      doc.text("-", 250, currentY, { width: 50, align: "center" });
+      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(`${formatCurrency(fallback)}`, 430, currentY, {
         width: 115,
         align: "right",
       });
@@ -220,30 +327,70 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
 
     currentY += 15;
 
-    // Tiền đã cọc
+    // TỔNG CỘNG TOÀN BỘ HÓA ĐƠN
+    const grandTotal =
+      roomGoc +
+      knownTotal +
+      fallback +
+      servicesTotal -
+      Number(invoiceData.discount || 0);
+
+    doc.fillColor(primaryColor).font("Helvetica-Bold").fontSize(10);
+    doc.text("TONG HOA DON / GRAND TOTAL:", 150, currentY, {
+      width: 260,
+      align: "right",
+    });
+    doc.text(`${formatCurrency(grandTotal)}`, 430, currentY, {
+      width: 115,
+      align: "right",
+    });
+
+    currentY += 15;
+
+    // ĐÃ ĐẶT CỌC (Phải có dấu trừ)
     if (invoiceData.deposit_amount && invoiceData.deposit_amount > 0) {
-      doc.font("Helvetica").fontSize(10);
+      doc.fillColor(blackColor).font("Helvetica").fontSize(10);
       doc.text("Da dat coc / Deposit:", 200, currentY, {
         width: 210,
         align: "right",
       });
-      doc.text(`${formatCurrency(invoiceData.deposit_amount)}`, 430, currentY, {
-        width: 115,
-        align: "right",
-      });
+      doc.text(
+        `-${formatCurrency(invoiceData.deposit_amount)}`,
+        430,
+        currentY,
+        {
+          width: 115,
+          align: "right",
+        },
+      );
       currentY += 15;
     }
 
-    doc.fillColor(primaryColor).font("Helvetica-Bold").fontSize(12);
-    doc.text("TONG THANH TOAN / GRAND TOTAL:", 150, currentY, {
-      width: 260,
-      align: "right",
-    });
+    // CẦN THU THÊM HOẶC HOÀN TRẢ
+    const remainingAmount =
+      grandTotal - Number(invoiceData.deposit_amount || 0);
 
-    doc.rect(420, currentY - 5, 125, 20).fillAndStroke("#F5EEDB", accentColor);
+    // Đổi màu nền (Vàng nếu thu thêm, Xanh lá nếu hoàn tiền)
+    doc
+      .rect(420, currentY - 5, 125, 20)
+      .fillAndStroke(
+        remainingAmount > 0 ? "#F5EEDB" : "#e8f5e9",
+        remainingAmount > 0 ? accentColor : "#4caf50",
+      );
 
     doc.fillColor(blackColor).font("Helvetica-Bold").fontSize(12);
-    doc.text(`${formatCurrency(invoiceData.total_amount)}`, 430, currentY, {
+    doc.text(
+      remainingAmount > 0
+        ? "CAN THU THEM / AMOUNT DUE:"
+        : "HOAN TRA / REFUND DUE:",
+      150,
+      currentY,
+      {
+        width: 260,
+        align: "right",
+      },
+    );
+    doc.text(`${formatCurrency(Math.abs(remainingAmount))}`, 430, currentY, {
       width: 110,
       align: "right",
     });

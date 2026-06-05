@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo } from "react";
 import {
   Box,
@@ -17,8 +18,11 @@ import {
   Stack,
   Button,
   TablePagination,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
 import AuditService from "../../services/auditService";
 
 const COLORS = {
@@ -50,30 +54,43 @@ const AdminAuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ✨ STATE QUẢN LÝ PHÂN TRANG (Giữ nguyên của em, thêm totalRecords)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
 
+  // ✨ HÀM GỌI API ĐÃ ĐƯỢC TRUYỀN THAM SỐ XUỐNG BACKEND
   const fetchLogs = async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await AuditService.getLogs();
+      const res = await AuditService.getLogs(page + 1, rowsPerPage, searchTerm);
       setLogs(res.data || res);
+      setTotalRecords(res.pagination?.totalRecords || 0);
     } catch (err) {
-      setError(err);
+      setError(err.toString());
     } finally {
       setLoading(false);
     }
   };
-  const paginatedLogs = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return logs.slice(startIndex, startIndex + rowsPerPage);
-  }, [logs, page, rowsPerPage]);
 
+  // ✨ KÍCH HOẠT GỌI API KHI CHUYỂN TRANG / TÌM KIẾM
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchLogs();
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [page, rowsPerPage, searchTerm]);
 
+  // HÀM CỦA EM: Giữ nguyên
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(0);
+  };
+
+  // HÀM CỦA EM: Giữ nguyên
   const getActionChip = (action) => {
     switch (action) {
       case "WALK_IN_CHECKIN":
@@ -146,6 +163,7 @@ const AdminAuditLogs = () => {
     }
   };
 
+  // HÀM CỦA EM: Giữ nguyên
   const renderJsonData = (dataStr) => {
     if (!dataStr)
       return (
@@ -166,21 +184,6 @@ const AdminAuditLogs = () => {
       return <Typography variant="caption">{dataStr}</Typography>;
     }
   };
-
-  if (loading && logs.length === 0) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
-        }}
-      >
-        <CircularProgress sx={{ color: COLORS.teal }} />
-      </Box>
-    );
-  }
 
   return (
     <Box
@@ -215,12 +218,12 @@ const AdminAuditLogs = () => {
             Nhật Ký Hệ Thống (Audit Logs)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            Theo dõi 100 thao tác cập nhật gần nhất của Nhân viên và Khách hàng.
+            Theo dõi tất cả thao tác cập nhật của Nhân viên và Khách hàng.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.25} alignItems="center">
           <Chip
-            label={`${logs.length} bản ghi`}
+            label={`${totalRecords.toLocaleString()} bản ghi`}
             sx={{
               bgcolor: "rgba(255,255,255,0.78)",
               border: "1px solid rgba(11,27,63,0.12)",
@@ -234,7 +237,7 @@ const AdminAuditLogs = () => {
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}
-            onClick={fetchLogs}
+            onClick={() => fetchLogs()}
             disableElevation
             sx={{
               background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
@@ -267,6 +270,37 @@ const AdminAuditLogs = () => {
           bgcolor: "rgba(255,255,255,0.86)",
         }}
       >
+        {/* THANH TÌM KIẾM THEO GIAO DIỆN CHUẨN CỦA EM */}
+        <Box
+          sx={{
+            p: 2,
+            borderBottom: "1px solid rgba(11,27,63,0.1)",
+            bgcolor: "rgba(255,255,255,0.86)",
+          }}
+        >
+          <TextField
+            fullWidth
+            placeholder="Tìm theo tên nhân viên, thao tác hoặc mã đối tượng..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+              sx: {
+                borderRadius: 1,
+                bgcolor: "rgba(255,255,255,0.95)",
+                "& fieldset": { borderColor: "rgba(11,27,63,0.18)" },
+                "&:hover fieldset": { borderColor: "rgba(0,150,136,0.38)" },
+                "&.Mui-focused fieldset": { borderColor: COLORS.teal },
+              },
+            }}
+            size="small"
+          />
+        </Box>
+
         <TableContainer sx={{}}>
           <Table stickyHeader>
             <TableHead>
@@ -353,7 +387,13 @@ const AdminAuditLogs = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {logs.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <CircularProgress size={30} sx={{ color: COLORS.teal }} />
+                  </TableCell>
+                </TableRow>
+              ) : logs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">
@@ -362,7 +402,8 @@ const AdminAuditLogs = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedLogs.map((log) => (
+                /* ✨ ĐÃ SỬA: Map thẳng từ mảng logs, bỏ paginatedLogs */
+                logs.map((log) => (
                   <TableRow
                     key={log.id}
                     hover
@@ -447,10 +488,12 @@ const AdminAuditLogs = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* CSS CỦA THANH PHÂN TRANG ĐƯỢC GIỮ NGUYÊN 100% CỦA EM */}
         <TablePagination
           rowsPerPageOptions={[10, 25, 50, 100]}
           component="div"
-          count={logs.length}
+          count={totalRecords} // ✨ ĐÃ SỬA: Lấy từ biến của Server
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}

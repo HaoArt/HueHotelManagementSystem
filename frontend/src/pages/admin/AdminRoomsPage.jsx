@@ -54,6 +54,8 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import CancelIcon from "@mui/icons-material/Cancel";
+import WarningIcon from "@mui/icons-material/Warning";
 
 import RoomService from "../../services/roomService";
 import BookingService from "../../services/bookingService";
@@ -138,6 +140,8 @@ const AdminRoomsPage = () => {
   const [changeRoomDialog, setChangeRoomDialog] = useState(false);
   const [selectedNewRoom, setSelectedNewRoom] = useState("");
   const [isFreeUpgrade, setIsFreeUpgrade] = useState(false);
+  const [usageTime, setUsageTime] = useState("");
+  const [serviceNote, setServiceNote] = useState("");
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -341,26 +345,49 @@ const AdminRoomsPage = () => {
   };
 
   const handleAddServiceSubmit = async () => {
-    if (!selectedServiceId || serviceQty < 1)
+    if (!selectedServiceId || serviceQty < 1) {
       return setSnackbar({
         open: true,
         message: "Dữ liệu không hợp lệ!",
         severity: "warning",
       });
+    }
+
+    // 1. Tìm thông tin dịch vụ đang được chọn để biết nó thuộc loại nào
+    const selectedSvc = servicesList.find((s) => s.id === selectedServiceId);
+
+    // 2. Bắt lỗi: Nếu là dịch vụ Đặt trước (PreOrder) thì bắt buộc phải nhập giờ
+    if (selectedSvc?.service_type === "PreOrder" && !usageTime) {
+      return setSnackbar({
+        open: true,
+        message: "Vui lòng chọn thời gian hẹn phục vụ!",
+        severity: "warning",
+      });
+    }
+
     try {
+      // 3. Đóng gói dữ liệu gửi xuống API
       await FolioService.orderService({
         booking_id: currentBooking.id,
         service_id: selectedServiceId,
         quantity: serviceQty,
+        // Nếu là PreOrder thì gửi giờ lên, nếu là Immediate thì ép về null
+        usage_time: selectedSvc?.service_type === "PreOrder" ? usageTime : null,
+        note: serviceNote,
       });
+
+      // 4. Reset toàn bộ form về mặc định sau khi thành công
       setAddServiceDialog(false);
       setSelectedServiceId("");
       setServiceQty(1);
+      setUsageTime("");
+      setServiceNote("");
+
       await reloadFolioData(currentBooking.id, currentBooking.total_amount);
       await fetchPendingOrders();
       setSnackbar({
         open: true,
-        message: "Đã thêm dịch vụ!",
+        message: "Đã thêm dịch vụ thành công!",
         severity: "success",
       });
     } catch (error) {
@@ -380,6 +407,26 @@ const AdminRoomsPage = () => {
       await fetchPendingOrders();
     } catch (error) {
       setSnackbar({ open: true, message: error.toString(), severity: "error" });
+    }
+  };
+  const handleCancelFolioItem = async (itemId) => {
+    try {
+      const res = await FolioService.deleteFolioItem(itemId);
+      setSnackbar({
+        open: true,
+        message: res.message || "Đã xử lý yêu cầu hủy dịch vụ!",
+        severity:
+          res.message && res.message.includes("phạt") ? "warning" : "success",
+      });
+      await reloadFolioData(currentBooking.id, currentBooking.total_amount);
+      await fetchPendingOrders();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message:
+          "Lỗi khi hủy: " + (error.response?.data?.message || error.toString()),
+        severity: "error",
+      });
     }
   };
 
@@ -968,16 +1015,17 @@ const AdminRoomsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
       <Dialog
         disableScrollLock={true}
         open={occupiedDialog.open}
         onClose={() => setOccupiedDialog({ open: false, room: null })}
-        maxWidth="md"
+        maxWidth="lg" // ✨ Mở rộng Dialog ra một chút để chứa bảng kê chi tiết
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: "4px",
-            bgcolor: "#f8fbff",
+            borderRadius: "8px",
+            bgcolor: "#f1f5f9",
             border: "1px solid rgba(11,27,63,0.12)",
             boxShadow: "0 20px 44px rgba(11,27,63,0.22)",
           },
@@ -1006,7 +1054,7 @@ const AdminRoomsPage = () => {
             }}
           />
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, minHeight: 400 }}>
+        <DialogContent sx={{ pt: 3, minHeight: 500 }}>
           {loadingOccupied ? (
             <Box
               sx={{
@@ -1019,126 +1067,109 @@ const AdminRoomsPage = () => {
               <CircularProgress />
             </Box>
           ) : currentBooking ? (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={5}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    ...glassCardSx,
-                    p: 3,
-                    borderRadius: "4px",
-                    height: "100%",
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                    gutterBottom
-                    color={COLORS.navy}
-                  >
-                    Thông Tin Đơn Hàng #{currentBooking.id}
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Khách hàng:{" "}
-                    <b style={{ color: "#000" }}>
-                      {currentBooking.user_full_name}
-                    </b>
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    SĐT: <b style={{ color: "#000" }}>{currentBooking.phone}</b>
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Nhận phòng:{" "}
-                    <b style={{ color: "#000" }}>
-                      {new Date(
-                        currentBooking.check_in_date,
-                      ).toLocaleDateString("vi-VN")}
-                    </b>
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Trả phòng:{" "}
-                    <b style={{ color: "#000" }}>
-                      {new Date(
-                        currentBooking.check_out_date,
-                      ).toLocaleDateString("vi-VN")}
-                    </b>
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Tiền phòng:{" "}
-                    <b style={{ color: "#000" }}>
-                      {parseFloat(currentBooking.total_amount).toLocaleString()}{" "}
-                      đ
-                    </b>
-                  </Typography>
-                  <Box
-                    sx={{
-                      mt: 3,
-                      p: 2,
-                      bgcolor: "#fff3e0",
-                      borderRadius: "4px",
-                      border: "1px solid #ffe0b2",
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      color="warning.main"
-                      fontWeight="bold"
-                    >
-                      SỐ TIỀN ĐÃ CỌC/THANH TOÁN:
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      color="warning.main"
-                      fontWeight="bold"
-                    >
-                      {parseFloat(
-                        currentBooking.deposit_amount || 0,
-                      ).toLocaleString()}{" "}
-                      đ
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
+            (() => {
+              // ✨ BỘ TÍNH TOÁN TÀI CHÍNH MINH BẠCH
+              let holiday = 0,
+                earlyIn = 0,
+                lateOut = 0;
+              const noteStr = currentBooking.note || "";
+              const hMatch = noteStr.match(
+                /\[HolidaySurcharge:(\d+(?:\.\d+)?)\]/,
+              );
+              if (hMatch) holiday = parseFloat(hMatch[1]);
+              const eMatch = noteStr.match(
+                /\[EarlyInSurcharge:(\d+(?:\.\d+)?)\]/,
+              );
+              if (eMatch) earlyIn = parseFloat(eMatch[1]);
+              const lMatches = [
+                ...noteStr.matchAll(/\[LateOutSurcharge:(\d+(?:\.\d+)?)\]/g),
+              ];
+              lMatches.forEach((m) => (lateOut += parseFloat(m[1])));
 
-              <Grid item xs={12} md={7}>
-                <Paper
-                  elevation={0}
+              const knownTotal = holiday + earlyIn + lateOut;
+              const originalRoomTotal =
+                parseFloat(currentBooking.total_amount || 0) +
+                parseFloat(currentBooking.discount_amount || 0);
+
+              const checkIn = new Date(currentBooking.check_in_date);
+              const checkOut = new Date(currentBooking.check_out_date);
+              let totalDays =
+                Math.ceil(
+                  Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24),
+                ) || 1;
+
+              const rawRoomTotal =
+                parseFloat(currentBooking.base_price || 0) * totalDays;
+              let roomGoc = rawRoomTotal;
+              let fallback = originalRoomTotal - rawRoomTotal - knownTotal;
+
+              if (fallback < 0) {
+                roomGoc = originalRoomTotal - knownTotal;
+                fallback = 0;
+              }
+
+              let fallbackReason = "";
+              const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+              if (sysNotes && sysNotes.length > 0) {
+                fallbackReason = sysNotes
+                  .map((n) =>
+                    n.replace("[Hệ thống:", "").replace("]", "").trim(),
+                  )
+                  .join("; ");
+              }
+
+              if (fallback > 0 && !fallbackReason) {
+                roomGoc += fallback;
+                fallback = 0;
+              }
+
+              const activeSvcs = folioData.filter(
+                (s) => s.status !== "Cancelled",
+              );
+              const activeSvcsTotal = activeSvcs.reduce(
+                (sum, s) => sum + parseFloat(s.total_price || 0),
+                0,
+              );
+              const cancelledFeesTotal = folioData
+                .filter((s) => s.status === "Cancelled")
+                .reduce(
+                  (sum, s) => sum + parseFloat(s.cancellation_fee || 0),
+                  0,
+                );
+              const discountAmt = parseFloat(
+                currentBooking.discount_amount || 0,
+              );
+              const depositAmt = parseFloat(currentBooking.deposit_amount || 0);
+              const remainingAmt = totalFolioAmount - depositAmt;
+
+              // ✨ AI NHẬN DIỆN PHỤ THU TRỄ (LATE CHECKOUT)
+              const checkOutTime = new Date(currentBooking.check_out_date);
+              checkOutTime.setHours(12, 0, 0, 0); // Giờ checkout tiêu chuẩn 12h trưa
+              const nowTime = new Date();
+              const isLateCheckOut = nowTime > checkOutTime;
+              const lateHoursCount = isLateCheckOut
+                ? Math.ceil((nowTime - checkOutTime) / (1000 * 60 * 60))
+                : 0;
+
+              return (
+                <Box
                   sx={{
-                    ...glassCardSx,
-                    p: 3,
-                    borderRadius: "4px",
-                    height: "100%",
                     display: "flex",
-                    flexDirection: "column",
+                    flexDirection: { xs: "column", md: "row" },
+                    gap: 3,
+                    height: "100%",
                   }}
                 >
-                  <Box
+                  {/* CỘT TRÁI: THÔNG TIN VÀ DỊCH VỤ SỬ DỤNG */}
+                  <Paper
+                    elevation={0}
                     sx={{
+                      ...glassCardSx,
+                      p: 3,
+                      flex: 1,
+                      minWidth: 0,
                       display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 1,
+                      flexDirection: "column",
                     }}
                   >
                     <Typography
@@ -1146,140 +1177,714 @@ const AdminRoomsPage = () => {
                       fontWeight="bold"
                       color={COLORS.navy}
                     >
-                      Hóa Đơn Dịch Vụ (Folio)
+                      Thông Tin Đơn Hàng #{currentBooking.id}
                     </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<AddShoppingCartIcon />}
-                      onClick={() => setAddServiceDialog(true)}
+                    <Divider sx={{ mb: 2 }} />
+
+                    <Box
+                      sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}
+                    >
+                      <Chip
+                        icon={<PersonIcon />}
+                        label={currentBooking.user_full_name}
+                        variant="outlined"
+                        sx={{ fontWeight: "bold" }}
+                      />
+                      <Chip
+                        label={`SĐT: ${currentBooking.phone}`}
+                        variant="outlined"
+                      />
+                    </Box>
+
+                    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                      <Box
+                        sx={{
+                          bgcolor: "#e3f2fd",
+                          p: 1.5,
+                          borderRadius: 1,
+                          flex: 1,
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          NHẬN PHÒNG (IN):
+                        </Typography>
+                        <Typography variant="body2" fontWeight="bold">
+                          {new Date(
+                            currentBooking.check_in_date,
+                          ).toLocaleDateString("vi-VN")}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          bgcolor: isLateCheckOut ? "#ffebee" : "#e3f2fd",
+                          p: 1.5,
+                          borderRadius: 1,
+                          flex: 1,
+                          border: isLateCheckOut ? "1px solid #f44336" : "none",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color={
+                            isLateCheckOut ? "error.main" : "text.secondary"
+                          }
+                        >
+                          TRẢ PHÒNG (OUT):
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="bold"
+                          color={isLateCheckOut ? "error.main" : "text.primary"}
+                        >
+                          {new Date(
+                            currentBooking.check_out_date,
+                          ).toLocaleDateString("vi-VN")}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box
                       sx={{
-                        borderRadius: "4px",
-                        textTransform: "none",
-                        fontWeight: 700,
-                        borderColor: "rgba(11,27,63,0.2)",
-                        color: COLORS.navy,
-                        "&:hover": {
-                          borderColor: COLORS.teal,
-                          bgcolor: "rgba(0,150,136,0.08)",
-                        },
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 1,
                       }}
                     >
-                      Thêm DV
-                    </Button>
-                  </Box>
-                  <Divider sx={{ mb: 2 }} />
-
-                  <List sx={{ flexGrow: 1, overflow: "auto", maxHeight: 200 }}>
-                    {folioData.length === 0 ? (
                       <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        textAlign="center"
-                        sx={{ mt: 2 }}
+                        variant="subtitle1"
+                        fontWeight="bold"
+                        color={COLORS.navy}
                       >
-                        Khách chưa sử dụng dịch vụ nào.
+                        Nhật Ký Dịch Vụ
                       </Typography>
-                    ) : (
-                      folioData.map((item, index) => (
-                        <ListItem
-                          key={index}
-                          disablePadding
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<AddShoppingCartIcon />}
+                        onClick={() => setAddServiceDialog(true)}
+                        sx={{
+                          borderRadius: "4px",
+                          textTransform: "none",
+                          fontWeight: 700,
+                        }}
+                      >
+                        + Thêm DV
+                      </Button>
+                    </Box>
+                    <Divider sx={{ mb: 2 }} />
+
+                    <List
+                      sx={{
+                        flexGrow: 1,
+                        overflowY: "auto",
+                        maxHeight: 280,
+                        pr: 1,
+                      }}
+                    >
+                      {folioData.length === 0 ? (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          textAlign="center"
+                          sx={{ mt: 2 }}
+                        >
+                          Khách chưa sử dụng dịch vụ nào.
+                        </Typography>
+                      ) : (
+                        folioData.map((item, index) => {
+                          const isCancelled = item.status === "Cancelled";
+                          const isPending = item.status === "Pending";
+
+                          return (
+                            <ListItem
+                              key={index}
+                              disablePadding
+                              sx={{
+                                mb: 1.5,
+                                bgcolor: isCancelled
+                                  ? "#ffebee"
+                                  : isPending
+                                    ? "#fffde7"
+                                    : "#fff",
+                                border: isCancelled
+                                  ? "1px dashed #ffcdd2"
+                                  : "1px solid #e2e8f0",
+                                p: 1.5,
+                                borderRadius: "6px",
+                              }}
+                            >
+                              <ListItemText
+                                primary={
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight="bold"
+                                    sx={{
+                                      textDecoration: isCancelled
+                                        ? "line-through"
+                                        : "none",
+                                      color: isCancelled
+                                        ? "text.secondary"
+                                        : "text.primary",
+                                    }}
+                                  >
+                                    {item.services_name ||
+                                      item.service_name ||
+                                      "Dịch vụ"}{" "}
+                                    (x{item.quantity})
+                                  </Typography>
+                                }
+                                secondary={
+                                  <Box sx={{ mt: 0.5 }}>
+                                    <Typography
+                                      variant="caption"
+                                      fontWeight="bold"
+                                      color={
+                                        isCancelled
+                                          ? "error.main"
+                                          : isPending
+                                            ? "warning.main"
+                                            : "success.main"
+                                      }
+                                    >
+                                      {isCancelled
+                                        ? parseFloat(item.cancellation_fee) > 0
+                                          ? "🚫 Đã hủy (Tính phí phạt)"
+                                          : "🚫 Hủy ép / Hủy sớm (Miễn phí)"
+                                        : isPending
+                                          ? "⏳ Khách đang chờ..."
+                                          : "✅ Đã phục vụ"}
+                                    </Typography>
+
+                                    {item.usage_time && (
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "#d32f2f",
+                                          display: "block",
+                                          mt: 0.5,
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        ⏰ Giờ hẹn:{" "}
+                                        {new Date(
+                                          item.usage_time,
+                                        ).toLocaleString("vi-VN", {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                          day: "2-digit",
+                                          month: "2-digit",
+                                        })}
+                                      </Typography>
+                                    )}
+
+                                    {item.note && (
+                                      <Box
+                                        sx={{
+                                          mt: 0.5,
+                                          p: 1,
+                                          bgcolor: "rgba(0,0,0,0.04)",
+                                          borderRadius: "6px",
+                                          borderLeft: "3px solid #009688",
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="caption"
+                                          color="text.primary"
+                                          sx={{
+                                            display: "block",
+                                            fontStyle: "italic",
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-word",
+                                            lineHeight: 1.5,
+                                          }}
+                                        >
+                                          📝 Yêu cầu: {item.note}
+                                        </Typography>
+                                      </Box>
+                                    )}
+
+                                    {isPending &&
+                                      item.service_type === "PreOrder" && (
+                                        <Typography
+                                          display="block"
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ mt: 0.5, fontStyle: "italic" }}
+                                        >
+                                          * Hủy trước 2 tiếng: Miễn phí | Dưới 2
+                                          tiếng: Phạt 50% | Quá hạn: Phạt 100%
+                                        </Typography>
+                                      )}
+                                    {isPending &&
+                                      item.service_type !== "PreOrder" && (
+                                        <Typography
+                                          display="block"
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ mt: 0.5, fontStyle: "italic" }}
+                                        >
+                                          * Hủy miễn phí trước khi xác nhận "Đã
+                                          phục vụ".
+                                        </Typography>
+                                      )}
+                                  </Box>
+                                }
+                              />
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                  pl: 2,
+                                }}
+                              >
+                                <Box sx={{ textAlign: "right" }}>
+                                  {isCancelled ? (
+                                    <>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          textDecoration: "line-through",
+                                          color: "text.secondary",
+                                          display: "block",
+                                        }}
+                                      >
+                                        {parseFloat(
+                                          item.total_price,
+                                        ).toLocaleString()}{" "}
+                                        đ
+                                      </Typography>
+                                      <Typography
+                                        fontWeight="bold"
+                                        variant="body2"
+                                        color="error.main"
+                                      >
+                                        Phạt:{" "}
+                                        {parseFloat(
+                                          item.cancellation_fee || 0,
+                                        ).toLocaleString()}{" "}
+                                        đ
+                                      </Typography>
+                                    </>
+                                  ) : (
+                                    <Typography
+                                      fontWeight="bold"
+                                      variant="body2"
+                                    >
+                                      {parseFloat(
+                                        item.total_price,
+                                      ).toLocaleString()}{" "}
+                                      đ
+                                    </Typography>
+                                  )}
+                                </Box>
+                                {(isPending || item.status === "Delivered") && (
+                                  <Stack direction="row" spacing={0.5} ml={1}>
+                                    {isPending && (
+                                      <Tooltip
+                                        title="Đã mang lên phòng"
+                                        placement="top"
+                                      >
+                                        <IconButton
+                                          color="success"
+                                          size="small"
+                                          onClick={() =>
+                                            handleMarkAsDelivered(item.id)
+                                          }
+                                          sx={{
+                                            border: "1px solid #4caf50",
+                                            bgcolor: "#e8f5e9",
+                                          }}
+                                        >
+                                          <CheckCircleIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    )}
+                                    <Tooltip
+                                      title={
+                                        isPending
+                                          ? "Hủy dịch vụ"
+                                          : "Hủy ép / Hoàn trả (Void)"
+                                      }
+                                      placement="top"
+                                    >
+                                      <IconButton
+                                        color="error"
+                                        size="small"
+                                        onClick={() =>
+                                          handleCancelFolioItem(item.id)
+                                        }
+                                        onClick={() => {
+                                          let warningMsg =
+                                            "Bạn đang hủy dịch vụ (chưa phục vụ) giúp khách hàng. Khách sẽ được hủy miễn phí.";
+                                          let isPenalty = false;
+
+                                          if (item.status === "Delivered") {
+                                            warningMsg =
+                                              "Bạn đang dùng quyền HỦY ÉP (Void) cho món đã phục vụ. Hệ thống sẽ hoàn tiền 100% (Phạt 0đ).";
+                                          } else if (
+                                            item.service_type === "PreOrder" &&
+                                            item.usage_time
+                                          ) {
+                                            const diffHours =
+                                              (new Date(item.usage_time) -
+                                                new Date()) /
+                                              (1000 * 60 * 60);
+                                            if (diffHours <= 0) {
+                                              warningMsg =
+                                                "LƯU Ý: Khách báo hủy sau giờ hẹn. Hệ thống sẽ TỰ ĐỘNG PHẠT 100% giá trị theo quy định.";
+                                              isPenalty = true;
+                                            } else if (diffHours <= 2) {
+                                              warningMsg =
+                                                "LƯU Ý: Khách báo hủy quá sát giờ (dưới 2 tiếng). Hệ thống sẽ TỰ ĐỘNG PHẠT 50% giá trị theo quy định.";
+                                              isPenalty = true;
+                                            }
+                                          }
+
+                                          setConfirmDialog({
+                                            open: true,
+                                            title:
+                                              item.status === "Delivered"
+                                                ? "Xác nhận Hủy ép (Void)"
+                                                : "Xác nhận Hủy dịch vụ",
+                                            message: warningMsg,
+                                            confirmColor: isPenalty
+                                              ? "error"
+                                              : "primary",
+                                            onConfirm: async () => {
+                                              setConfirmDialog((prev) => ({
+                                                ...prev,
+                                                open: false,
+                                              }));
+                                              await handleCancelFolioItem(
+                                                item.id,
+                                              );
+                                            },
+                                          });
+                                        }}
+                                        sx={{
+                                          border: "1px solid #f44336",
+                                          bgcolor: "#ffebee",
+                                        }}
+                                      >
+                                        <CancelIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Stack>
+                                )}
+                              </Box>
+                            </ListItem>
+                          );
+                        })
+                      )}
+                    </List>
+                  </Paper>
+
+                  {/* CỘT PHẢI: BẢNG KÊ MINH BẠCH */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      ...glassCardSx,
+                      p: 3,
+                      flex: "0 0 380px",
+                      bgcolor: "#fff",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      fontWeight="900"
+                      textAlign="center"
+                      color={COLORS.navy}
+                      mb={2}
+                    >
+                      BẢNG KÊ CHI PHÍ
+                    </Typography>
+
+                    {/* CẢNH BÁO LATE CHECKOUT */}
+                    {isLateCheckOut && (
+                      <Alert
+                        severity="warning"
+                        icon={<WarningIcon />}
+                        sx={{ mb: 3, borderRadius: 1 }}
+                      >
+                        Khách đang trả phòng trễ <b>{lateHoursCount} giờ</b>.
+                        Khi bấm Check-out, hệ thống sẽ <b>TỰ ĐỘNG</b> tính phụ
+                        phí trả trễ hoặc ở lố ngày.
+                      </Alert>
+                    )}
+
+                    <Stack spacing={2} sx={{ mb: 3, px: 1 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          1. Tiền phòng lưu trú
+                        </Typography>
+                        <Typography variant="body2" fontWeight="bold">
+                          {roomGoc.toLocaleString()} đ
+                        </Typography>
+                      </Box>
+
+                      {holiday > 0 && (
+                        <Box
                           sx={{
-                            mb: 1.5,
-                            bgcolor:
-                              item.status === "Pending"
-                                ? "#fffde7"
-                                : "transparent",
-                            p: 1,
-                            borderRadius: 1,
+                            display: "flex",
+                            justifyContent: "space-between",
                           }}
                         >
-                          <ListItemText
-                            primary={
-                              <Typography variant="body2" fontWeight="bold">
-                                {item.services_name ||
-                                  item.service_name ||
-                                  "Dịch vụ"}{" "}
-                                (x{item.quantity})
-                              </Typography>
-                            }
-                            secondary={
-                              <Typography
-                                variant="caption"
-                                color={
-                                  item.status === "Pending"
-                                    ? "warning.main"
-                                    : "success.main"
-                                }
-                              >
-                                {item.status === "Pending"
-                                  ? "⏳ Khách đang chờ..."
-                                  : "✅ Đã phục vụ"}
-                              </Typography>
-                            }
-                          />
+                          <Typography
+                            variant="body2"
+                            color="error.main"
+                            fontWeight="500"
+                          >
+                            Phụ phí Lễ/Tết
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color="error.main"
+                          >
+                            +{holiday.toLocaleString()} đ
+                          </Typography>
+                        </Box>
+                      )}
+                      {earlyIn > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="error.main"
+                            fontWeight="500"
+                          >
+                            Phụ thu Check-in sớm
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color="error.main"
+                          >
+                            +{earlyIn.toLocaleString()} đ
+                          </Typography>
+                        </Box>
+                      )}
+                      {lateOut > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="error.main"
+                            fontWeight="500"
+                          >
+                            Phụ thu Check-out trễ
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color="error.main"
+                          >
+                            +{lateOut.toLocaleString()} đ
+                          </Typography>
+                        </Box>
+                      )}
+                      {fallback > 0 && (
+                        <Box sx={{ mb: 1 }}>
                           <Box
                             sx={{
                               display: "flex",
-                              alignItems: "center",
-                              gap: 2,
+                              justifyContent: "space-between",
                             }}
                           >
-                            <Typography fontWeight="bold" variant="body2">
-                              {parseFloat(item.total_price).toLocaleString()}đ
+                            <Typography
+                              variant="body2"
+                              color="error.main"
+                              fontWeight="500"
+                            >
+                              Phụ thu phát sinh
                             </Typography>
-                            {item.status === "Pending" && (
-                              <Tooltip
-                                title="Xác nhận đã mang lên phòng"
-                                placement="top"
-                              >
-                                <IconButton
-                                  color="success"
-                                  size="small"
-                                  onClick={() => handleMarkAsDelivered(item.id)}
-                                  sx={{
-                                    border: "1px solid #4caf50",
-                                    bgcolor: "#e8f5e9",
-                                  }}
-                                >
-                                  <CheckCircleIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                            <Typography
+                              variant="body2"
+                              fontWeight="bold"
+                              color="error.main"
+                            >
+                              +{fallback.toLocaleString()} đ
+                            </Typography>
                           </Box>
-                        </ListItem>
-                      ))
-                    )}
-                  </List>
+                        </Box>
+                      )}
 
-                  <Divider sx={{ my: 2 }} />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body1" fontWeight="bold">
-                        Tổng Bill Hiện Tại:
+                      {/* MINH BẠCH LỊCH SỬ BIẾN ĐỘNG (Luôn hiển thị nếu có note) */}
+                      {fallbackReason && (
+                        <Box
+                          sx={{
+                            mb: 1.5,
+                            p: 1,
+                            bgcolor: "rgba(0,0,0,0.03)",
+                            borderRadius: 1,
+                            borderLeft: "3px solid #9e9e9e",
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              fontStyle: "italic",
+                              display: "block",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            <b>Lịch sử biến động giá:</b>
+                            <br />
+                            {fallbackReason.split("; ").join("\n")}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          2. Dịch vụ ({activeSvcs.length} món)
+                        </Typography>
+                        <Typography variant="body2" fontWeight="bold">
+                          {activeSvcsTotal.toLocaleString()} đ
+                        </Typography>
+                      </Box>
+                      {cancelledFeesTotal > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="body2" color="error.main">
+                            3. Phí phạt hủy dịch vụ
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color="error.main"
+                          >
+                            +{cancelledFeesTotal.toLocaleString()} đ
+                          </Typography>
+                        </Box>
+                      )}
+                      {discountAmt > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="body2" color="success.main">
+                            4. Giảm giá (Voucher)
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            color="success.main"
+                          >
+                            -{discountAmt.toLocaleString()} đ
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+
+                    <Divider sx={{ borderStyle: "dashed", mb: 2 }} />
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        mb: 2,
+                        px: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="body1"
+                        fontWeight="bold"
+                        color={COLORS.navy}
+                      >
+                        TỔNG THANH TOÁN
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        (Đã cộng cả tiền phòng)
+                      <Typography
+                        variant="h6"
+                        fontWeight="900"
+                        color={COLORS.navy}
+                      >
+                        {totalFolioAmount.toLocaleString()} đ
                       </Typography>
                     </Box>
-                    <Typography
-                      variant="h5"
-                      color="error.main"
-                      fontWeight="bold"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        mb: 3,
+                        px: 1,
+                      }}
                     >
-                      {totalFolioAmount.toLocaleString()} đ
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
+                      <Typography
+                        variant="body2"
+                        fontWeight="bold"
+                        color="warning.main"
+                      >
+                        Đã đặt cọc
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        fontWeight="bold"
+                        color="warning.main"
+                      >
+                        -{depositAmt.toLocaleString()} đ
+                      </Typography>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        mt: "auto",
+                        p: 2,
+                        bgcolor: remainingAmt > 0 ? "#ffebee" : "#e8f5e9",
+                        borderRadius: 1,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight="bold"
+                        color={remainingAmt > 0 ? "error.main" : "success.main"}
+                      >
+                        {remainingAmt > 0 ? "CẦN THU THÊM:" : "CẦN HOÀN TRẢ:"}
+                      </Typography>
+                      <Typography
+                        variant="h5"
+                        fontWeight="900"
+                        color={remainingAmt > 0 ? "error.main" : "success.main"}
+                      >
+                        {Math.abs(remainingAmt).toLocaleString()} đ
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              );
+            })()
           ) : (
             <Alert severity="error" sx={{ borderRadius: "4px" }}>
               Lỗi dữ liệu
@@ -1432,10 +2037,55 @@ const AdminRoomsPage = () => {
             inputProps={{ min: 1 }}
             sx={inputStyle}
           />
+          {/* Lấy ra dịch vụ đang được chọn để kiểm tra loại dịch vụ */}
+          {(() => {
+            const selectedSvc = servicesList.find(
+              (s) => s.id === selectedServiceId,
+            );
+            return (
+              <>
+                {/* CHỈ HIỆN Ô CHỌN GIỜ NẾU LÀ DỊCH VỤ "ĐẶT TRƯỚC" */}
+                {selectedSvc?.service_type === "PreOrder" && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 600, color: "text.secondary" }}
+                    >
+                      Thời gian hẹn phục vụ (*)
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      sx={inputStyle}
+                      type="datetime-local"
+                      value={usageTime}
+                      onChange={(e) => setUsageTime(e.target.value)}
+                      required
+                    />
+                  </Box>
+                )}
+
+                {/* Ô GHI CHÚ LUÔN HIỆN CHO MỌI LOẠI DỊCH VỤ */}
+                <TextField
+                  fullWidth
+                  sx={{ mt: 3, ...inputStyle }}
+                  label="Ghi chú / Yêu cầu đặc biệt"
+                  multiline
+                  rows={2}
+                  placeholder="VD: Phở không hành, xe tay ga màu đỏ..."
+                  value={serviceNote}
+                  onChange={(e) => setServiceNote(e.target.value)}
+                />
+              </>
+            );
+          })()}
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
           <Button
-            onClick={() => setAddServiceDialog(false)}
+            onClick={() => {
+              setAddServiceDialog(false);
+              setUsageTime("");
+              setServiceNote("");
+            }}
             sx={buttonStyle}
             color="inherit"
           >
@@ -1523,6 +2173,15 @@ const AdminRoomsPage = () => {
               border: "1px dashed #ffe082",
             }}
           />
+          <Typography
+            variant="caption"
+            color="textSecondary"
+            sx={{ fontStyle: "italic", mt: 2, display: "block" }}
+          >
+            {isFreeUpgrade
+              ? "* Hệ thống sẽ giữ nguyên hóa đơn, chỉ điều chuyển phòng vật lý (dùng khi gặp sự cố khách sạn)."
+              : "* Hệ thống sẽ TỰ ĐỘNG TÍNH TOÁN chênh lệch giá gốc cho số đêm còn lại và cập nhật thẳng vào hóa đơn."}
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
           <Button

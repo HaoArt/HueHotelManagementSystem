@@ -1,6 +1,7 @@
 const db = require("../config/db");
 
 const Coupon = {
+  
   findByCode: async (code) => {
     const [rows] = await db.query(
       'SELECT * FROM Coupons WHERE code = ? AND status = "Active"',
@@ -9,12 +10,19 @@ const Coupon = {
     return rows[0];
   },
 
-  incrementUsage: async (id) => {
-    return await db.query(
+  incrementUsage: async (id, conn = db) => {
+    return await conn.query(
       "UPDATE Coupons SET used_count = used_count + 1 WHERE id = ?",
       [id],
     );
   },
+
+  incrementUsageSafe: async (id, connection) => {
+    const query = "UPDATE coupons SET used_count = used_count + 1 WHERE id = ? AND used_count < usage_limit";
+    const [result] = await connection.execute(query, [id]);
+    return result.affectedRows > 0;
+  },
+
   findActive: async () => {
     const [rows] = await db.query(
       `
@@ -124,6 +132,7 @@ const Coupon = {
   delete: async (id) => {
     return await db.query("DELETE FROM coupons WHERE id=?", [id]);
   },
+  
 };
 
 module.exports = Coupon;

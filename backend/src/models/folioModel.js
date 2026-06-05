@@ -6,12 +6,28 @@ const Folio = {
     service_id,
     quantity,
     total_price,
+    usage_time,
+    note,
+    conn = db,
   ) => {
-    const [result] = await db.query(
-      "INSERT INTO booking_services (booking_id, service_id, quantity, total_price) VALUES (?, ?, ?, ?)",
-      [booking_id, service_id, quantity, total_price],
+    const [result] = await conn.query(
+      "INSERT INTO booking_services (booking_id, service_id, quantity, total_price, usage_time, note) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        booking_id,
+        service_id,
+        quantity,
+        total_price,
+        usage_time || null,
+        note || null,
+      ],
     );
     return result.insertId;
+  },
+  cancelItemWithFee: async (id, feeAmount) => {
+    return await db.query(
+      "UPDATE booking_services SET status = 'Cancelled', cancellation_fee = ? WHERE id = ?",
+      [feeAmount, id],
+    );
   },
 
   getFolioDetails: async (booking_id) => {
@@ -49,7 +65,7 @@ const Folio = {
     }
     bookingData[0].total_amount = roomTotal;
     const [servicesData] = await db.query(
-      `SELECT bs.id, bs.status, bs.quantity, bs.total_price, bs.created_at, s.name as services_name, s.price as unit_price 
+      `SELECT bs.id, bs.status, bs.quantity, bs.total_price, bs.created_at, bs.usage_time, bs.note, s.name as services_name, s.price as unit_price, s.service_type 
       FROM booking_services bs 
       JOIN services s ON bs.service_id = s.id
       WHERE bs.booking_id=?
@@ -58,8 +74,12 @@ const Folio = {
     );
 
     let totalServicesPrice = 0;
-    servicesData.forEach((services) => {
-      totalServicesPrice += parseFloat(services.total_price);
+    servicesData.forEach((item) => {
+      if (item.status === "Cancelled") {
+        totalServicesPrice += parseFloat(item.cancellation_fee || 0);
+      } else {
+        totalServicesPrice += parseFloat(item.total_price || 0);
+      }
     });
 
     const deposit = parseFloat(bookingData[0].deposit_amount) || 0;

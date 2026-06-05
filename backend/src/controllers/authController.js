@@ -4,6 +4,8 @@ const PendingUser = require("../models/pendingUserModel");
 const User = require("../models/userModel");
 const emailService = require("../utils/emailService");
 
+const MAX_OTP_ATTEMPTS = 5;
+
 exports.preRegister = async (req, res) => {
   try {
     const { full_name, email, phone, password, identity_number } = req.body;
@@ -11,25 +13,25 @@ exports.preRegister = async (req, res) => {
     if (existingUser) {
       return res
         .status(400)
-        .json({ status: "Error", message: "Email đã tồn tại" });
+        .json({ status: "Error", message: "Email đã tồn tại trên hệ thống." });
     }
     const existingPhone = await User.findByPhone(phone);
     if (existingPhone) {
       return res
         .status(400)
-        .json({ status: "Error", message: "Số điện thoại đã tồn tại" });
+        .json({ status: "Error", message: "Số điện thoại đã tồn tại." });
     }
     const existingIdentity = await User.findByIdentity(identity_number);
     if (existingIdentity) {
       return res
         .status(400)
-        .json({ status: "Error", message: "Căn cước công dân đã tồn tại" });
+        .json({ status: "Error", message: "Căn cước công dân đã tồn tại." });
     }
-    await PendingUser.delete(email);
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
     const otp_expiry = new Date(Date.now() + 5 * 60000);
+    await PendingUser.delete(email);
     await PendingUser.create({
       full_name,
       email,
@@ -40,10 +42,23 @@ exports.preRegister = async (req, res) => {
       identity_number,
     });
 
-    await emailService.sendEmailOtp(email, otp_code);
-    return res
-      .status(201)
-      .json({ status: "OK", message: "Mã đã được gửi đén email của bạn" });
+    // 5. Gửi Email (Có thể bọc trong try-catch riêng để không crash app nếu Email server lỗi)
+    try {
+      await emailService.sendEmailOtp(email, otp_code);
+    } catch (emailError) {
+      console.error("Lỗi gửi Email (SendGrid/SMTP):", emailError);
+      await PendingUser.delete(email);
+      return res.status(503).json({
+        status: "error",
+        message: "Hệ thống email đang bận, vui lòng thử lại sau ít phút.",
+      });
+    }
+
+    return res.status(201).json({
+      status: "OK",
+      message:
+        "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra (cả hộp thư rác).",
+    });
   } catch (error) {
     console.error("===== LỖI ĐĂNG KÝ BƯỚC 1 =====", error);
     return res.status(500).json({ status: "error", message: "Lỗi server" });
@@ -53,38 +68,69 @@ exports.preRegister = async (req, res) => {
 exports.verifyAndCreate = async (req, res) => {
   try {
     const { email, otp_code } = req.body;
-    const pendingUser = await PendingUser.findByEmail(email);
+    const safeEmail = String(email).trim();
+    const safeOtp = String(otp_code).trim();
+
+    const pendingUser = await PendingUser.findByEmail(safeEmail);
     if (!pendingUser) {
-      return res
-        .status(400)
-        .json({ status: "Error", message: "Yêu cầu không hợp lệ" });
+      return res.status(400).json({
+        status: "Error",
+        message: "Yêu cầu không hợp lệ hoặc đã hết hạn.",
+      });
     }
-    if (String(pendingUser.otp_code) !== String(otp_code)) {
-      return res
-        .status(400)
-        .json({ status: "Error", message: "Mã OTP không hợp lệ " });
+    if (new Date(pendingUser.otp_expiry) < new Date()) {
+      await PendingUser.delete(safeEmail);
+      return res.status(400).json({
+        status: "Error",
+        message: "Mã OTP đã hết hạn. Vui lòng đăng ký lại.",
+      });
     }
-    if (pendingUser.otp_expiry < new Date()) {
-      return res
-        .status(400)
-        .json({ status: "Error", message: "Mã OTP đã hết hạn" });
+    if (pendingUser.failed_attempts >= MAX_OTP_ATTEMPTS) {
+      await PendingUser.delete(safeEmail);
+      return res.status(403).json({
+        status: "Error",
+        message:
+          "Bạn đã nhập sai quá nhiều lần. Yêu cầu đăng ký bị hủy bỏ để bảo mật.",
+      });
     }
-    const UserId = await User.create({
+    if (String(pendingUser.otp_code) !== safeOtp) {
+      const newAttempts = (pendingUser.failed_attempts || 0) + 1;
+
+      await PendingUser.incrementFailedAttempts(safeEmail, newAttempts);
+
+      const attemptsLeft = MAX_OTP_ATTEMPTS - newAttempts;
+      if (attemptsLeft === 0) {
+        await PendingUser.delete(safeEmail);
+        return res.status(403).json({
+          status: "Error",
+          message: "Nhập sai quá 3 lần. Yêu cầu bị hủy bỏ.",
+        });
+      }
+
+      return res.status(400).json({
+        status: "Error",
+        message: `Mã OTP không đúng. Bạn còn ${attemptsLeft} lần thử.`,
+      });
+    }
+    await User.create({
       full_name: pendingUser.full_name,
       email: pendingUser.email,
       phone: pendingUser.phone,
       password_hash: pendingUser.password_hash,
       identity_number: pendingUser.identity_number,
     });
-    await PendingUser.delete(email);
-    return res
-      .status(201)
-      .json({ status: "OK", message: "Tạo tài khoản thành công" });
+
+    await PendingUser.delete(safeEmail);
+
+    return res.status(201).json({
+      status: "OK",
+      message: "Xác thực thành công. Tài khoản đã được tạo!",
+    });
   } catch (error) {
+    console.error("===== LỖI XÁC THỰC BƯỚC 2 =====", error);
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -101,10 +147,7 @@ exports.login = async (req, res) => {
         .json({ status: "error", message: "Mật khẩu của bạn không đúng" });
     }
     const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role,
-      },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "15m" },
     );
@@ -153,18 +196,31 @@ exports.refreshToken = async (req, res) => {
             .status(403)
             .json({ status: "error", message: "Quyền truy cập không hợp lệ!" });
         }
-        const user = await User.findById(decoded.id);
+
+        // SỬA LỖI 1: Lấy đúng biến userId từ payload thay vì id
+        const userId = decoded.userId || decoded.id;
+        const user = await User.findById(userId);
+
         if (!user) {
           return res
             .status(404)
             .json({ status: "error", message: "Người dùng không tồn tại!" });
         }
+        // SỬA LỖI 2: Chặn gia hạn Token nếu tài khoản đã bị Admin khóa
+        if (user.status !== "Active") {
+          return res
+            .status(403)
+            .json({
+              status: "error",
+              message: "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa!",
+            });
+        }
+
         const newAccessToken = jwt.sign(
-          { id: user.id, role: user.role },
+          { userId: user.id, role: user.role }, // Đồng bộ payload với hàm login
           process.env.JWT_SECRET,
           { expiresIn: "15m" },
         );
-
         return res.status(200).json({ status: "ok", token: newAccessToken });
       },
     );
@@ -184,20 +240,29 @@ exports.logout = async (req, res) => {
     .status(200)
     .json({ status: "ok", message: "Đã đăng xuất hệ thống an toàn!" });
 };
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findByEmail(email);
     if (!user) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Email không tồn tại" });
+      return res.status(400).json({
+        status: "error",
+        message: "Email không tồn tại trên hệ thống",
+      });
     }
     await PendingUser.delete(email);
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
     const otp_expiry = new Date(Date.now() + 5 * 60000);
     await PendingUser.create({ email, otp_code, otp_expiry });
-    await emailService.sendEmailOtp(email, otp_code);
+    try {
+      await emailService.sendEmailOtp(email, otp_code);
+    } catch (e) {
+      await PendingUser.delete(email);
+      return res
+        .status(503)
+        .json({ status: "error", message: "Không thể gửi email OTP lúc này." });
+    }
     return res
       .status(200)
       .json({ status: "OK", message: "Mã OTP đã được gửi đến email của bạn" });
@@ -205,33 +270,61 @@ exports.forgotPassword = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
+
 exports.verifyForgotPassword = async (req, res) => {
   try {
     const { email, otp_code, new_password } = req.body;
-    const pendingUser = await PendingUser.findByEmail(email);
+    const safeEmail = String(email).trim();
+    const safeOtp = String(otp_code).trim();
+
+    const pendingUser = await PendingUser.findByEmail(safeEmail);
     if (!pendingUser) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Yêu cầu không hợp lệ" });
+      return res.status(400).json({
+        status: "error",
+        message: "Yêu cầu không hợp lệ hoặc đã hết hạn",
+      });
     }
-    if (pendingUser.otp_code !== otp_code) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Mã OTP không hợp lệ" });
+    if (new Date(pendingUser.otp_expiry) < new Date()) {
+      await PendingUser.delete(safeEmail);
+      return res.status(400).json({
+        status: "error",
+        message: "Mã OTP đã hết hạn. Vui lòng yêu cầu lại.",
+      });
     }
-    if (pendingUser.otp_expiry < new Date()) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Mã OTP đã hết hạn" });
+    if (pendingUser.failed_attempts >= MAX_OTP_ATTEMPTS) {
+      await PendingUser.delete(safeEmail);
+      return res.status(403).json({
+        status: "error",
+        message: "Bạn đã nhập sai quá 3 lần. Yêu cầu khôi phục bị hủy bỏ.",
+      });
+    }
+    if (String(pendingUser.otp_code) !== safeOtp) {
+      const newAttempts = (pendingUser.failed_attempts || 0) + 1;
+      await PendingUser.incrementFailedAttempts(safeEmail, newAttempts);
+
+      const attemptsLeft = MAX_OTP_ATTEMPTS - newAttempts;
+      if (attemptsLeft === 0) {
+        await PendingUser.delete(safeEmail);
+        return res.status(403).json({
+          status: "error",
+          message: "Nhập sai quá 3 lần. Yêu cầu bị khóa.",
+        });
+      }
+      return res.status(400).json({
+        status: "error",
+        message: `Mã OTP không đúng. Bạn còn ${attemptsLeft} lần thử.`,
+      });
     }
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(new_password, salt);
-    await User.updatePassword(email, password_hash);
-    await PendingUser.delete(email);
+    await User.updatePassword(safeEmail, password_hash);
+    await PendingUser.delete(safeEmail);
+
     return res
       .status(200)
-      .json({ status: "ok", message: "Mật khẩu đã thay đổi thành công" });
+      .json({ status: "ok", message: "Mật khẩu đã được thay đổi thành công!" });
   } catch (error) {
+    console.error("Lỗi xác thực Quên mật khẩu:", error);
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };

@@ -40,7 +40,13 @@ const PendingUser = {
     const [result] = await db.query(
       "DELETE FROM pending_users WHERE otp_expiry < NOW()",
     );
-    return result.affectedRows; 
+    return result.affectedRows;
+  },
+  incrementFailedAttempts: async (email, attemptsCount) => {
+    return await db.query(
+      "UPDATE pending_users SET failed_attempts = ? WHERE email = ?",
+      [attemptsCount, email],
+    );
   },
 };
 

@@ -23,6 +23,10 @@ import {
   Tooltip,
   Snackbar,
   Chip,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -75,6 +79,8 @@ const AdminServicesPage = () => {
     name: "",
     price: "",
     description: "",
+    service_type: "Immediate",
+    is_surchargeable: 0,
   });
 
   const [snackbar, setSnackbar] = useState({
@@ -111,10 +117,18 @@ const AdminServicesPage = () => {
         name: service.name,
         price: service.price,
         description: service.description || "",
+        service_type: service.service_type || "Immediate",
+        is_surchargeable: service.is_surchargeable || 0,
       });
       setDialog({ open: true, isEdit: true, serviceId: service.id });
     } else {
-      setFormData({ name: "", price: "", description: "" });
+      setFormData({
+        name: "",
+        price: "",
+        description: "",
+        service_type: "Immediate",
+        is_surchargeable: 0,
+      });
       setDialog({ open: true, isEdit: false, serviceId: null });
     }
   };
@@ -462,13 +476,51 @@ const AdminServicesPage = () => {
                           sx={{ color: COLORS.primary, fontSize: 20 }}
                         />
                       </Box>
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        color={COLORS.textMain}
-                      >
-                        {svc.name}
-                      </Typography>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          fontWeight="bold"
+                          color={COLORS.textMain}
+                        >
+                          {svc.name}
+                        </Typography>
+                        <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              svc.service_type === "Immediate"
+                                ? "Dùng ngay"
+                                : "Đặt trước"
+                            }
+                            size="small"
+                            sx={{
+                              fontSize: "0.7rem",
+                              height: "20px",
+                              bgcolor:
+                                svc.service_type === "Immediate"
+                                  ? "#f5f5f5"
+                                  : "#e3f2fd",
+                              color:
+                                svc.service_type === "Immediate"
+                                  ? "#616161"
+                                  : "#1976d2",
+                              fontWeight: "bold",
+                            }}
+                          />
+                          {svc.is_surchargeable === 1 && (
+                            <Chip
+                              label="Phụ thu Lễ"
+                              size="small"
+                              sx={{
+                                fontSize: "0.7rem",
+                                height: "20px",
+                                bgcolor: "#fff3e0",
+                                color: "#ed6c02",
+                                fontWeight: "bold",
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      </Box>
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -543,7 +595,7 @@ const AdminServicesPage = () => {
 
       {/* Thêm dịch vụ*/}
       <Dialog
-        disableScrollLock={true} 
+        disableScrollLock={true}
         open={dialog.open}
         onClose={handleCloseDialog}
         maxWidth="xs"
@@ -603,6 +655,45 @@ const AdminServicesPage = () => {
               sx={inputStyle}
             />
           </Stack>
+          {/* THÊM 2 Ô CẤU HÌNH LOẠI DỊCH VỤ VÀ PHỤ THU */}
+          <Stack direction={{ xs: "column", sm: "row" }} gap={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Loại hình vận hành</InputLabel>
+              <Select
+                value={formData.service_type}
+                label="Loại hình vận hành"
+                onChange={(e) =>
+                  setFormData({ ...formData, service_type: e.target.value })
+                }
+                sx={inputStyle}
+              >
+                <MenuItem value="Immediate">
+                  Dùng ngay (Đồ uống, Ăn vặt...)
+                </MenuItem>
+                <MenuItem value="PreOrder">
+                  Đặt trước (Thuê xe, Ăn sáng...)
+                </MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Chính sách Lễ/Tết</InputLabel>
+              <Select
+                value={formData.is_surchargeable}
+                label="Chính sách Lễ/Tết"
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    is_surchargeable: parseInt(e.target.value),
+                  })
+                }
+                sx={inputStyle}
+              >
+                <MenuItem value={0}>Không phụ thu</MenuItem>
+                <MenuItem value={1}>Có áp dụng phụ thu</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
           <Button
@@ -635,7 +726,7 @@ const AdminServicesPage = () => {
         </DialogActions>
       </Dialog>
       <Dialog
-        disableScrollLock={true} 
+        disableScrollLock={true}
         open={confirmDialog.open}
         onClose={() =>
           setConfirmDialog({

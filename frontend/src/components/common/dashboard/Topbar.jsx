@@ -8,14 +8,20 @@ import {
   Stack,
   Avatar,
   Chip,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import { AuthContext } from "../../../context/AuthContext";
 
 const Topbar = ({ handleDrawerToggle, isCollapsed }) => {
   const { user } = useContext(AuthContext);
 
-  const currentDrawerWidth = isCollapsed ? 92 : 284;
+  const muiTheme = useTheme();
+  const isCompactScreen = useMediaQuery(muiTheme.breakpoints.down("lg"));
+
+  const currentCollapsed = isCollapsed || isCompactScreen;
+  const currentDrawerWidth = currentCollapsed ? 92 : 284;
 
   return (
     <AppBar
