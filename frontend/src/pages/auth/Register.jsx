@@ -158,7 +158,12 @@ const Register = () => {
       setSuccess("Đăng ký thành công! Đang chuyển hướng...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setError(err || "Mã OTP không chính xác hoặc đã hết hạn.");
+      const errorMessage =
+        err.response?.data?.message || err.message || typeof err === "string"
+          ? err
+          : "Mã OTP không chính xác hoặc đã hết hạn.";
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -730,6 +735,24 @@ const Register = () => {
             Mọi hư hỏng đối với tài sản, trang thiết bị trong phòng do lỗi của
             quý khách sẽ được yêu cầu bồi thường theo đúng bảng giá quy định của
             khách sạn.
+          </Typography>
+
+          <Typography
+            variant="subtitle1"
+            fontWeight="800"
+            color={LUXURY.charcoal}
+            gutterBottom
+          >
+            4. Quy định Hủy Dịch vụ (Room Service)
+          </Typography>
+          <Typography
+            variant="body2"
+            color={LUXURY.warmGray}
+            paragraph
+            sx={{ lineHeight: 1.8 }}
+          >
+            - <b>Dịch vụ đặt trước (Hẹn giờ):</b> Quý khách được phép hủy miễn phí nếu báo trước ít nhất <b>2 tiếng</b> so với giờ hẹn. Hủy dưới 2 tiếng sẽ chịu phí phạt 50%. Quá giờ hẹn không sử dụng sẽ chịu phí 100%.<br />
+            - <b>Dịch vụ dùng ngay:</b> Quý khách được phép hủy miễn phí trong lúc hệ thống đang chuẩn bị (Trước khi Lễ tân xác nhận "Đã phục vụ").
           </Typography>
         </DialogContent>
         <Divider sx={{ borderColor: LUXURY.softGray }} />

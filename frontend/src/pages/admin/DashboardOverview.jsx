@@ -1,5 +1,7 @@
 /* eslint-disable react-hooks/static-components */
-import { useState, useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+import { useState, useEffect, useMemo } from "react";
 import {
   Paper,
   Typography,
@@ -20,6 +22,13 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  ReferenceLine,
   XAxis,
   YAxis,
   Tooltip,
@@ -83,7 +92,10 @@ const DashboardOverview = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [chartView, setChartView] = useState("monthly");
+
+  // State điều khiển dữ liệu biểu đồ
+  const [chartView, setChartView] = useState("monthly"); // "monthly" hoặc "yearly"
+  const [chartType, setChartType] = useState("area"); // "area" hoặc "bar"
 
   const currentDate = new Date().toLocaleDateString("vi-VN", {
     month: "short",
@@ -94,6 +106,7 @@ const DashboardOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        // ✨ GỌI ĐÚNG HÀM GỐC getStats() CỦA EM
         const res = await DashboardService.getStats();
         setStats(res.data);
       } catch (err) {
@@ -128,6 +141,8 @@ const DashboardOverview = () => {
 
   const totalRooms =
     stats?.rooms?.reduce((acc, curr) => acc + curr.count, 0) || 0;
+  const dirtyRooms =
+    stats?.rooms?.find((r) => r.status === "Dirty")?.count || 0;
 
   const summaryCards = [
     {
@@ -164,20 +179,17 @@ const DashboardOverview = () => {
     },
   ];
 
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case "Available":
-        return "Sẵn sàng (Available)";
-      case "Occupied":
-        return "Có khách (Occupied)";
-      case "Dirty":
-        return "Chưa dọn (Dirty)";
-      case "Maintenance":
-        return "Bảo trì (Maintenance)";
-      default:
-        return status;
-    }
-  };
+  // Lấy dữ liệu biểu đồ dựa trên state chartView
+  const currentChartData =
+    chartView === "monthly" ? stats?.chartDataMonthly : stats?.chartDataYearly;
+
+  // Dữ liệu giả lập tỷ trọng doanh thu (Dựa trên tổng doanh thu thực tế)
+  const totalRevenueNumber = parseFloat(stats?.revenue || 0);
+  const pieChartData = [
+    { name: "Tiền thuê phòng", value: totalRevenueNumber * 0.75 },
+    { name: "Dịch vụ phát sinh", value: totalRevenueNumber * 0.25 },
+  ];
+  const PIE_COLORS = [COLORS.navy, COLORS.teal];
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -210,9 +222,6 @@ const DashboardOverview = () => {
     }
     return null;
   };
-
-  const currentChartData =
-    chartView === "monthly" ? stats?.chartDataMonthly : stats?.chartDataYearly;
 
   return (
     <Box
@@ -265,11 +274,6 @@ const DashboardOverview = () => {
               border: "1px solid rgba(11,27,63,0.12)",
               borderRadius: "4px",
               boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
-              transition: "all 0.2s ease",
-              "&:hover": {
-                bgcolor: "rgba(255,255,255,0.96)",
-                transform: "translateY(-1px)",
-              },
             }}
           >
             <NotificationsNoneIcon sx={{ color: COLORS.navy }} />
@@ -290,7 +294,7 @@ const DashboardOverview = () => {
         </Box>
       </Box>
 
-      {/*Card*/}
+      {/* Cards thống kê */}
       <Box
         sx={{
           display: "grid",
@@ -301,7 +305,6 @@ const DashboardOverview = () => {
             sm: "repeat(2, minmax(0, 1fr))",
             lg: "repeat(4, minmax(0, 1fr))",
           },
-          alignItems: "stretch",
         }}
       >
         {summaryCards.map((card, index) => (
@@ -331,7 +334,6 @@ const DashboardOverview = () => {
                     fontWeight={600}
                     color="text.secondary"
                     gutterBottom
-                    sx={{ letterSpacing: "0.01em" }}
                   >
                     {card.title}
                   </Typography>
@@ -341,7 +343,6 @@ const DashboardOverview = () => {
                     sx={{
                       color: COLORS.navy,
                       fontSize: { xs: "1.4rem", md: "1.55rem" },
-                      lineHeight: 1.2,
                       wordBreak: "break-word",
                     }}
                   >
@@ -355,7 +356,6 @@ const DashboardOverview = () => {
                     p: 1.1,
                     borderRadius: 2,
                     display: "flex",
-                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)",
                   }}
                 >
                   {card.icon}
@@ -373,7 +373,7 @@ const DashboardOverview = () => {
                 <Typography
                   variant="caption"
                   fontWeight="bold"
-                  sx={{ color: COLORS.teal, letterSpacing: "0.01em" }}
+                  sx={{ color: COLORS.teal }}
                 >
                   {card.trendText}
                 </Typography>
@@ -383,23 +383,22 @@ const DashboardOverview = () => {
         ))}
       </Box>
 
-      {/* Biểu đồ */}
+      {/* ✨ KHU VỰC FLEXBOX: BIỂU ĐỒ (7) VÀ TRẠNG THÁI (3) NẰM NGANG */}
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "minmax(0, 2fr) minmax(0, 1fr)",
-          },
-          gap: { xs: 1.75, sm: 2.25, md: 2.5 },
+          display: "flex",
+          flexDirection: { xs: "column", lg: "row" },
+          gap: { xs: 2, md: 3 },
           alignItems: "stretch",
         }}
       >
+        {/* CỘT TRÁI (CHIẾM 7 PHẦN): XU HƯỚNG DOANH THU */}
         <Box
           sx={{
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
+            flex: { xs: "1 1 auto", lg: "7" },
           }}
         >
           <Paper
@@ -430,29 +429,53 @@ const DashboardOverview = () => {
                   Thống kê doanh thu từ các giao dịch hoàn tất.
                 </Typography>
               </Box>
-              <ToggleButtonGroup
-                value={chartView}
-                exclusive
-                onChange={(e, newVal) => newVal && setChartView(newVal)}
-                size="small"
-                sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
-                    fontWeight: 700,
-                    borderRadius: 2,
-                    px: 1.6,
-                    borderColor: "rgba(11,27,63,0.14)",
-                    color: COLORS.navy,
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: `${COLORS.teal} !important`,
-                    color: "white !important",
-                  },
-                }}
-              >
-                <ToggleButton value="monthly">Tháng này</ToggleButton>
-                <ToggleButton value="yearly">Năm nay</ToggleButton>
-              </ToggleButtonGroup>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {/* Nút lọc Tháng/Năm */}
+                <ToggleButtonGroup
+                  value={chartView}
+                  exclusive
+                  onChange={(e, newVal) => newVal && setChartView(newVal)}
+                  size="small"
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      textTransform: "none",
+                      fontWeight: 700,
+                      borderRadius: 1,
+                      color: COLORS.navy,
+                    },
+                    "& .Mui-selected": {
+                      bgcolor: `${COLORS.teal} !important`,
+                      color: "white !important",
+                    },
+                  }}
+                >
+                  <ToggleButton value="monthly">Tháng này</ToggleButton>
+                  <ToggleButton value="yearly">Năm nay</ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* ✨ Nút chuyển Vùng/Cột */}
+                <ToggleButtonGroup
+                  value={chartType}
+                  exclusive
+                  onChange={(e, val) => val && setChartType(val)}
+                  size="small"
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      textTransform: "none",
+                      fontWeight: 700,
+                      borderRadius: 1,
+                      color: COLORS.navy,
+                    },
+                    "& .Mui-selected": {
+                      bgcolor: `${COLORS.primary} !important`,
+                      color: "white !important",
+                    },
+                  }}
+                >
+                  <ToggleButton value="area">Dạng Vùng</ToggleButton>
+                  <ToggleButton value="bar">Dạng Cột</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
             </Box>
 
             <Box
@@ -464,182 +487,159 @@ const DashboardOverview = () => {
               }}
             >
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={currentChartData || []}
-                  margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorRevenue"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={COLORS.primary}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={COLORS.primary}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#667085", fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#667085", fontSize: 12 }}
-                    tickFormatter={(value) => `${value / 1000000}M`}
-                  />
-                  <CartesianGrid
-                    vertical={false}
-                    stroke="rgba(11, 27, 63, 0.08)"
-                    strokeDasharray="3 3"
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke={COLORS.primary}
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
-                </AreaChart>
+                {chartType === "area" ? (
+                  <AreaChart
+                    data={currentChartData || []}
+                    margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="colorRevenue"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={COLORS.primary}
+                          stopOpacity={0.3}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={COLORS.primary}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#667085", fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#667085", fontSize: 12 }}
+                      tickFormatter={(value) => `${value / 1000000}M`}
+                    />
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="rgba(11, 27, 63, 0.08)"
+                      strokeDasharray="3 3"
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke={COLORS.primary}
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                    />
+                  </AreaChart>
+                ) : (
+                  <BarChart
+                    data={currentChartData || []}
+                    margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#667085", fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#667085", fontSize: 12 }}
+                      tickFormatter={(value) => `${value / 1000000}M`}
+                    />
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="rgba(11, 27, 63, 0.08)"
+                      strokeDasharray="3 3"
+                    />
+                    <Tooltip
+                      content={<CustomTooltip />}
+                      cursor={{ fill: "rgba(94, 53, 177, 0.05)" }}
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill={COLORS.primary}
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={60}
+                    />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </Box>
           </Paper>
         </Box>
 
-        {/*Phân bổ trạng thái phòng */}
+        {/* CỘT PHẢI (CHIẾM 3 PHẦN): BIỂU ĐỒ TRÒN & NHIỆM VỤ */}
         <Box
           sx={{
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            gap: { xs: 1.75, sm: 2.25, md: 2.5 },
-            height: "100%",
+            gap: { xs: 2, md: 3 },
+            flex: { xs: "1 1 auto", lg: "3" },
           }}
         >
-          {/* WIDGET 1: TRẠNG THÁI PHÒNG */}
+          {/* ✨ BIỂU ĐỒ TRÒN TỶ TRỌNG */}
           <Paper
             elevation={0}
             sx={{
               ...glassCardSx,
-              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2.5,
-                width: "100%",
-              }}
+            <Typography
+              variant="subtitle1"
+              sx={{ ...sectionTitleSx, alignSelf: "flex-start" }}
             >
-              <Typography variant="subtitle1" sx={sectionTitleSx}>
-                Phân bổ trạng thái
-              </Typography>
-              <Typography
-                variant="caption"
-                fontWeight="bold"
-                sx={{
-                  color: COLORS.teal,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "transform 0.2s ease, color 0.2s ease",
-                  "&:hover": {
-                    color: "#00796d",
-                    transform: "translateX(2px)",
-                  },
-                }}
-              >
-                Xem sơ đồ &rarr;
-              </Typography>
-            </Box>
-
-            <Stack spacing={2.5} sx={{ width: "100%" }}>
-              {stats?.rooms?.map((room, idx) => {
-                const percentage =
-                  totalRooms === 0 ? 0 : (room.count / totalRooms) * 100;
-                const dotColor = COLORS.status[room.status] || "#9e9e9e";
-                return (
-                  <Box key={idx} sx={{ width: "100%" }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 0.7,
-                        width: "100%",
-                        gap: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            bgcolor: dotColor,
-                          }}
-                        />
-                        <Typography
-                          variant="body2"
-                          fontWeight="600"
-                          color={COLORS.textMain}
-                        >
-                          {getStatusLabel(room.status)}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        color="text.secondary"
-                      >
-                        {room.count}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        width: "100%",
-                        height: 6,
-                        bgcolor: "rgba(11, 27, 63, 0.08)",
-                        borderRadius: 5,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: `${percentage}%`,
-                          height: "100%",
-                          bgcolor: dotColor,
-                          borderRadius: 5,
-                          transition: "width 1s ease",
-                          boxShadow: `0 3px 10px ${dotColor}55`,
-                        }}
+              Cơ Cấu Doanh Thu
+            </Typography>
+            <Divider sx={{ width: "100%", my: 1.5 }} />
+            <Box sx={{ width: "100%", height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
                       />
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Stack>
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => `${value.toLocaleString("vi-VN")} đ`}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
           </Paper>
 
-         
+          {/* MỤC TIÊU CA LÀM VIỆC */}
           <Paper
             elevation={0}
             sx={{
@@ -692,7 +692,8 @@ const DashboardOverview = () => {
                     Dọn dẹp buồng phòng
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Ưu tiên dọn dẹp các phòng trạng thái Dirty để đón khách sớm.
+                    Có {dirtyRooms} phòng đang bẩn, cần dọn dẹp để đón khách
+                    sớm.
                   </Typography>
                 </Box>
               </Box>
@@ -723,33 +724,12 @@ const DashboardOverview = () => {
                     Chuẩn bị Check-in
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Kiểm tra thông tin và làm thẻ từ cho{" "}
-                    {stats?.bookings?.arrivals_today || 0} lượt khách dự kiến
-                    đến.
+                    Làm thẻ từ cho {stats?.bookings?.arrivals_today || 0} lượt
+                    khách đến.
                   </Typography>
                 </Box>
               </Box>
             </Stack>
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{
-                borderRadius: 1,
-                textTransform: "none",
-                fontWeight: 700,
-                color: COLORS.navy,
-                borderColor: "rgba(11,27,63,0.16)",
-                backgroundColor: "rgba(255,255,255,0.58)",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  borderColor: COLORS.teal,
-                  backgroundColor: "rgba(0, 150, 136, 0.08)",
-                  transform: "translateY(-1px)",
-                },
-              }}
-            >
-              Xem báo cáo chi tiết
-            </Button>
           </Paper>
         </Box>
       </Box>

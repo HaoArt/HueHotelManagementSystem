@@ -29,9 +29,16 @@ const BookingService = {
       throw error.response?.data?.message || "Lỗi khi gửi đánh giá";
     }
   },
-  getAllBookingsAdmin: async () => {
+  getAllBookingsAdmin: async (
+    page = 1,
+    limit = 10,
+    status = "All",
+    search = "",
+  ) => {
     try {
-      const response = await api.get("/bookings/admin/all");
+      const response = await api.get(
+        `/bookings/admin/all?page=${page}&limit=${limit}&status=${status}&search=${search}`,
+      );
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Lỗi tải danh sách đơn cho Admin";
@@ -55,9 +62,9 @@ const BookingService = {
     }
   },
 
-  checkInBooking: async (id) => {
+  checkInBooking: async (id, payload) => {
     try {
-      const response = await api.patch(`/bookings/check-in/${id}`);
+      const response = await api.patch(`/bookings/check-in/${id}`, payload);
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Lỗi khi Check-in";

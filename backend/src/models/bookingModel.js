@@ -18,7 +18,7 @@ const Booking = {
     return rows;
   },
 
-  create: async (data) => {
+  create: async (data, conn = db) => {
     const {
       user_id,
       room_type_id,
@@ -36,7 +36,7 @@ const Booking = {
       payment_status,
     } = data;
 
-    const [result] = await db.query(
+    const [result] = await conn.query(
       `INSERT INTO bookings 
       (user_id, room_type_id, room_id, check_in_date, check_out_date, total_amount, deposit_amount, coupon_id, discount_amount, status, hold_until, note, payment_method, payment_status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -83,24 +83,46 @@ const Booking = {
       [payment_status, id],
     );
   },
-  changeRoom: async (booking_id, idNewRoom, total_amount) => {
+  changeRoom: async (id, newRoomId, newTotalAmount, noteAppend = "") => {
+    const query = `
+      UPDATE bookings 
+      SET room_id = ?, 
+          room_type_id = (SELECT room_type_id FROM rooms WHERE id = ?),
+          total_amount = ?,
+          note = CONCAT(IFNULL(note, ''), ?) 
+      WHERE id = ?
+    `;
+    const [result] = await db.query(query, [
+      newRoomId,
+      newRoomId,
+      newTotalAmount,
+      noteAppend,
+      id,
+    ]);
+
+    return result;
+  },
+
+  updateEarlyCheckIn: async (id, new_check_in_date, new_total_amount, noteAppend = "") => {
     return await db.query(
-      "UPDATE bookings SET room_id = ?, total_amount = ? WHERE id = ?",
-      [idNewRoom, total_amount, booking_id],
+      "UPDATE bookings SET check_in_date = ?, total_amount = ?, note = CONCAT(IFNULL(note, ''), ?) WHERE id = ?",
+      [new_check_in_date, new_total_amount, noteAppend, id],
     );
   },
+
   updateCheckoutDateAndAmount: async (
     id,
     new_check_out_date,
     new_total_amount,
+    noteAppend = "",
   ) => {
     return await db.query(
-      "UPDATE bookings SET check_out_date = ?, total_amount = ? WHERE id = ?",
-      [new_check_out_date, new_total_amount, id],
+      "UPDATE bookings SET check_out_date = ?, total_amount = ?, note = CONCAT(IFNULL(note, ''), ?) WHERE id = ?",
+      [new_check_out_date, new_total_amount, noteAppend, id],
     );
   },
-  lockRoomOptimistic: async (roomId, currentVersion) => {
-    const [result] = await db.query(
+  lockRoomOptimistic: async (roomId, currentVersion, conn = db) => {
+    const [result] = await conn.query(
       `UPDATE rooms 
        SET status = 'Occupied', version = version + 1 
        WHERE id = ? AND version = ?`,
@@ -226,6 +248,44 @@ const Booking = {
       AND DATE(b.check_in_date) = DATE(DATE_ADD(NOW(), INTERVAL 1 DAY))
     `);
     return rows;
+  },
+  getPaginatedForAdmin: async (limit, offset, status, search) => {
+    let query = `
+      SELECT b.*, u.full_name as customer_name, u.phone as customer_phone, 
+             r.room_number, rt.type_name
+      FROM bookings b
+      LEFT JOIN users u ON b.user_id = u.id
+      LEFT JOIN rooms r ON b.room_id = r.id
+      LEFT JOIN room_types rt ON b.room_type_id = rt.id
+      WHERE 1=1
+    `;
+    let countQuery = `
+      SELECT COUNT(b.id) as total 
+      FROM bookings b 
+      LEFT JOIN users u ON b.user_id = u.id 
+      WHERE 1=1
+    `;
+    let params = [];
+    if (status && status !== "All") {
+      query += ` AND b.status = ?`;
+      countQuery += ` AND b.status = ?`;
+      params.push(status);
+    }
+    if (search) {
+      query += ` AND (u.full_name LIKE ? OR u.phone LIKE ? OR b.id LIKE ?)`;
+      countQuery += ` AND (u.full_name LIKE ? OR u.phone LIKE ? OR b.id LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`;
+    const countParams = [...params];
+    params.push(limit, offset);
+    const [rows] = await db.query(query, params);
+    const [countRows] = await db.query(countQuery, countParams);
+
+    return {
+      data: rows,
+      totalRecords: countRows[0].total,
+    };
   },
 };
 

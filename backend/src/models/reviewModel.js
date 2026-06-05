@@ -30,14 +30,13 @@ const Review = {
     return rows;
   },
 
-  getTop: async (limit) => {
+  getTop: async (limit, rating) => {
     const [rows] = await db.query(
-      `SELECT r.id, r.rating, r.comment, r.created_at, u.full_name 
-       FROM reviews r 
-       JOIN users u ON r.user_id = u.id 
-       ORDER BY r.created_at DESC 
+      `SELECT * FROM reviews 
+       WHERE rating = ? 
+       ORDER BY created_at DESC 
        LIMIT ?`,
-      [parseInt(limit, 10)],
+      [rating, limit],
     );
     return rows;
   },

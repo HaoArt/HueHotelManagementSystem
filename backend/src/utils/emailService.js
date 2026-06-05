@@ -4,27 +4,39 @@ require("dotenv").config();
 const BREVO_API_KEY = (process.env.BREVO_API_KEY || "").trim();
 const FROM_EMAIL = (process.env.EMAIL_BREVO_NAME || "").trim();
 
-async function sendEmail(to, subject, htmlContent, emailType) {
+async function sendEmail(
+  to,
+  subject,
+  htmlContent,
+  emailType,
+  attachments = null,
+) {
   try {
     console.log(`================ ${emailType} ================`);
     console.log("TO:", to);
     console.log("SUBJECT:", subject);
 
+    const payload = {
+      sender: {
+        name: "HuếHotel",
+        email: FROM_EMAIL,
+      },
+      to: [
+        {
+          email: to,
+        },
+      ],
+      subject: subject,
+      htmlContent: htmlContent,
+    };
+
+    if (attachments) {
+      payload.attachment = attachments;
+    }
+
     const response = await axios.post(
       "https://api.brevo.com/v3/smtp/email",
-      {
-        sender: {
-          name: "HuếHotel",
-          email: FROM_EMAIL,
-        },
-        to: [
-          {
-            email: to,
-          },
-        ],
-        subject: subject,
-        htmlContent: htmlContent,
-      },
+      payload,
       {
         headers: {
           accept: "application/json",
@@ -292,4 +304,36 @@ exports.sendDepositConfirmationEmail = async (toEmail, userName, booking) => {
 
   // Gọi lại hàm sendEmail gốc của em
   return await sendEmail(toEmail, subject, htmlContent, "DEPOSIT_CONFIRMATION");
+};
+
+exports.sendInvoiceEmail = async (
+  userEmail,
+  userName,
+  bookingId,
+  pdfBuffer,
+) => {
+  const content = `
+    <h2 style="color: #1e3a8a; margin-top: 0;">Hóa đơn thanh toán / Invoice</h2>
+    <p>Kính chào quý khách <strong>${userName}</strong>,</p>
+    <p>Cảm ơn quý khách đã tin tưởng và lựa chọn <strong>HuếHotel</strong> cho kỳ nghỉ của mình.</p>
+    <p>Thủ tục trả phòng của quý khách đã hoàn tất. Chúng tôi xin gửi đính kèm hóa đơn chi tiết cho đơn đặt phòng <strong>#${bookingId}</strong> trong email này.</p>
+    <p style="margin-top: 25px;">Kính chúc quý khách sức khỏe và hy vọng được đón tiếp quý khách trong những kỳ nghỉ tiếp theo!</p>
+    <p>Trân trọng,<br><strong>Ban Lễ tân HuếHotel</strong></p>
+  `;
+
+  // Brevo API yêu cầu file đính kèm dưới dạng mã hóa Base64
+  const attachments = [
+    {
+      content: pdfBuffer.toString("base64"),
+      name: `Invoice-HueHotel-${bookingId}.pdf`,
+    },
+  ];
+
+  return await sendEmail(
+    userEmail,
+    `[Hóa đơn] Cảm ơn quý khách đã lưu trú tại HuếHotel - Đơn #${bookingId}`,
+    generateHtmlTemplate(content),
+    "INVOICE EMAIL",
+    attachments,
+  );
 };
