@@ -38,10 +38,13 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-    
+
     if (error.response) {
       // 1. Bỏ qua nếu chính request lỗi là API đăng nhập hoặc refresh-token để tránh vòng lặp vô hạn
-      if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh-token')) {
+      if (
+        originalRequest.url.includes("/auth/login") ||
+        originalRequest.url.includes("/auth/refresh-token")
+      ) {
         return Promise.reject(error);
       }
 
@@ -50,23 +53,31 @@ api.interceptors.response.use(
         if (isRefreshing) {
           return new Promise(function (resolve, reject) {
             failedQueue.push({ resolve, reject });
-          }).then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          }).catch((err) => {
-            return Promise.reject(err);
-          });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return api(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
         }
 
         originalRequest._retry = true;
         isRefreshing = true; // Bật khóa
 
         try {
-          const res = await api.post("/auth/refresh-token");
+          // Dùng axios độc lập để không bị dính Access Token cũ (đã hết hạn) vào Header
+          const res = await axios.post(
+            (import.meta.env.VITE_API_URL || "http://localhost:5000/api") +
+              "/auth/refresh-token",
+            {},
+            { withCredentials: true },
+          );
           const newAccessToken = res.data.token;
           localStorage.setItem("token", newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          
+
           processQueue(null, newAccessToken); // Giải phóng hàng đợi, cho các API chạy tiếp
           return api(originalRequest);
         } catch (refreshError) {

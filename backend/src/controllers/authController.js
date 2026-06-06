@@ -159,7 +159,7 @@ exports.login = async (req, res) => {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     return res.status(200).json({
@@ -208,12 +208,10 @@ exports.refreshToken = async (req, res) => {
         }
         // SỬA LỖI 2: Chặn gia hạn Token nếu tài khoản đã bị Admin khóa
         if (user.status !== "Active") {
-          return res
-            .status(403)
-            .json({
-              status: "error",
-              message: "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa!",
-            });
+          return res.status(403).json({
+            status: "error",
+            message: "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa!",
+          });
         }
 
         const newAccessToken = jwt.sign(
@@ -234,7 +232,7 @@ exports.logout = async (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
   return res
     .status(200)

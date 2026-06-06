@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Paper,
   Typography,
@@ -16,6 +17,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Divider,
+  Badge,
+  Tooltip as MuiTooltip,
 } from "@mui/material";
 
 import {
@@ -41,12 +44,15 @@ import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import MailIcon from "@mui/icons-material/Mail";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import GroupsIcon from "@mui/icons-material/Groups";
 
 import DashboardService from "../../services/dashboardService";
+import FolioService from "../../services/folioService";
+import ContactService from "../../services/contactService";
 
 const COLORS = {
   primary: "#5e35b1",
@@ -89,9 +95,12 @@ const sectionTitleSx = {
 };
 
 const DashboardOverview = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [newContactsCount, setNewContactsCount] = useState(0);
 
   // State điều khiển dữ liệu biểu đồ
   const [chartView, setChartView] = useState("monthly"); // "monthly" hoặc "yearly"
@@ -115,7 +124,35 @@ const DashboardOverview = () => {
         setLoading(false);
       }
     };
+
+    const fetchPendingOrders = async () => {
+      try {
+        const res = await FolioService.getPendingOrders();
+        setPendingOrdersCount(res.data?.length || 0);
+      } catch (err) {
+        console.error("Lỗi lấy thông báo dịch vụ:", err);
+      }
+    };
+
+    const fetchNewContacts = async () => {
+      try {
+        const res = await ContactService.getAllContacts();
+        const newCount =
+          res.data?.filter((c) => c.status === "New").length || 0;
+        setNewContactsCount(newCount);
+      } catch (err) {
+        console.error("Lỗi lấy thông báo liên hệ:", err);
+      }
+    };
+
     fetchStats();
+    fetchPendingOrders();
+    fetchNewContacts();
+    const intervalId = setInterval(() => {
+      fetchPendingOrders();
+      fetchNewContacts();
+    }, 30000); // Tự động làm mới thông báo mỗi 30 giây
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading)
@@ -183,13 +220,15 @@ const DashboardOverview = () => {
   const currentChartData =
     chartView === "monthly" ? stats?.chartDataMonthly : stats?.chartDataYearly;
 
-  // Dữ liệu giả lập tỷ trọng doanh thu (Dựa trên tổng doanh thu thực tế)
-  const totalRevenueNumber = parseFloat(stats?.revenue || 0);
+  // ✨ Lấy dữ liệu tỷ trọng doanh thu THỰC TẾ từ Backend
   const pieChartData = [
-    { name: "Tiền thuê phòng", value: totalRevenueNumber * 0.75 },
-    { name: "Dịch vụ phát sinh", value: totalRevenueNumber * 0.25 },
+    { name: "Tiền thuê phòng", value: parseFloat(stats?.room_revenue || 0) },
+    {
+      name: "Dịch vụ phát sinh",
+      value: parseFloat(stats?.service_revenue || 0),
+    },
   ];
-  const PIE_COLORS = [COLORS.navy, COLORS.teal];
+  const PIE_COLORS = [ COLORS.teal,COLORS.primary];
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -268,16 +307,37 @@ const DashboardOverview = () => {
             gap: 1.25,
           }}
         >
-          <IconButton
-            sx={{
-              bgcolor: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(11,27,63,0.12)",
-              borderRadius: "4px",
-              boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
-            }}
-          >
-            <NotificationsNoneIcon sx={{ color: COLORS.navy }} />
-          </IconButton>
+          <MuiTooltip title="Quản lý thư liên hệ" arrow>
+            <IconButton
+              sx={{
+                bgcolor: "rgba(255,255,255,0.8)",
+                border: "1px solid rgba(11,27,63,0.12)",
+                borderRadius: "4px",
+                boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+              }}
+              onClick={() => navigate("/dashboard/contacts")}
+            >
+              <Badge badgeContent={newContactsCount} color="error">
+                <MailIcon sx={{ color: COLORS.navy }} />
+              </Badge>
+            </IconButton>
+          </MuiTooltip>
+
+          <MuiTooltip title="Quản lý đơn dịch vụ" arrow>
+            <IconButton
+              sx={{
+                bgcolor: "rgba(255,255,255,0.8)",
+                border: "1px solid rgba(11,27,63,0.12)",
+                borderRadius: "4px",
+                boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
+              }}
+              onClick={() => navigate("/dashboard/rooms")}
+            >
+              <Badge badgeContent={pendingOrdersCount} color="error">
+                <NotificationsNoneIcon sx={{ color: COLORS.navy }} />
+              </Badge>
+            </IconButton>
+          </MuiTooltip>
           <Chip
             icon={<CalendarTodayIcon fontSize="small" />}
             label={currentDate}
