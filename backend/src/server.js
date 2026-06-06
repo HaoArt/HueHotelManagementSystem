@@ -55,8 +55,7 @@ app.use((err, req, res, next) => {
   console.error("Lỗi Middleware/Hệ thống:", err.message || err);
   res.status(500).json({
     status: "error",
-    message:
-      "Lỗi xử lý luồng dữ liệu (Kiểm tra lại định dạng file hoặc API Key Cloudinary)",
+    message: err.message || "Lỗi máy chủ nội bộ. Vui lòng thử lại sau!",
   });
 });
 

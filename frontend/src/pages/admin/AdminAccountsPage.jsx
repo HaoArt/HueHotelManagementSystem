@@ -520,23 +520,25 @@ const AdminAccountsPage = () => {
                 <TableCell sx={{ color: "white", fontWeight: 700 }}>
                   Trạng thái
                 </TableCell>
-                <TableCell
-                  sx={{ color: "white", fontWeight: 700, textAlign: "right" }}
-                >
-                  Thao tác
-                </TableCell>
+                {user?.role === "Admin" && (
+                  <TableCell
+                    sx={{ color: "white", fontWeight: 700, textAlign: "right" }}
+                  >
+                    Thao tác
+                  </TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={30} sx={{ color: COLORS.teal }} />
                   </TableCell>
                 </TableRow>
               ) : accounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 5 }}>
                     <Typography color="text.secondary">
                       Không tìm thấy tài khoản nào.
                     </Typography>
@@ -616,13 +618,14 @@ const AdminAccountsPage = () => {
 
                     <TableCell>{getStatusChip(acc.status)}</TableCell>
 
-                    <TableCell align="right">
-                      {acc.role !== "Admin" && (
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="flex-end"
-                        >
+                    {user?.role === "Admin" && (
+                      <TableCell align="right">
+                        {acc.role !== "Admin" && (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="flex-end"
+                          >
                           <Tooltip title="Cấp lại mật khẩu (Đưa về mặc định)">
                             <IconButton
                               size="small"
@@ -674,9 +677,10 @@ const AdminAccountsPage = () => {
                               )}
                             </IconButton>
                           </Tooltip>
-                        </Stack>
-                      )}
-                    </TableCell>
+                          </Stack>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

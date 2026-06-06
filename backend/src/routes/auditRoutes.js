@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 const auditController = require("../controllers/auditController");
@@ -7,11 +6,10 @@ const {
   authorizeRoles,
 } = require("../middlewares/authMiddleware");
 
-
 router.get(
   "/",
   verifyToken,
-  authorizeRoles("Admin"),
+  authorizeRoles("Admin", "Receptionist"),
   auditController.getAuditLogs,
 );
 
