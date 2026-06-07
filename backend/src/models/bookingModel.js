@@ -153,9 +153,10 @@ const Booking = {
   },
   getCurrentBookingByRoom: async (room_id) => {
     const [rows] = await db.query(
-      `SELECT b.*, u.full_name as user_full_name, u.phone 
+      `SELECT b.*, u.full_name as user_full_name, u.phone, rt.base_price 
        FROM bookings b 
        JOIN users u ON b.user_id = u.id 
+       JOIN room_types rt ON b.room_type_id = rt.id
        WHERE b.room_id = ? AND b.status = 'Checked_in' LIMIT 1`,
       [room_id],
     );

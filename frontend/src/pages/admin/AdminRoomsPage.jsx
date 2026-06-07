@@ -1098,8 +1098,9 @@ const AdminRoomsPage = () => {
                   Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24),
                 ) || 1;
 
-              const rawRoomTotal =
-                parseFloat(currentBooking.base_price || 0) * totalDays;
+              const basePrice = parseFloat(currentBooking.base_price || 0);
+
+              const rawRoomTotal = basePrice > 0 ? basePrice * totalDays : originalRoomTotal;
               let roomGoc = rawRoomTotal;
               let fallback = originalRoomTotal - rawRoomTotal - knownTotal;
 

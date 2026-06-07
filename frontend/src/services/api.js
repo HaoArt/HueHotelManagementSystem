@@ -69,8 +69,7 @@ api.interceptors.response.use(
         try {
           // Dùng axios độc lập để không bị dính Access Token cũ (đã hết hạn) vào Header
           const res = await axios.post(
-            (import.meta.env.VITE_API_URL || "http://localhost:5000/api") +
-              "/auth/refresh-token",
+            `${api.defaults.baseURL}/auth/refresh-token`,
             {},
             { withCredentials: true },
           );
