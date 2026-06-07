@@ -32,8 +32,9 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 
 import BookingService from "../../services/bookingService";
 import ServiceService from "../../services/serviceService";
-import couponService from "../../services/couponService";
+import CouponService from "../../services/couponService";
 import ConfigService from "../../services/configService";
+import SurchargeService from "../../services/surchargeService"; // ✨ ĐÃ IMPORT
 import { AuthContext } from "../../context/AuthContext";
 
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -104,10 +105,12 @@ const Booking = () => {
 
   const [availableServices, setAvailableServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState({});
-
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
+
+  // ✨ STATE MỚI: Chứa dữ liệu ngày Lễ lấy từ DB
+  const [holidayRules, setHolidayRules] = useState([]);
 
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
@@ -138,6 +141,10 @@ const Booking = () => {
     finalTotalAmount: 0,
     depositAmount: 0,
     isHighValue: false,
+    isLowTrust: false,
+    userTrustScore: 100,
+    isHoliday: false, // ✨ Cờ nhận diện Lễ
+    surchargeAmount: 0, // ✨ Tiền phụ thu Lễ
   });
 
   const [error, setError] = useState("");
@@ -145,10 +152,30 @@ const Booking = () => {
 
   const handleServiceChange = (serviceId, delta) => {
     setSelectedServices((prev) => {
-      const currentQty = prev[serviceId] || 0;
-      const newQty = currentQty + delta;
+      const currentItem = prev[serviceId] || {
+        quantity: 0,
+        usage_time: "",
+        note: "",
+      };
+      const newQty = currentItem.quantity + delta;
+
       if (newQty < 0) return prev;
-      return { ...prev, [serviceId]: newQty };
+
+      if (newQty === 0) {
+        const newState = { ...prev };
+        delete newState[serviceId];
+        return newState;
+      }
+
+      return { ...prev, [serviceId]: { ...currentItem, quantity: newQty } };
+    });
+  };
+
+  const handleUpdateServiceField = (serviceId, field, value) => {
+    setSelectedServices((prev) => {
+      const currentItem = prev[serviceId];
+      if (!currentItem) return prev;
+      return { ...prev, [serviceId]: { ...currentItem, [field]: value } };
     });
   };
 
@@ -157,10 +184,15 @@ const Booking = () => {
 
     const fetchData = async () => {
       try {
-        const [svcRes, couponRes, configRes] = await Promise.all([
+        const couponPromise = user
+          ? CouponService.getActiveCouponsForUser()
+          : Promise.resolve({ data: [] });
+
+        const [svcRes, couponRes, configRes, surchargeRes] = await Promise.all([
           ServiceService.getAllServices(),
-          couponService.getActiveCouponsForUser(),
+          couponPromise, // Đã an toàn
           ConfigService.getConfigs(),
+          SurchargeService.getAll(), // Gắn thêm API lấy lịch nghỉ lễ
         ]);
 
         setAvailableServices(svcRes.data || []);
@@ -176,12 +208,15 @@ const Booking = () => {
           configMap[c.config_key] = c.config_value;
         });
         setSysConfigs(configMap);
+
+        // Lấy ngày lễ. Ở Backend surchargeController.getAllRules, mảng được bọc trong { data: [...] }
+        setHolidayRules(surchargeRes.data?.data || surchargeRes.data || []);
       } catch (err) {
         console.error("Lỗi tải dữ liệu ban đầu:", err);
       }
     };
     fetchData();
-  }, []);
+  }, []); // Remove user dependency here to prevent infinite loop. User triggers another useEffect.
 
   useEffect(() => {
     if (formData.checkIn && formData.checkOut) {
@@ -195,7 +230,6 @@ const Booking = () => {
       const leadTimeDays = Math.ceil((checkIn - today) / (1000 * 60 * 60 * 24));
 
       let holdText = "";
-
       let percent = sysConfigs.deposit_percent
         ? parseFloat(sysConfigs.deposit_percent)
         : 50;
@@ -209,10 +243,49 @@ const Booking = () => {
           "Hệ thống sẽ giữ phòng trong vòng 2 giờ kể từ khi đặt thành công.";
       }
 
-      const roomTotal = diffDays > 0 ? diffDays * roomInfo.base_price : 0;
+      // ✨ 1. LOGIC NHẬN DIỆN LỄ VÀ TÍNH PHỤ THU
+      let isHoliday = false;
+      let baseRoomTotal = 0;
+      let computedSurchargeAmount = 0;
+
+      const checkInDate = new Date(checkIn);
+      checkInDate.setHours(0, 0, 0, 0);
+      const checkOutDate = new Date(checkOut);
+      checkOutDate.setHours(0, 0, 0, 0);
+
+      let currentDate = new Date(checkInDate);
+
+      // Duyệt qua từng "đêm" lưu trú để tính giá gốc và tiền lễ chính xác
+      while (currentDate < checkOutDate) {
+        baseRoomTotal += parseFloat(roomInfo.base_price);
+
+        const appliedRulesForNight = holidayRules.filter((rule) => {
+          const ruleStart = new Date(rule.start_date).setHours(0, 0, 0, 0);
+          const ruleEnd = new Date(rule.end_date).setHours(23, 59, 59, 999);
+          return (
+            currentDate.getTime() >= ruleStart &&
+            currentDate.getTime() <= ruleEnd
+          );
+        });
+
+        if (appliedRulesForNight.length > 0) {
+          isHoliday = true;
+          const maxSurchargePercent = Math.max(
+            ...appliedRulesForNight.map((r) =>
+              parseFloat(r.surcharge_percent || 0),
+            ),
+          );
+          computedSurchargeAmount +=
+            (parseFloat(roomInfo.base_price) * maxSurchargePercent) / 100;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const roomTotal = baseRoomTotal + computedSurchargeAmount;
+
       let svcsTotal = 0;
       availableServices.forEach((svc) => {
-        svcsTotal += (selectedServices[svc.id] || 0) * svc.price;
+        svcsTotal += (selectedServices[svc.id]?.quantity || 0) * svc.price;
       });
 
       const subTotal = roomTotal + svcsTotal;
@@ -240,26 +313,35 @@ const Booking = () => {
       const finalTotal = subTotal - discount;
 
       const isHigh = finalTotal >= HIGH_VALUE_THRESHOLD;
+      const userTrustScore = user?.trust_score ?? 100;
+      const isLowTrust = userTrustScore < 80;
 
-      if (isHigh) {
+      // ✨ 2. ĐIỀU KIỆN KHÓA NÚT CHẶT CHẼ HƠN
+      const mustDeposit = isHigh || isLowTrust || isHoliday;
+
+      if (mustDeposit) {
         if (formData.paymentMethod === "PayAtDesk") {
           setFormData((prev) => ({ ...prev, paymentMethod: "DepositOnline" }));
         }
       }
 
       let activePercent =
-        formData.paymentMethod === "PayAtDesk" && !isHigh ? 0 : percent;
+        formData.paymentMethod === "PayAtDesk" && !mustDeposit ? 0 : percent;
 
       setPolicy({
         holdUntilText: holdText,
         depositPercent: activePercent,
         totalDays: diffDays > 0 ? diffDays : 0,
-        roomTotal: roomTotal,
+        roomTotal: baseRoomTotal, // Tách riêng giá gốc không gộp chung với tiền lễ
         servicesTotal: svcsTotal,
         discountAmount: discount,
         finalTotalAmount: finalTotal,
         depositAmount: (finalTotal * activePercent) / 100,
         isHighValue: isHigh,
+        isLowTrust: isLowTrust,
+        userTrustScore: userTrustScore,
+        isHoliday: isHoliday,
+        surchargeAmount: computedSurchargeAmount,
       });
     }
   }, [
@@ -272,6 +354,8 @@ const Booking = () => {
     selectedCoupon,
     sysConfigs,
     HIGH_VALUE_THRESHOLD,
+    user,
+    holidayRules,
   ]);
 
   const handleSubmit = async (e) => {
@@ -284,12 +368,12 @@ const Booking = () => {
     setError("");
 
     try {
-      const servicesArray = Object.keys(selectedServices)
-        .filter((id) => selectedServices[id] > 0)
-        .map((id) => ({
-          service_id: parseInt(id),
-          quantity: selectedServices[id],
-        }));
+      const servicesArray = Object.keys(selectedServices).map((id) => ({
+        service_id: parseInt(id),
+        quantity: selectedServices[id].quantity,
+        usage_time: selectedServices[id].usage_time || null,
+        note: selectedServices[id].note || "",
+      }));
 
       const payload = {
         room_type_id: roomInfo.id,
@@ -326,7 +410,9 @@ const Booking = () => {
   };
 
   const handleSelectCoupon = (coupon) => {
-    const subTotal = policy.roomTotal + policy.servicesTotal;
+    // Bù lại tiền lễ vào subTotal để validate điều kiện mã giảm giá khớp với Backend
+    const subTotal =
+      policy.roomTotal + policy.surchargeAmount + policy.servicesTotal;
     if (subTotal < coupon.min_order_value) {
       setSnackbar({
         open: true,
@@ -471,7 +557,6 @@ const Booking = () => {
                       gap: 3,
                     }}
                   >
-                    {/* Ô 1: Họ và tên (Chiếm 50% hàng) */}
                     <Box
                       sx={{
                         flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
@@ -567,7 +652,6 @@ const Booking = () => {
                       />
                     </Box>
 
-                    {/* Ô 4: Ngày trả phòng (Chiếm 50% hàng) */}
                     <Box
                       sx={{
                         flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" },
@@ -662,14 +746,16 @@ const Booking = () => {
 
                   <Stack spacing={2}>
                     {availableServices.map((svc) => {
-                      const isSelected = selectedServices[svc.id] > 0;
+                      const selectedItem = selectedServices[svc.id];
+                      const isSelected = !!selectedItem;
+                      const currentQty = selectedItem?.quantity || 0;
+
                       return (
                         <Box
                           key={svc.id}
                           sx={{
                             display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
+                            flexDirection: "column",
                             p: 2.5,
                             border: `2px solid ${isSelected ? LUXURY.gold : LUXURY.softGray}`,
                             borderRadius: "16px",
@@ -680,71 +766,150 @@ const Booking = () => {
                             "&:hover": { borderColor: LUXURY.gold },
                           }}
                         >
-                          <Box>
-                            <Typography
-                              fontWeight="800"
-                              color={LUXURY.charcoal}
-                              fontSize="1.05rem"
-                            >
-                              {svc.name}
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                color: LUXURY.warmGray,
-                                fontWeight: "600",
-                                mt: 0.5,
-                              }}
-                            >
-                              {parseFloat(svc.price).toLocaleString()}đ{" "}
-                              <span
-                                style={{
-                                  fontSize: "0.8rem",
-                                  fontWeight: "normal",
-                                }}
-                              >
-                                / lượt
-                              </span>
-                            </Typography>
-                          </Box>
                           <Box
                             sx={{
                               display: "flex",
+                              justifyContent: "space-between",
                               alignItems: "center",
-                              gap: 1.5,
-                              bgcolor: LUXURY.offwhite,
-                              borderRadius: "12px",
-                              p: 0.5,
+                              width: "100%",
                             }}
                           >
-                            <IconButton
+                            <Box>
+                              <Typography
+                                fontWeight="800"
+                                color={LUXURY.charcoal}
+                                fontSize="1.05rem"
+                              >
+                                {svc.name}
+                              </Typography>
+                              <Typography
+                                variant="body1"
+                                sx={{
+                                  color: LUXURY.warmGray,
+                                  fontWeight: "600",
+                                  mt: 0.5,
+                                }}
+                              >
+                                {parseFloat(svc.price).toLocaleString()}đ{" "}
+                                <span
+                                  style={{
+                                    fontSize: "0.8rem",
+                                    fontWeight: "normal",
+                                  }}
+                                >
+                                  / lượt
+                                </span>
+                              </Typography>
+                            </Box>
+
+                            <Box
                               sx={{
-                                color: isSelected
-                                  ? LUXURY.charcoal
-                                  : LUXURY.softGray,
-                              }}
-                              onClick={() => handleServiceChange(svc.id, -1)}
-                              disabled={!selectedServices[svc.id]}
-                            >
-                              <RemoveCircleIcon />
-                            </IconButton>
-                            <Typography
-                              fontWeight="800"
-                              sx={{
-                                width: 20,
-                                textAlign: "center",
-                                color: LUXURY.charcoal,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                                bgcolor: LUXURY.offwhite,
+                                borderRadius: "12px",
+                                p: 0.5,
                               }}
                             >
-                              {selectedServices[svc.id] || 0}
-                            </Typography>
-                            <IconButton
-                              sx={{ color: LUXURY.gold }}
-                              onClick={() => handleServiceChange(svc.id, 1)}
-                            >
-                              <AddCircleIcon />
-                            </IconButton>
+                              <IconButton
+                                sx={{
+                                  color: isSelected
+                                    ? LUXURY.charcoal
+                                    : LUXURY.softGray,
+                                }}
+                                onClick={() => handleServiceChange(svc.id, -1)}
+                                disabled={!isSelected}
+                              >
+                                <RemoveCircleIcon />
+                              </IconButton>
+                              <Typography
+                                fontWeight="800"
+                                sx={{
+                                  width: 20,
+                                  textAlign: "center",
+                                  color: LUXURY.charcoal,
+                                }}
+                              >
+                                {currentQty}
+                              </Typography>
+                              <IconButton
+                                sx={{ color: LUXURY.gold }}
+                                onClick={() => handleServiceChange(svc.id, 1)}
+                              >
+                                <AddCircleIcon />
+                              </IconButton>
+                            </Box>
                           </Box>
+
+                          {isSelected && (
+                            <Stack
+                              spacing={2}
+                              sx={{
+                                mt: 2,
+                                pt: 2,
+                                borderTop: `1px dashed ${LUXURY.gold}50`,
+                                width: "100%",
+                              }}
+                            >
+                              {svc.service_type === "PreOrder" && (
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      mb: 0.5,
+                                      fontWeight: 700,
+                                      color: LUXURY.charcoal,
+                                      display: "block",
+                                    }}
+                                  >
+                                    Thời gian hẹn phục vụ (*)
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    type="datetime-local"
+                                    value={selectedItem.usage_time || ""}
+                                    onChange={(e) =>
+                                      handleUpdateServiceField(
+                                        svc.id,
+                                        "usage_time",
+                                        e.target.value,
+                                      )
+                                    }
+                                    sx={inputStyle}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      mt: 0.5,
+                                      color: LUXURY.warmGray,
+                                      display: "block",
+                                      fontStyle: "italic"
+                                    }}
+                                  >
+                                    * Lưu ý: Hủy dịch vụ này sát giờ (dưới 2 tiếng) sẽ bị phạt 50% phí. Quá hạn phạt 100%.
+                                  </Typography>
+                                </Box>
+                              )}
+
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Yêu cầu đặc biệt cho dịch vụ này"
+                                placeholder="VD: Phở không hành, xe tay ga màu đỏ, mang lên tận phòng..."
+                                value={selectedItem.note || ""}
+                                onChange={(e) =>
+                                  handleUpdateServiceField(
+                                    svc.id,
+                                    "note",
+                                    e.target.value,
+                                  )
+                                }
+                                sx={inputStyle}
+                              />
+                            </Stack>
+                          )}
                         </Box>
                       );
                     })}
@@ -865,60 +1030,75 @@ const Booking = () => {
                     </Box>
 
                     {/* Trả tại quầy */}
-                    <Box
-                      sx={{
-                        p: 3,
-                        border: `2px solid ${formData.paymentMethod === "PayAtDesk" ? LUXURY.navy : LUXURY.softGray}`,
-                        borderRadius: "16px",
-                        bgcolor:
-                          formData.paymentMethod === "PayAtDesk"
-                            ? `${LUXURY.navy}08`
-                            : "transparent",
-                        opacity: policy.isHighValue ? 0.6 : 1,
-                        transition: "all 0.3s ease",
-                        cursor: policy.isHighValue ? "not-allowed" : "pointer",
-                      }}
-                      onClick={() => {
-                        if (!policy.isHighValue)
-                          setFormData({
-                            ...formData,
-                            paymentMethod: "PayAtDesk",
-                          });
-                      }}
-                    >
-                      <FormControlLabel
-                        value="PayAtDesk"
-                        control={
-                          <Radio
-                            sx={{
-                              color: LUXURY.navy,
-                              "&.Mui-checked": { color: LUXURY.navy },
-                            }}
-                          />
-                        }
-                        disabled={policy.isHighValue}
-                        label={
-                          <Typography
-                            fontWeight="800"
-                            color={LUXURY.charcoal}
-                            fontSize="1.1rem"
-                          >
-                            Thanh toán tại Lễ Tân
-                          </Typography>
-                        }
-                      />
-                      {policy.isHighValue && (
-                        <Typography
-                          variant="body2"
-                          color="error"
-                          sx={{ ml: 4, mt: 1, fontWeight: "600" }}
+                    {(() => {
+                      const disablePayAtDesk =
+                        policy.isHighValue ||
+                        policy.isLowTrust ||
+                        policy.isHoliday;
+
+                      return (
+                        <Box
+                          sx={{
+                            p: 3,
+                            border: `2px solid ${formData.paymentMethod === "PayAtDesk" ? LUXURY.navy : LUXURY.softGray}`,
+                            borderRadius: "16px",
+                            bgcolor:
+                              formData.paymentMethod === "PayAtDesk"
+                                ? `${LUXURY.navy}08`
+                                : "transparent",
+                            opacity: disablePayAtDesk ? 0.6 : 1,
+                            transition: "all 0.3s ease",
+                            cursor: disablePayAtDesk
+                              ? "not-allowed"
+                              : "pointer",
+                          }}
+                          onClick={() => {
+                            if (!disablePayAtDesk)
+                              setFormData({
+                                ...formData,
+                                paymentMethod: "PayAtDesk",
+                              });
+                          }}
                         >
-                          Đơn hàng vượt quá{" "}
-                          {HIGH_VALUE_THRESHOLD?.toLocaleString()}đ bắt buộc
-                          phải đặt cọc trực tuyến.
-                        </Typography>
-                      )}
-                    </Box>
+                          <FormControlLabel
+                            value="PayAtDesk"
+                            control={
+                              <Radio
+                                sx={{
+                                  color: LUXURY.navy,
+                                  "&.Mui-checked": { color: LUXURY.navy },
+                                }}
+                              />
+                            }
+                            disabled={disablePayAtDesk}
+                            label={
+                              <Typography
+                                fontWeight="800"
+                                color={LUXURY.charcoal}
+                                fontSize="1.1rem"
+                              >
+                                Thanh toán tại Lễ Tân
+                              </Typography>
+                            }
+                          />
+
+                          {/* HIỂN THỊ CẢNH BÁO THÔNG MINH */}
+                          {disablePayAtDesk && (
+                            <Typography
+                              variant="body2"
+                              color="error"
+                              sx={{ ml: 4, mt: 1, fontWeight: "600" }}
+                            >
+                              {policy.isHoliday
+                                ? "Giai đoạn Lễ/Tết bắt buộc phải đặt cọc trực tuyến để giữ phòng."
+                                : policy.isLowTrust
+                                  ? `Điểm tín nhiệm của bạn (${policy.userTrustScore}) quá thấp. Bắt buộc đặt cọc.`
+                                  : `Đơn hàng trên ${HIGH_VALUE_THRESHOLD?.toLocaleString()}đ bắt buộc phải đặt cọc.`}
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })()}
                   </RadioGroup>
                 </Paper>
               </Box>
@@ -997,6 +1177,23 @@ const Booking = () => {
                       {policy.roomTotal.toLocaleString()}đ
                     </Typography>
                   </Stack>
+
+                  {/* ✨ HIỂN THỊ TIỀN LỄ RA BẢNG TÓM TẮT */}
+                  {policy.surchargeAmount > 0 && (
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography variant="body1" sx={{ color: "#ef4444" }}>
+                        Phụ thu Lễ/Tết:
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        fontWeight="600"
+                        sx={{ color: "#ef4444" }}
+                      >
+                        +{policy.surchargeAmount.toLocaleString()}đ
+                      </Typography>
+                    </Stack>
+                  )}
+
                   {policy.servicesTotal > 0 && (
                     <Stack direction="row" justifyContent="space-between">
                       <Typography
@@ -1119,6 +1316,7 @@ const Booking = () => {
                   </Alert>
                 )}
 
+                {/* ✨ NÚT SUBMIT ĐÃ BỎ ONCLICK ĐỂ BẮT LỖI FORM CHUẨN HTML5 */}
                 <Button
                   type="submit"
                   fullWidth
@@ -1233,7 +1431,6 @@ const Booking = () => {
                 đã được tạo.
               </Typography>
 
-            
               <Box
                 sx={{
                   p: 1.5,
@@ -1279,9 +1476,7 @@ const Booking = () => {
                 justifyContent: "space-between",
               }}
             >
-              
               <Stack spacing={2.5} sx={{ width: "100%" }}>
-      
                 <Box>
                   <Typography
                     variant="caption"

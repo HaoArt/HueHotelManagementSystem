@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useMemo, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Box,
   Typography,
@@ -31,6 +31,8 @@ import {
   MenuItem,
   Grid,
   TablePagination,
+  Tabs,
+  Tab,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -75,21 +77,26 @@ const glassCardSx = {
 
 const AdminAccountsPage = () => {
   const { user } = useContext(AuthContext);
-  const isAdmin = user?.role === "Admin";
 
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState("");
+
+  // ✨ STATE TÌM KIẾM, LỌC VÀ PHÂN TRANG
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tabValue, setTabValue] = useState("All");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: "",
@@ -98,8 +105,8 @@ const AdminAccountsPage = () => {
     confirmColor: "primary",
   });
 
-  const [addDialog, setAddDialog] = useState(false);
-  const [addForm, setAddForm] = useState({
+  const [createDialog, setCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
     full_name: "",
     email: "",
     phone: "",
@@ -107,49 +114,134 @@ const AdminAccountsPage = () => {
     role: "Receptionist",
   });
 
+  // ✨ HÀM GỌI DỮ LIỆU ĐÃ TRUYỀN THAM SỐ
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const res = await UserService.getAllAccounts();
-      setAccounts(res.data || res);
+      const res = await UserService.getAllAccounts(
+        page + 1,
+        rowsPerPage,
+        searchTerm,
+        tabValue,
+      );
+      setAccounts(res.data || []);
+      setTotalRecords(res.pagination?.totalRecords || 0);
     } catch (err) {
-      setError(err.response?.data?.message || "Lỗi tải dữ liệu tài khoản");
+      setSnackbar({
+        open: true,
+        message: err.toString() || "Lỗi lấy danh sách tài khoản",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // ✨ GỌI API KHI CHUYỂN TRANG / TÌM KIẾM
   useEffect(() => {
-    fetchAccounts();
-  }, []);
-  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchAccounts();
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [page, rowsPerPage, searchTerm, tabValue]);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
     setPage(0);
-  }, [searchTerm]);
+  };
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((c) => {
-      const searchStr =
-        `${c.full_name} ${c.email} ${c.phone} ${c.role}`.toLowerCase();
-      return searchStr.includes(searchTerm.toLowerCase());
-    });
-  }, [accounts, searchTerm]);
-  const paginatedAccounts = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return filteredAccounts.slice(startIndex, startIndex + rowsPerPage);
-  }, [filteredAccounts, page, rowsPerPage]);
-  const handleToggleStatus = (id, currentStatus, name) => {
-    const newStatus = currentStatus === "Active" ? "Blacklisted" : "Active";
-    const actionText = newStatus === "Blacklisted" ? "khóa" : "mở khóa";
+  const handleTabChange = (e, val) => {
+    setTabValue(val);
+    setPage(0);
+  };
 
+  const getRoleChip = (role) => {
+    switch (role) {
+      case "Admin":
+        return (
+          <Chip
+            icon={<AdminPanelSettingsIcon sx={{ fontSize: 16 }} />}
+            label="Quản trị viên"
+            sx={{
+              bgcolor: "#ffebee",
+              color: "#c62828",
+              fontWeight: 700,
+              borderRadius: 1,
+            }}
+            size="small"
+          />
+        );
+      case "Receptionist":
+        return (
+          <Chip
+            icon={<SupportAgentIcon sx={{ fontSize: 16 }} />}
+            label="Lễ tân"
+            sx={{
+              bgcolor: "#e3f2fd",
+              color: "#1565c0",
+              fontWeight: 700,
+              borderRadius: 1,
+            }}
+            size="small"
+          />
+        );
+      case "Customer":
+      default:
+        return (
+          <Chip
+            icon={<PersonIcon sx={{ fontSize: 16 }} />}
+            label="Khách hàng"
+            sx={{
+              bgcolor: "#f5f5f5",
+              color: "#424242",
+              fontWeight: 700,
+              borderRadius: 1,
+            }}
+            size="small"
+          />
+        );
+    }
+  };
+
+  const getStatusChip = (status) => {
+    return status === "Active" ? (
+      <Chip
+        label="Hoạt động"
+        sx={{
+          bgcolor: "#e8f5e9",
+          color: "#2e7d32",
+          fontWeight: 700,
+          borderRadius: 1,
+        }}
+        size="small"
+      />
+    ) : (
+      <Chip
+        label="Đã khóa"
+        sx={{
+          bgcolor: "white",
+          color: COLORS.error,
+          border: `1px solid ${COLORS.error}`,
+          fontWeight: 700,
+          borderRadius: 1,
+        }}
+        size="small"
+      />
+    );
+  };
+
+  const handleToggleStatus = (acc) => {
+    const isLocking = acc.status === "Active";
     setConfirmDialog({
       open: true,
-      title: "Xác nhận thay đổi",
-      message: `Bạn có chắc chắn muốn ${actionText} tài khoản "${name}"?`,
-      confirmColor: newStatus === "Blacklisted" ? "error" : "success",
+      title: isLocking ? "Khóa Tài Khoản" : "Mở Khóa Tài Khoản",
+      message: `Bạn có chắc chắn muốn ${isLocking ? "khóa" : "mở khóa"} tài khoản của ${acc.full_name}?`,
+      confirmColor: isLocking ? "error" : "success",
       onConfirm: async () => {
         try {
           setIsSubmitting(true);
-          await UserService.updateCustomerStatus(id, newStatus);
+          const newStatus = isLocking ? "Locked" : "Active";
+          await UserService.updateCustomerStatus(acc.id, newStatus);
           setSnackbar({
             open: true,
             message: "Cập nhật trạng thái thành công!",
@@ -159,60 +251,71 @@ const AdminAccountsPage = () => {
         } catch (err) {
           setSnackbar({
             open: true,
-            message: err.response?.data?.message || "Lỗi cập nhật",
+            message: err || "Lỗi cập nhật trạng thái",
             severity: "error",
           });
         } finally {
           setIsSubmitting(false);
-          setConfirmDialog({ ...confirmDialog, open: false });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
         }
       },
     });
   };
 
-  const handleResetPassword = (id, name) => {
+  const handleResetPassword = (acc) => {
     setConfirmDialog({
       open: true,
-      title: "Cấp lại mật khẩu",
-      message: `Hệ thống sẽ cấp lại mật khẩu mặc định (Huehotel@123) cho tài khoản "${name}". Tiếp tục?`,
+      title: "Cấp Lại Mật Khẩu",
+      message: `Tài khoản ${acc.full_name} sẽ được đưa về mật khẩu mặc định (Huehotel@123). Khách hàng sẽ dùng mật khẩu này để đăng nhập và nên đổi lại sau đó.`,
       confirmColor: "warning",
       onConfirm: async () => {
         try {
           setIsSubmitting(true);
-          const res = await UserService.resetCustomerPassword(id);
+          const res = await UserService.resetCustomerPassword(acc.id);
           setSnackbar({
             open: true,
-            message: res.message || "Đã cấp lại mật khẩu!",
+            message: res.message || "Cấp lại mật khẩu thành công!",
             severity: "success",
           });
         } catch (err) {
-          setSnackbar({ open: true, message: String(err), severity: "error" });
+          setSnackbar({
+            open: true,
+            message: err || "Lỗi cấp lại mật khẩu",
+            severity: "error",
+          });
         } finally {
           setIsSubmitting(false);
-          setConfirmDialog({ ...confirmDialog, open: false });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
         }
       },
     });
   };
 
-  const handleAddAccount = async () => {
-    if (!addForm.full_name || !addForm.email || !addForm.password) {
-      return setSnackbar({
+  const handleSubmitCreate = async (e) => {
+    e.preventDefault();
+    if (
+      !formData.full_name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.password
+    ) {
+      setSnackbar({
         open: true,
-        message: "Vui lòng nhập đủ Họ tên, Email và Mật khẩu!",
+        message: "Vui lòng nhập đầy đủ thông tin",
         severity: "warning",
       });
+      return;
     }
     try {
       setIsSubmitting(true);
-      await UserService.createAccount(addForm);
+      await UserService.createAccount(formData);
       setSnackbar({
         open: true,
-        message: "Tạo tài khoản mới thành công!",
+        message: "Tạo tài khoản thành công!",
         severity: "success",
       });
-      setAddDialog(false);
-      setAddForm({
+      setCreateDialog(false);
+      setFormData({
         full_name: "",
         email: "",
         phone: "",
@@ -223,80 +326,13 @@ const AdminAccountsPage = () => {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || "Lỗi tạo tài khoản",
+        message: err || "Lỗi khi tạo tài khoản",
         severity: "error",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const getRoleChip = (role) => {
-    if (role === "Admin")
-      return (
-        <Chip
-          icon={<AdminPanelSettingsIcon fontSize="small" />}
-          label="Quản trị viên"
-          sx={{
-            bgcolor: "rgba(11,27,63,0.1)",
-            color: COLORS.navy,
-            fontWeight: 700,
-            borderRadius: 1,
-            border: "none",
-          }}
-          size="small"
-        />
-      );
-    if (role === "Receptionist")
-      return (
-        <Chip
-          icon={<SupportAgentIcon fontSize="small" />}
-          label="Lễ tân"
-          sx={{
-            bgcolor: "rgba(0,150,136,0.1)",
-            color: COLORS.teal,
-            fontWeight: 700,
-            borderRadius: 1,
-            border: "none",
-          }}
-          size="small"
-        />
-      );
-    return (
-      <Chip
-        icon={<PersonIcon fontSize="small" />}
-        label="Khách hàng"
-        sx={{
-          bgcolor: "rgba(100,116,139,0.1)",
-          color: "#475569",
-          fontWeight: 700,
-          borderRadius: 1,
-          border: "none",
-        }}
-        size="small"
-      />
-    );
-  };
-
-  const getTrustScoreColor = (score) => {
-    if (score >= 80) return "success";
-    if (score >= 50) return "warning";
-    return "error";
-  };
-
-  if (loading)
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
-        }}
-      >
-        <CircularProgress sx={{ color: COLORS.teal }} />
-      </Box>
-    );
 
   return (
     <Box
@@ -305,7 +341,6 @@ const AdminAccountsPage = () => {
         minHeight: "100vh",
         background:
           "radial-gradient(circle at 14% 8%, rgba(0,150,136,0.07), transparent 34%), radial-gradient(circle at 88% 92%, rgba(11,27,63,0.06), transparent 32%), linear-gradient(180deg, #f6f9fe 0%, #eef3fa 52%, #f8fbff 100%)",
-        pb: 10,
       }}
     >
       <Box
@@ -328,15 +363,15 @@ const AdminAccountsPage = () => {
               fontSize: { xs: "1.65rem", sm: "2rem", md: "2.2rem" },
             }}
           >
-            Quản Lý Tài Khoản
+            Tài Khoản & Phân Quyền
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-            Phân quyền hệ thống, quản lý nhân viên và khách hàng.
+            Quản lý tài khoản nội bộ và khách hàng của khách sạn
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
           <Chip
-            label={`${filteredAccounts.length} tài khoản`}
+            label={`${totalRecords.toLocaleString()} tài khoản`}
             sx={{
               bgcolor: "rgba(255,255,255,0.78)",
               border: "1px solid rgba(11,27,63,0.12)",
@@ -347,12 +382,11 @@ const AdminAccountsPage = () => {
               boxShadow: "0 6px 16px rgba(11, 27, 63, 0.08)",
             }}
           />
-          {isAdmin && (
+          {user?.role === "Admin" && (
             <Button
               variant="contained"
+              onClick={() => setCreateDialog(true)}
               startIcon={<AddCircleIcon />}
-              onClick={() => setAddDialog(true)}
-              disableElevation
               sx={{
                 background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
                 fontWeight: 700,
@@ -364,14 +398,14 @@ const AdminAccountsPage = () => {
                 "&:hover": { boxShadow: "0 14px 24px rgba(230,81,0,0.32)" },
               }}
             >
-              THÊM TÀI KHOẢN
+              Cấp tài khoản mới
             </Button>
           )}
         </Stack>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 1 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
@@ -380,11 +414,56 @@ const AdminAccountsPage = () => {
         elevation={0}
         sx={{
           ...glassCardSx,
-          p: 0,
           border: "1px solid rgba(11,27,63,0.12)",
           overflow: "hidden",
         }}
       >
+        <Box
+          sx={{
+            borderBottom: "1px solid rgba(11,27,63,0.1)",
+            bgcolor: "rgba(255,255,255,0.84)",
+          }}
+        >
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              "& .MuiTab-root": {
+                fontWeight: 700,
+                textTransform: "none",
+                fontSize: "0.94rem",
+                borderRadius: 1,
+                minHeight: 46,
+              },
+              "& .Mui-selected": { color: `${COLORS.teal} !important` },
+              "& .MuiTabs-indicator": {
+                backgroundColor: COLORS.teal,
+                height: 4,
+                borderRadius: 999,
+              },
+            }}
+          >
+            <Tab
+              label="Tất cả tài khoản"
+              value="All"
+              sx={{ color: COLORS.teal }}
+            />
+            <Tab label="Ban Giám Đốc" value="Admin" sx={{ color: "#c62828" }} />
+            <Tab
+              label="Lễ Tân"
+              value="Receptionist"
+              sx={{ color: "#1565c0" }}
+            />
+            <Tab
+              label="Khách Hàng"
+              value="Customer"
+              sx={{ color: "#424242" }}
+            />
+          </Tabs>
+        </Box>
+
         <Box
           sx={{
             p: 2,
@@ -394,9 +473,9 @@ const AdminAccountsPage = () => {
         >
           <TextField
             fullWidth
-            placeholder="Tìm theo Tên, Email, SĐT hoặc Quyền..."
+            placeholder="Tìm theo Tên, Email hoặc Số điện thoại..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -426,75 +505,48 @@ const AdminAccountsPage = () => {
               }}
             >
               <TableRow>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Tài khoản
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                  Thông tin người dùng
                 </TableCell>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Vai trò (Role)
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>
                   Liên hệ
                 </TableCell>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Uy tín (Chỉ KH)
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                  Quyền hạn
                 </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                  Điểm tín nhiệm
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>
                   Trạng thái
                 </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    color: "white",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Thao tác
-                </TableCell>
+                {user?.role === "Admin" && (
+                  <TableCell
+                    sx={{ color: "white", fontWeight: 700, textAlign: "right" }}
+                  >
+                    Thao tác
+                  </TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredAccounts.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 4 }}>
+                    <CircularProgress size={30} sx={{ color: COLORS.teal }} />
+                  </TableCell>
+                </TableRow>
+              ) : accounts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 5 }}>
                     <Typography color="text.secondary">
-                      Không có tài khoản nào phù hợp.
+                      Không tìm thấy tài khoản nào.
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedAccounts.map((acc) => (
+                /* ✨ ĐÃ SỬA: Lặp trực tiếp từ mảng accounts từ API trả về */
+                accounts.map((acc) => (
                   <TableRow
                     key={acc.id}
                     hover
@@ -507,195 +559,140 @@ const AdminAccountsPage = () => {
                       "&:nth-of-type(even)": {
                         bgcolor: "rgba(11,27,63,0.018)",
                       },
-                      "&:hover": {
-                        bgcolor: "rgba(0,150,136,0.07)",
-                      },
-                      opacity: acc.status === "Blacklisted" ? 0.6 : 1,
+                      "&:hover": { bgcolor: "rgba(0,150,136,0.07)" },
                     }}
                   >
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar
-                          sx={{
-                            bgcolor:
-                              acc.role === "Admin"
-                                ? "rgba(11,27,63,0.1)"
-                                : acc.role === "Receptionist"
-                                  ? "rgba(0,150,136,0.1)"
-                                  : "rgba(100,116,139,0.1)",
-                            color:
-                              acc.role === "Admin"
-                                ? COLORS.navy
-                                : acc.role === "Receptionist"
-                                  ? COLORS.teal
-                                  : "#64748b",
-                            borderRadius: 1,
-                            fontWeight: "bold",
-                            border: "1px solid rgba(255,255,255,0.5)",
-                          }}
-                          variant="rounded"
+                          sx={{ bgcolor: COLORS.navy, width: 36, height: 36 }}
                         >
-                          {acc.full_name.charAt(0).toUpperCase()}
+                          {acc.full_name?.charAt(0).toUpperCase() || "?"}
                         </Avatar>
                         <Box>
                           <Typography
+                            variant="body2"
                             fontWeight="bold"
                             color={COLORS.textMain}
-                            sx={{
-                              textDecoration:
-                                acc.status === "Blacklisted"
-                                  ? "line-through"
-                                  : "none",
-                            }}
                           >
                             {acc.full_name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            ID: #{acc.id}
+                            Ngày tham gia:{" "}
+                            {new Date(acc.created_at).toLocaleDateString(
+                              "vi-VN",
+                            )}
                           </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell>{getRoleChip(acc.role)}</TableCell>
+
                     <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {acc.email}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="body2" fontWeight="500">
                         {acc.phone || "---"}
                       </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {acc.email}
+                      </Typography>
                     </TableCell>
+
+                    <TableCell>{getRoleChip(acc.role)}</TableCell>
+
                     <TableCell>
-                      {acc.role === "Customer" ? (
-                        <Chip
-                          icon={<ShieldIcon fontSize="small" />}
-                          label={`${acc.trust_score} XP`}
-                          color={getTrustScoreColor(acc.trust_score)}
-                          size="small"
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <ShieldIcon
                           sx={{
-                            fontWeight: 700,
-                            borderRadius: 1,
-                            bgcolor: `${getTrustScoreColor(acc.trust_score)}.light`,
-                            color: "white",
+                            color: (acc.trust_score ?? 100) >= 80 ? "#2e7d32" : "#c62828",
+                            fontSize: 18,
                           }}
                         />
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          Không áp dụng
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={
-                          acc.status === "Active" ? "Hoạt động" : "Bị khóa"
-                        }
-                        sx={{
-                          bgcolor:
-                            acc.status === "Active" ? "#e8f5e9" : "white",
-                          color:
-                            acc.status === "Active" ? "#2e7d32" : COLORS.error,
-                          border:
-                            acc.status === "Active"
-                              ? "none"
-                              : `1px solid ${COLORS.error}`,
-                          fontWeight: 700,
-                          borderRadius: 1,
-                        }}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      {isAdmin ? (
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="flex-end"
+                        <Typography
+                          variant="body2"
+                          fontWeight="bold"
+                          color={(acc.trust_score ?? 100) >= 80 ? "#2e7d32" : "#c62828"}
                         >
-                          <Tooltip title="Cấp lại mật khẩu">
+                          {acc.trust_score ?? 100}/100
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+
+                    <TableCell>{getStatusChip(acc.status)}</TableCell>
+
+                    {user?.role === "Admin" && (
+                      <TableCell align="right">
+                        {acc.role !== "Admin" && (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="flex-end"
+                          >
+                          <Tooltip title="Cấp lại mật khẩu (Đưa về mặc định)">
                             <IconButton
-                              onClick={() =>
-                                handleResetPassword(acc.id, acc.full_name)
-                              }
+                              size="small"
+                              onClick={() => handleResetPassword(acc)}
                               sx={{
-                                color: COLORS.orange,
+                                color: "#ed6c02",
                                 bgcolor: "rgba(237, 108, 2, 0.1)",
-                                border: "1px solid rgba(237, 108, 2, 0.2)",
                                 borderRadius: 1,
-                                transition: "all 0.2s ease",
                                 "&:hover": {
-                                  bgcolor: "rgba(237, 108, 2, 0.18)",
-                                  transform: "translateY(-1px)",
+                                  bgcolor: "rgba(237, 108, 2, 0.2)",
                                 },
                               }}
-                              size="small"
                             >
                               <VpnKeyIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {acc.role !== "Admin" && (
-                            <Tooltip
-                              title={
-                                acc.status === "Active"
-                                  ? "Khóa tài khoản"
-                                  : "Mở khóa"
-                              }
-                            >
-                              <IconButton
-                                onClick={() =>
-                                  handleToggleStatus(
-                                    acc.id,
-                                    acc.status,
-                                    acc.full_name,
-                                  )
-                                }
-                                sx={{
-                                  color:
-                                    acc.status === "Active"
-                                      ? COLORS.error
-                                      : "#2e7d32",
+                          <Tooltip
+                            title={
+                              acc.status === "Active"
+                                ? "Khóa tài khoản"
+                                : "Mở khóa tài khoản"
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={() => handleToggleStatus(acc)}
+                              sx={{
+                                color:
+                                  acc.status === "Active"
+                                    ? COLORS.error
+                                    : "#2e7d32",
+                                bgcolor:
+                                  acc.status === "Active"
+                                    ? "rgba(211, 47, 47, 0.1)"
+                                    : "rgba(46, 125, 50, 0.1)",
+                                borderRadius: 1,
+                                "&:hover": {
                                   bgcolor:
                                     acc.status === "Active"
-                                      ? "rgba(211, 47, 47, 0.1)"
-                                      : "rgba(46, 125, 50, 0.1)",
-                                  border: `1px solid ${acc.status === "Active" ? "rgba(211, 47, 47, 0.2)" : "rgba(46, 125, 50, 0.2)"}`,
-                                  borderRadius: 1,
-                                  transition: "all 0.2s ease",
-                                  "&:hover": {
-                                    bgcolor:
-                                      acc.status === "Active"
-                                        ? "rgba(211, 47, 47, 0.18)"
-                                        : "rgba(46, 125, 50, 0.18)",
-                                    transform: "translateY(-1px)",
-                                  },
-                                }}
-                                size="small"
-                              >
-                                {acc.status === "Active" ? (
-                                  <BlockIcon fontSize="small" />
-                                ) : (
-                                  <CheckCircleIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Stack>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          Chỉ Xem
-                        </Typography>
-                      )}
-                    </TableCell>
+                                      ? "rgba(211, 47, 47, 0.2)"
+                                      : "rgba(46, 125, 50, 0.2)",
+                                },
+                              }}
+                            >
+                              {acc.status === "Active" ? (
+                                <BlockIcon fontSize="small" />
+                              ) : (
+                                <CheckCircleIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                          </Stack>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* PHÂN TRANG */}
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredAccounts.length}
+          count={totalRecords} // ✨ Lấy con số từ Backend
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
@@ -708,11 +705,10 @@ const AdminAccountsPage = () => {
             `${from}-${to} trong số ${count}`
           }
           sx={{
-            borderTop: "1px solid rgba(11,27,63,0.08)",
+            borderTop: `1px solid ${COLORS.border}`,
             bgcolor: "rgba(255, 255, 255, 0.85)",
-            color: "#0b1b3f",
+            color: COLORS.navy,
             fontWeight: "bold",
-
             "& .MuiTablePagination-toolbar": {
               display: "flex",
               alignItems: "center",
@@ -720,7 +716,6 @@ const AdminAccountsPage = () => {
               minHeight: "56px !important",
               py: 0,
             },
-
             "& .MuiTablePagination-selectLabel": {
               fontWeight: 700,
               color: "text.secondary",
@@ -729,7 +724,6 @@ const AdminAccountsPage = () => {
               display: "flex",
               alignItems: "center",
             },
-
             "& .MuiTablePagination-input": {
               display: "inline-flex",
               alignItems: "center",
@@ -738,10 +732,9 @@ const AdminAccountsPage = () => {
               marginLeft: "8px",
               height: "100%",
             },
-
             "& .MuiTablePagination-select": {
               fontWeight: 800,
-              color: "#5e35b1",
+              color: COLORS.primary,
               bgcolor: "rgba(94, 53, 177, 0.05)",
               borderRadius: "8px",
               border: "1px solid rgba(94, 53, 177, 0.15)",
@@ -753,27 +746,22 @@ const AdminAccountsPage = () => {
               pb: "4px !important",
               pl: "12px !important",
               pr: "32px !important",
-              "&:focus": {
-                borderRadius: "8px",
-              },
+              "&:focus": { borderRadius: "8px" },
             },
-
             "& .MuiTablePagination-selectIcon": {
-              color: "#5e35b1",
+              color: COLORS.primary,
               top: "calc(50% - 10px)",
               right: "4px",
             },
-
             "& .MuiTablePagination-displayedRows": {
               fontWeight: 800,
-              color: "#0b1b3f",
+              color: COLORS.navy,
               fontSize: "0.85rem",
               letterSpacing: "0.02em",
               margin: 0,
               display: "flex",
               alignItems: "center",
             },
-
             "& .MuiTablePagination-actions": {
               marginLeft: "16px",
               display: "inline-flex",
@@ -781,19 +769,19 @@ const AdminAccountsPage = () => {
               gap: "6px",
               "& .MuiIconButton-root": {
                 bgcolor: "white",
-                border: "1px solid rgba(11,27,63,0.08)",
+                border: `1px solid ${COLORS.border}`,
                 borderRadius: "8px",
                 padding: "5px",
-                color: "#009688",
+                color: COLORS.teal,
                 boxShadow: "0 2px 6px rgba(11,27,63,0.04)",
                 transition: "all 0.2s ease",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 "&:hover": {
-                  bgcolor: "#009688",
+                  bgcolor: COLORS.teal,
                   color: "white",
-                  borderColor: "#009688",
+                  borderColor: COLORS.teal,
                 },
                 "&.Mui-disabled": {
                   bgcolor: "rgba(0,0,0,0.02)",
@@ -801,188 +789,118 @@ const AdminAccountsPage = () => {
                   borderColor: "rgba(0,0,0,0.05)",
                   boxShadow: "none",
                 },
-                "& .MuiSvgIcon-root": {
-                  fontSize: "18px",
-                },
+                "& .MuiSvgIcon-root": { fontSize: "18px" },
               },
             },
           }}
         />
       </Paper>
 
+      {/* DIALOGS BÊN DƯỚI GIỮ NGUYÊN 100% */}
       <Dialog
-        disableScrollLock={true}
-        open={addDialog}
-        onClose={() => setAddDialog(false)}
-        maxWidth="md"
+        open={createDialog}
+        onClose={() => setCreateDialog(false)}
+        maxWidth="sm"
         fullWidth
+        disableScrollLock={true}
         PaperProps={{
           sx: {
             borderRadius: 1,
-            bgcolor: "#f8fafc",
             border: "1px solid rgba(11,27,63,0.12)",
             boxShadow: "0 22px 44px rgba(11, 27, 63, 0.22)",
           },
         }}
       >
         <DialogTitle
-          sx={{
-            background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
-            fontWeight: 800,
-            textAlign: "center",
-            py: 2,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
+          sx={{ bgcolor: COLORS.navy, color: "white", fontWeight: 800 }}
         >
-          TẠO TÀI KHOẢN NỘI BỘ
+          Cấp Tài Khoản Nội Bộ
         </DialogTitle>
-        <DialogContent sx={{ pt: 4, pb: 2 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 4,
-              borderRadius: 1,
-              border: "1px solid #e2e8f0",
-              bgcolor: "white",
-            }}
-          >
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Họ và Tên (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={addForm.full_name}
-                  onChange={(e) =>
-                    setAddForm({ ...addForm, full_name: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Số điện thoại
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={addForm.phone}
-                  onChange={(e) =>
-                    setAddForm({ ...addForm, phone: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Email đăng nhập (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="email"
-                  size="small"
-                  value={addForm.email}
-                  onChange={(e) =>
-                    setAddForm({ ...addForm, email: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Mật khẩu khởi tạo (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="password"
-                  size="small"
-                  value={addForm.password}
-                  onChange={(e) =>
-                    setAddForm({ ...addForm, password: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Quyền truy cập (Role)
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={addForm.role}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, role: e.target.value })
-                    }
-                  >
-                    <MenuItem value="Receptionist">
-                      Lễ tân (Receptionist)
-                    </MenuItem>
-                    <MenuItem value="Admin">Quản trị viên (Admin)</MenuItem>
-                    <MenuItem value="Customer">Khách hàng (Customer)</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+        <DialogContent sx={{ mt: 3 }}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Tài khoản cấp mới sẽ tự động được kích hoạt và không cần xác thực
+            OTP.
+          </Alert>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Họ và tên"
+                size="small"
+                value={formData.full_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
+                required
+              />
             </Grid>
-          </Paper>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                size="small"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email đăng nhập"
+                size="small"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Mật khẩu"
+                size="small"
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={formData.role}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                >
+                  <MenuItem value="Receptionist">Lễ Tân</MenuItem>
+                  <MenuItem value="Admin">Ban Giám Đốc</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions
-          sx={{
-            p: 3,
-            bgcolor: "white",
-            borderTop: "1px solid #e2e8f0",
-            justifyContent: "space-between",
-          }}
-        >
-          <Button
-            onClick={() => setAddDialog(false)}
-            color="inherit"
-            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 1 }}
-          >
-            Hủy bỏ
+        <DialogActions sx={{ p: 3, borderTop: "1px solid #e0e0e0" }}>
+          <Button onClick={() => setCreateDialog(false)} color="inherit">
+            Hủy
           </Button>
           <Button
-            onClick={handleAddAccount}
+            onClick={handleSubmitCreate}
             variant="contained"
-            disableElevation
             disabled={isSubmitting}
-            sx={{
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #e65100 0%, #ff8a3d 100%)",
-              px: 4,
-              py: 1,
-              borderRadius: 1,
-              textTransform: "none",
-              boxShadow: "0 10px 20px rgba(230,81,0,0.2)",
-              "&:hover": { boxShadow: "0 12px 24px rgba(230,81,0,0.28)" },
-            }}
+            disableElevation
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              "TẠO TÀI KHOẢN"
+              "Tạo tài khoản"
             )}
           </Button>
         </DialogActions>

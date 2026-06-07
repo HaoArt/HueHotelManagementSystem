@@ -43,9 +43,11 @@ const UserService = {
       throw error.response?.data?.message || "Lỗi khi cấp lại mật khẩu";
     }
   },
-  getAllAccounts: async () => {
+  getAllAccounts: async (page = 1, limit = 10, search = "", role = "All") => {
     try {
-      const response = await api.get("/users/admin/accounts");
+      const response = await api.get(
+        `/users/admin/accounts?page=${page}&limit=${limit}&search=${search}&role=${role}`,
+      );
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Lỗi tải danh sách tài khoản";

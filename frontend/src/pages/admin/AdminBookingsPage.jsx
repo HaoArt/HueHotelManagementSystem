@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-useless-assignment */
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable no-unused-vars */
@@ -46,6 +47,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
 import BookingService from "../../services/bookingService";
 import RoomService from "../../services/roomService";
@@ -85,8 +87,11 @@ const AdminBookingsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [tabValue, setTabValue] = useState("All");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+
   const [upgradeDialog, setUpgradeDialog] = useState(false);
   const [selectedBookingForUpgrade, setSelectedBookingForUpgrade] =
     useState(null);
@@ -96,8 +101,14 @@ const AdminBookingsPage = () => {
     open: false,
     booking: null,
     dynamicRoomTotal: null,
+    servicesTotal: 0,
   });
-
+  const [checkInDialog, setCheckInDialog] = useState({
+    open: false,
+    booking: null,
+    availableRooms: [],
+    overrideRoomId: "",
+  });
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -127,13 +138,20 @@ const AdminBookingsPage = () => {
   const fetchBookings = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
-      const res = await BookingService.getAllBookingsAdmin();
-      setBookings(res.data || res);
+      const res = await BookingService.getAllBookingsAdmin(
+        page + 1,
+        rowsPerPage,
+        tabValue,
+        searchTerm,
+      );
+      setBookings(res.data);
+      setTotalRecords(res.pagination?.totalRecords || 0);
     } catch (err) {
       if (!isBackground) {
         setSnackbar({
           open: true,
-          message: err.response?.data?.message || "Lỗi khi lấy danh sách đơn",
+          message:
+            err.response?.data?.message || err || "Lỗi khi lấy danh sách đơn",
           severity: "error",
         });
       }
@@ -141,45 +159,31 @@ const AdminBookingsPage = () => {
       if (!isBackground) setLoading(false);
     }
   };
-
   useEffect(() => {
-    fetchBookings();
-    const interval = setInterval(() => {
-      fetchBookings(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
-  useEffect(() => {
-    setPage(0);
-  }, [searchTerm, tabValue]);
-
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      const searchStr =
-        `${b.id} ${b.user_name} ${b.user_phone} ${b.room_number}`.toLowerCase();
-      const matchesSearch = searchStr.includes(searchTerm.toLowerCase());
-
-      let matchesTab = false;
-      if (tabValue === "All") {
-        matchesTab = true;
-      } else if (tabValue === "Checked_out") {
-        matchesTab = b.status === "Checked_out" || b.status === "Cancelled";
-      } else {
-        matchesTab = b.status === tabValue;
+    const delayDebounceFn = setTimeout(() => {
+      fetchBookings();
+    }, 500);
+    const pollingInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchBookings(true);
       }
+    }, 15000);
 
-      return matchesSearch && matchesTab;
-    });
-  }, [bookings, searchTerm, tabValue]);
-  const paginatedBookings = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return filteredBookings.slice(startIndex, startIndex + rowsPerPage);
-  }, [filteredBookings, page, rowsPerPage]);
-  useEffect(() => {
-    if (page > 0 && paginatedBookings.length === 0) {
-      setPage(page - 1);
-    }
-  }, [paginatedBookings, page]);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      clearInterval(pollingInterval);
+    };
+  }, [page, rowsPerPage, tabValue, searchTerm]);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(0);
+  };
+
+  const handleTabChange = (e, val) => {
+    setTabValue(val);
+    setPage(0);
+  };
 
   const getStatusChip = (booking) => {
     const { status, deposit_amount } = booking;
@@ -198,21 +202,21 @@ const AdminBookingsPage = () => {
             size="small"
           />
         );
-      case "Confirmed": { 
+      case "Confirmed": {
         const isDeposited = parseFloat(deposit_amount || 0) > 0;
         return (
           <Chip
             label={isDeposited ? "Sắp đến (Đã cọc)" : "Sắp đến (Thu tại quầy)"}
             sx={{
               bgcolor: isDeposited ? "#e3f2fd" : "#f3e8ff",
-              color: isDeposited ? "#1976d2" : "#7e22ce", 
+              color: isDeposited ? "#1976d2" : "#7e22ce",
               fontWeight: 700,
               borderRadius: 1,
             }}
             size="small"
           />
         );
-      } // THÊM ĐÓNG NGOẶC NHỌN TRƯỚC KHI SANG CASE KHÁC
+      }
       case "Checked_in":
         return (
           <Chip
@@ -288,34 +292,61 @@ const AdminBookingsPage = () => {
     });
   };
 
-  const handleCheckIn = (id) => {
-    setConfirmDialog({
-      open: true,
-      title: "Check-in Giao phòng",
-      message: `Tiến hành Check-in và giao chìa khóa phòng cho đơn #${id}?`,
-      confirmColor: "info",
-      onConfirm: async () => {
-        try {
-          setIsSubmitting(true);
-          await BookingService.checkInBooking(id);
-          setSnackbar({
-            open: true,
-            message: `Check-in thành công đơn #${id}`,
-            severity: "success",
-          });
-          fetchBookings();
-        } catch (err) {
-          setSnackbar({
-            open: true,
-            message: err.response?.data?.message || "Lỗi Check-in",
-            severity: "error",
-          });
-        } finally {
-          setIsSubmitting(false);
-          setConfirmDialog({ ...confirmDialog, open: false });
-        }
-      },
-    });
+  const handleOpenCheckIn = async (booking) => {
+    try {
+      setIsSubmitting(true);
+      const res = await RoomService.getRooms();
+      const roomsData = res.data || res;
+      const availableRooms = roomsData.filter((r) => r.status === "Available");
+
+      setCheckInDialog({
+        open: true,
+        booking: booking,
+        availableRooms: availableRooms,
+        overrideRoomId: "",
+      });
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Lỗi tải danh sách phòng dự phòng!",
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitCheckIn = async () => {
+    try {
+      setIsSubmitting(true);
+
+      const payload = checkInDialog.overrideRoomId
+        ? { override_room_id: checkInDialog.overrideRoomId }
+        : {};
+
+      await BookingService.checkInBooking(checkInDialog.booking.id, payload);
+
+      setSnackbar({
+        open: true,
+        message: `Check-in thành công đơn #${checkInDialog.booking.id}`,
+        severity: "success",
+      });
+      fetchBookings();
+      setCheckInDialog({
+        open: false,
+        booking: null,
+        availableRooms: [],
+        overrideRoomId: "",
+      });
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Lỗi Check-in",
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = (id) => {
@@ -396,13 +427,42 @@ const AdminBookingsPage = () => {
       const dynamicRoomTotal = folioRes.data?.roomTotal || booking.total_amount;
       setDetailDialog({
         open: true,
-        booking: booking,
+        booking: {
+          ...booking,
+          base_price: folioRes.data?.booking_info?.base_price || 0,
+        },
         dynamicRoomTotal: dynamicRoomTotal,
+        servicesTotal: folioRes.data?.services_total || 0,
       });
     } catch (err) {
       setSnackbar({
         open: true,
         message: "Không thể lấy chi tiết tài chính hiện tại",
+        severity: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (id) => {
+    try {
+      setIsSubmitting(true);
+      const blobData = await BookingService.downloadInvoice(id);
+      const url = window.URL.createObjectURL(new Blob([blobData]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Invoice-HueHotel-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message:
+          "Lỗi tải xuống hóa đơn: " +
+          (err.response?.data?.message || err.toString()),
         severity: "error",
       });
     } finally {
@@ -425,7 +485,6 @@ const AdminBookingsPage = () => {
     }
   };
 
-  // Tự lấy thông tin khi nhập sđt
   const handlePhoneBlur = async () => {
     if (walkInForm.phone && walkInForm.phone.length >= 9) {
       try {
@@ -554,6 +613,7 @@ const AdminBookingsPage = () => {
       setIsSubmitting(false);
     }
   };
+
   if (loading)
     return (
       <Box
@@ -605,7 +665,7 @@ const AdminBookingsPage = () => {
         </Box>
         <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
           <Chip
-            label={`${filteredBookings.length} đơn hiển thị`}
+            label={`${totalRecords} đơn hệ thống`}
             sx={{
               bgcolor: "rgba(255,255,255,0.78)",
               border: "1px solid rgba(11,27,63,0.12)",
@@ -635,7 +695,7 @@ const AdminBookingsPage = () => {
           </Button>
           <Button
             variant="contained"
-            onClick={fetchBookings}
+            onClick={() => fetchBookings(false)} // Sửa thành false để có loading ui
             sx={{
               background: "linear-gradient(135deg, #0b1b3f 0%, #009688 100%)",
               fontWeight: 700,
@@ -674,7 +734,7 @@ const AdminBookingsPage = () => {
         >
           <Tabs
             value={tabValue}
-            onChange={(e, val) => setTabValue(val)}
+            onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
             sx={{
@@ -711,7 +771,7 @@ const AdminBookingsPage = () => {
             />
             <Tab
               label="Lịch sử (Hoàn tất/Hủy)"
-              value="Checked_out"
+              value="Checked_out" // Bạn có thể thêm Tab "Cancelled" riêng nếu Back-end hỗ trợ
               sx={{ color: "#616161" }}
             />
           </Tabs>
@@ -726,9 +786,9 @@ const AdminBookingsPage = () => {
         >
           <TextField
             fullWidth
-            placeholder="Tìm theo Mã đơn, Tên khách, SĐT hoặc Số phòng..."
+            placeholder="Tìm theo Mã đơn, Tên khách, SĐT..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -801,7 +861,7 @@ const AdminBookingsPage = () => {
                     letterSpacing: "0.03em",
                   }}
                 >
-                  Tài chính
+                  Thành tiền
                 </TableCell>
                 <TableCell
                   sx={{
@@ -825,7 +885,8 @@ const AdminBookingsPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredBookings.length === 0 ? (
+              {/* ✨ ĐÃ SỬA: Map thẳng từ mảng bookings do Backend trả về, thay vì dùng paginatedBookings (cắt bằng slice) */}
+              {bookings.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                     <Typography color="text.secondary">
@@ -834,7 +895,7 @@ const AdminBookingsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedBookings.map((b) => (
+                bookings.map((b) => (
                   <TableRow
                     key={b.id}
                     hover
@@ -854,11 +915,12 @@ const AdminBookingsPage = () => {
                   >
                     <TableCell fontWeight="bold">#{b.id}</TableCell>
                     <TableCell>
+                      {/* Cập nhật b.user_name thành b.customer_name (Do câu SQL mới) */}
                       <Typography variant="body2" fontWeight="bold">
-                        {b.user_name}
+                        {b.customer_name || b.user_name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {b.user_phone}
+                        {b.customer_phone || b.user_phone}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -885,7 +947,10 @@ const AdminBookingsPage = () => {
                         color="text.primary"
                         fontWeight="bold"
                       >
-                        {parseFloat(b.total_amount).toLocaleString()}đ
+                        {parseFloat(
+                          b.grand_total || b.total_amount || 0,
+                        ).toLocaleString()}
+                        đ
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Cọc:{" "}
@@ -953,7 +1018,7 @@ const AdminBookingsPage = () => {
                             color="info"
                             size="small"
                             startIcon={<PlayArrowIcon />}
-                            onClick={() => handleCheckIn(b.id)}
+                            onClick={() => handleOpenCheckIn(b)}
                             sx={{
                               fontWeight: 700,
                               borderRadius: 1,
@@ -962,6 +1027,23 @@ const AdminBookingsPage = () => {
                             }}
                           >
                             CHECK-IN
+                          </Button>
+                        )}
+                        {b.status === "Checked_out" && (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            size="small"
+                            startIcon={<ReceiptLongIcon />}
+                            onClick={() => handleDownloadInvoice(b.id)}
+                            disabled={isSubmitting}
+                            sx={{
+                              fontWeight: 700,
+                              borderRadius: 1,
+                              textTransform: "none",
+                            }}
+                          >
+                            HÓA ĐƠN
                           </Button>
                         )}
                         {(b.status === "Pending" ||
@@ -1007,10 +1089,11 @@ const AdminBookingsPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredBookings.length}
+          count={totalRecords} // ✨ ĐÃ SỬA: Lấy con số từ Backend
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
@@ -1125,6 +1208,7 @@ const AdminBookingsPage = () => {
         />
       </Paper>
 
+      {/* DIALOGS BÊN DƯỚI GIỮ NGUYÊN 100% */}
       <Dialog
         disableScrollLock={true}
         open={confirmDialog.open}
@@ -1196,6 +1280,7 @@ const AdminBookingsPage = () => {
             open: false,
             booking: null,
             dynamicRoomTotal: null,
+            servicesTotal: 0,
           })
         }
         maxWidth="md"
@@ -1223,7 +1308,7 @@ const AdminBookingsPage = () => {
               <Typography variant="h6" fontWeight="bold">
                 Chi Tiết Đơn Đặt Phòng #{detailDialog.booking.id}
               </Typography>
-              {getStatusChip(detailDialog.booking.status)}
+              {getStatusChip(detailDialog.booking)}
             </DialogTitle>
             <DialogContent sx={{ pt: 4, pb: 4 }}>
               <Grid container spacing={4}>
@@ -1255,10 +1340,25 @@ const AdminBookingsPage = () => {
                     </Stack>
                     <Divider sx={{ mb: 2 }} />
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      Họ và tên: <b>{detailDialog.booking.user_name}</b>
+                      Họ và tên:{" "}
+                      <b>
+                        {detailDialog.booking.customer_name ||
+                          detailDialog.booking.user_name}
+                      </b>
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      Số điện thoại: <b>{detailDialog.booking.user_phone}</b>
+                      Số điện thoại:{" "}
+                      <b>
+                        {detailDialog.booking.customer_phone ||
+                          detailDialog.booking.user_phone}
+                      </b>
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      CCCD/CMND:{" "}
+                      <b>
+                        {detailDialog.booking.identity_number ||
+                          "Chưa cập nhật"}
+                      </b>
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>
                       Thời gian đặt đơn:{" "}
@@ -1358,108 +1458,213 @@ const AdminBookingsPage = () => {
                     </Stack>
                     <Divider sx={{ mb: 2 }} />
 
-                    <Stack spacing={1.5} sx={{ mb: 3 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Tổng tiền phòng:
-                        </Typography>
-                        <Typography variant="body2" fontWeight="bold">
-                          {parseFloat(
-                            detailDialog.dynamicRoomTotal ||
-                              detailDialog.booking.total_amount,
-                          ).toLocaleString()}{" "}
-                          đ
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Giảm giá (Coupon):
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="error.main"
-                          fontWeight="bold"
-                        >
-                          -{" "}
-                          {parseFloat(
-                            detailDialog.booking.discount_amount || 0,
-                          ).toLocaleString()}{" "}
-                          đ
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Typography variant="body1" fontWeight="bold">
-                          Phải thanh toán:
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color="primary.main"
-                          fontWeight="bold"
-                        >
-                          {(
-                            parseFloat(
-                              detailDialog.dynamicRoomTotal ||
-                                detailDialog.booking.total_amount,
-                            ) -
-                            parseFloat(
-                              detailDialog.booking.discount_amount || 0,
-                            )
-                          ).toLocaleString()}{" "}
-                          đ
-                        </Typography>
-                      </Box>
-                    </Stack>
+                    {(() => {
+                      const finalDbAmount = parseFloat(
+                        detailDialog.dynamicRoomTotal ??
+                          detailDialog.booking.total_amount ??
+                          0,
+                      );
+                      const discountAmt = parseFloat(
+                        detailDialog.booking.discount_amount || 0,
+                      );
+                      const servicesTotal = parseFloat(
+                        detailDialog.servicesTotal || 0,
+                      );
+                      const originalRoomTotal = finalDbAmount + discountAmt;
 
-                    <Box
-                      sx={{
-                        p: 2,
-                        bgcolor: "#fff3e0",
-                        borderRadius: 1,
-                        mb: 3,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          color="warning.main"
-                          fontWeight="bold"
-                        >
-                          SỐ TIỀN ĐÃ CỌC:
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color="warning.main"
-                          fontWeight="bold"
-                        >
-                          {parseFloat(
-                            detailDialog.booking.deposit_amount || 0,
-                          ).toLocaleString()}{" "}
-                          đ
-                        </Typography>
-                      </Box>
-                    </Box>
+                      const checkIn = new Date(
+                        detailDialog.booking.check_in_date,
+                      );
+                      const checkOut = new Date(
+                        detailDialog.booking.check_out_date,
+                      );
+                      let totalDays = Math.ceil(
+                        Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24),
+                      );
+                      if (totalDays === 0) totalDays = 1;
+
+                      const basePrice = parseFloat(
+                        detailDialog.booking.base_price || 0,
+                      );
+                      const rawRoomTotal = basePrice > 0 ? basePrice * totalDays : originalRoomTotal;
+                      let roomGoc = rawRoomTotal;
+                      let totalSurcharge = originalRoomTotal - rawRoomTotal;
+
+                      if (totalSurcharge < 0) {
+                        roomGoc = originalRoomTotal;
+                        totalSurcharge = 0;
+                      }
+
+                      const finalTotal =
+                        originalRoomTotal + servicesTotal - discountAmt;
+                      const depositAmt = parseFloat(
+                        detailDialog.booking.deposit_amount || 0,
+                      );
+                      const remainingAmt = finalTotal - depositAmt;
+
+                      let fallbackReason = "";
+                      const noteStr = detailDialog.booking.note || "";
+                      const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+                      if (sysNotes && sysNotes.length > 0) {
+                        fallbackReason = sysNotes.map((n) => n.replace('[Hệ thống:', '').replace(']', '').trim()).join('; ');
+                      }
+
+                      return (
+                        <Stack spacing={1.5} sx={{ mb: 2 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Tiền phòng lưu trú ({totalDays} đêm):
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold">
+                              {roomGoc.toLocaleString()} đ
+                            </Typography>
+                          </Box>
+                          
+                          {totalSurcharge > 0 && (
+                            <Box sx={{ mb: 1 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Typography variant="body2" color="error.main">
+                                  Phụ thu (Lễ Tết/Check-in sớm/Trả trễ):
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{totalSurcharge.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            </Box>
+                          )}
+
+                          {/* MINH BẠCH LỊCH SỬ BIẾN ĐỘNG (Luôn hiển thị nếu có note) */}
+                          {fallbackReason && (
+                            <Box sx={{ mb: 1.5, p: 1, bgcolor: "rgba(0,0,0,0.03)", borderRadius: 1, borderLeft: "3px solid #9e9e9e" }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", display: "block", whiteSpace: "pre-wrap" }}>
+                                <b>Lịch sử biến động giá:</b><br/>{fallbackReason.split('; ').join('\n')}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Tiền dịch vụ phát sinh:
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold">
+                              {servicesTotal.toLocaleString()} đ
+                            </Typography>
+                          </Box>
+                          {discountAmt > 0 && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Giảm giá (Coupon/Hạng):
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="error.main"
+                                fontWeight="bold"
+                              >
+                                - {discountAmt.toLocaleString()} đ
+                              </Typography>
+                            </Box>
+                          )}
+                          <Divider />
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography variant="body1" fontWeight="bold">
+                              Tổng thanh toán:
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              color="primary.main"
+                              fontWeight="bold"
+                            >
+                              {finalTotal.toLocaleString()} đ
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="warning.main"
+                              fontWeight="bold"
+                            >
+                              Đã đặt cọc/Thanh toán trước:
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="warning.main"
+                              fontWeight="bold"
+                            >
+                              - {depositAmt.toLocaleString()} đ
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              mt: 1,
+                              p: 1.5,
+                              bgcolor: remainingAmt > 0 ? "#ffebee" : "#e8f5e9",
+                              borderRadius: 1,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight="bold"
+                              color={
+                                remainingAmt > 0 ? "error.main" : "success.main"
+                              }
+                            >
+                              {remainingAmt > 0
+                                ? "CẦN THU THÊM:"
+                                : "ĐÃ THANH TOÁN ĐỦ / CẦN HOÀN TRẢ:"}
+                            </Typography>
+                            <Typography
+                              variant="h5"
+                              fontWeight="bold"
+                              color={
+                                remainingAmt > 0 ? "error.main" : "success.main"
+                              }
+                            >
+                              {Math.abs(remainingAmt).toLocaleString()} đ
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      );
+                    })()}
 
                     <Typography
                       variant="subtitle2"
@@ -1497,6 +1702,7 @@ const AdminBookingsPage = () => {
                     open: false,
                     booking: null,
                     dynamicRoomTotal: null,
+                    servicesTotal: 0,
                   })
                 }
                 variant="contained"
@@ -1776,6 +1982,7 @@ const AdminBookingsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
       <Dialog
         open={upgradeDialog}
         onClose={() => setUpgradeDialog(false)}
@@ -1799,7 +2006,9 @@ const AdminBookingsPage = () => {
               <Alert severity="info" sx={{ borderRadius: "8px" }}>
                 Khách hàng:{" "}
                 <strong>
-                  {selectedBookingForUpgrade.full_name || "Khách hàng"}
+                  {selectedBookingForUpgrade.customer_name ||
+                    selectedBookingForUpgrade.user_name ||
+                    "Khách hàng"}
                 </strong>{" "}
                 <br />
                 Hạng phòng đã đặt:{" "}
@@ -1893,6 +2102,112 @@ const AdminBookingsPage = () => {
               <CircularProgress size={24} color="inherit" />
             ) : (
               "Xác nhận chuyển"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DIALOG SMART CHECK-IN TÍCH HỢP */}
+      <Dialog
+        open={checkInDialog.open}
+        onClose={() => setCheckInDialog({ ...checkInDialog, open: false })}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{ fontWeight: 800, borderBottom: "1px solid #e2e8f0", pb: 2 }}
+        >
+          Xác nhận Check-in & Giao phòng
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {checkInDialog.booking &&
+            (() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const expectedDate = new Date(
+                checkInDialog.booking.check_in_date,
+              );
+              expectedDate.setHours(0, 0, 0, 0);
+              const isEarlyCheckIn = today < expectedDate; // Tự động phát hiện Check-in sớm ngày
+
+              return (
+                <Stack gap={2}>
+                  <Alert severity="info" sx={{ borderRadius: "8px" }}>
+                    Khách hàng:{" "}
+                    <strong>
+                      {checkInDialog.booking.customer_name ||
+                        checkInDialog.booking.user_name}
+                    </strong>{" "}
+                    <br />
+                    Phòng dự kiến:{" "}
+                    <strong>
+                      Phòng {checkInDialog.booking.room_number || "Chưa xếp"}
+                    </strong>{" "}
+                    <br />
+                    Ngày bắt đầu:{" "}
+                    <strong>{expectedDate.toLocaleDateString("vi-VN")}</strong>
+                  </Alert>
+
+                  {/* Cảnh báo UX xuất sắc cho Lễ tân khi khách đến sớm */}
+                  {isEarlyCheckIn && (
+                    <Alert severity="warning" sx={{ borderRadius: "8px" }}>
+                      <strong>Khách đến sớm trước ngày!</strong> Hệ thống sẽ tự
+                      động chuyển ngày Check-in về hôm nay và tính thêm tiền
+                      phòng phụ thu vào hóa đơn.
+                    </Alert>
+                  )}
+
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 700, color: "#4a5568", mt: 1 }}
+                  >
+                    Xử lý sự cố (Nếu phòng hiện tại đang bẩn/bận):
+                  </Typography>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Đổi phòng thay thế (Tùy chọn)</InputLabel>
+                    <Select
+                      value={checkInDialog.overrideRoomId}
+                      label="Đổi phòng thay thế (Tùy chọn)"
+                      onChange={(e) =>
+                        setCheckInDialog({
+                          ...checkInDialog,
+                          overrideRoomId: e.target.value,
+                        })
+                      }
+                    >
+                      <MenuItem value="">
+                        <em>-- Giữ nguyên phòng dự kiến ban đầu --</em>
+                      </MenuItem>
+                      {checkInDialog.availableRooms.map((room) => (
+                        <MenuItem key={room.id} value={room.id}>
+                          Đổi sang Phòng {room.room_number} ({room.type_name})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              );
+            })()}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: "1px solid #e2e8f0" }}>
+          <Button
+            onClick={() => setCheckInDialog({ ...checkInDialog, open: false })}
+            color="inherit"
+            sx={{ fontWeight: 700 }}
+          >
+            Hủy bỏ
+          </Button>
+          <Button
+            onClick={submitCheckIn}
+            variant="contained"
+            color="info"
+            disabled={isSubmitting}
+            sx={{ fontWeight: 700, px: 3 }}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xác nhận Check-in"
             )}
           </Button>
         </DialogActions>

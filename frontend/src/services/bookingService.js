@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import api from "./api"; 
+import api from "./api";
 
 const BookingService = {
   createBooking: async (data) => {
@@ -29,9 +29,16 @@ const BookingService = {
       throw error.response?.data?.message || "Lỗi khi gửi đánh giá";
     }
   },
-  getAllBookingsAdmin: async () => {
+  getAllBookingsAdmin: async (
+    page = 1,
+    limit = 10,
+    status = "All",
+    search = "",
+  ) => {
     try {
-      const response = await api.get("/bookings/admin/all");
+      const response = await api.get(
+        `/bookings/admin/all?page=${page}&limit=${limit}&status=${status}&search=${search}`,
+      );
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Lỗi tải danh sách đơn cho Admin";
@@ -55,9 +62,9 @@ const BookingService = {
     }
   },
 
-  checkInBooking: async (id) => {
+  checkInBooking: async (id, payload) => {
     try {
-      const response = await api.patch(`/bookings/check-in/${id}`);
+      const response = await api.patch(`/bookings/check-in/${id}`, payload);
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Lỗi khi Check-in";
@@ -88,10 +95,11 @@ const BookingService = {
       throw error.response?.data?.message || "Lỗi tải thông tin khách đang ở";
     }
   },
-  changeRoom: async (bookingId, idNewRoom) => {
+  changeRoom: async (bookingId, idNewRoom, isFreeUpgrade) => {
     try {
       const response = await api.put(`/bookings/change-room/${bookingId}`, {
         idNewRoom,
+        isFreeUpgrade,
       });
       return response.data;
     } catch (error) {

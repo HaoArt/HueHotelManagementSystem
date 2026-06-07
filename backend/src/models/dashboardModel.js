@@ -3,10 +3,18 @@ const Dashboard = {
   getMonthlyRevenue: async (year) => {
     const [rows] = await db.query(
       `
-      SELECT MONTH(check_out_date) as month, SUM(total_amount) as total_revenue
-      FROM bookings 
-      WHERE YEAR(check_out_date) = ? AND status = 'Checked_out' AND payment_status = 'Paid'
-      GROUP BY MONTH(check_out_date)
+      SELECT 
+        MONTH(b.check_out_date) as month, 
+        SUM(b.total_amount) + COALESCE(SUM(s.service_total), 0) as total_revenue
+      FROM bookings b
+      LEFT JOIN (
+        SELECT booking_id, SUM(total_price) as service_total
+        FROM booking_services
+        WHERE status != 'Cancelled'
+        GROUP BY booking_id
+      ) s ON b.id = s.booking_id
+      WHERE YEAR(b.check_out_date) = ? AND b.status = 'Checked_out' AND b.payment_status = 'Paid'
+      GROUP BY MONTH(b.check_out_date)
       ORDER BY month ASC
     `,
       [year],
@@ -14,13 +22,20 @@ const Dashboard = {
     return rows;
   },
 
-  // ĐÃ SỬA: Đồng bộ điều kiện thống kê với hàm Monthly
   getYearlyRevenue: async () => {
     const [rows] = await db.query(
-      `SELECT YEAR(check_out_date) as year, SUM(total_amount) as revenue 
-       FROM bookings 
-       WHERE status = 'Checked_out' AND payment_status = 'Paid'
-       GROUP BY YEAR(check_out_date) 
+      `SELECT 
+         YEAR(b.check_out_date) as year, 
+         SUM(b.total_amount) + COALESCE(SUM(s.service_total), 0) as revenue 
+       FROM bookings b
+       LEFT JOIN (
+         SELECT booking_id, SUM(total_price) as service_total
+         FROM booking_services
+         WHERE status != 'Cancelled'
+         GROUP BY booking_id
+       ) s ON b.id = s.booking_id
+       WHERE b.status = 'Checked_out' AND b.payment_status = 'Paid'
+       GROUP BY YEAR(b.check_out_date) 
        ORDER BY year ASC`,
     );
     return rows;
@@ -41,15 +56,32 @@ const Dashboard = {
 
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
-    const [revenue] = await db.query(
-      "SELECT SUM(total_amount) as monthly_revenue FROM bookings WHERE status = 'Checked_out' AND MONTH(check_out_date) = ? AND YEAR(check_out_date) = ?",
+
+    const [roomRev] = await db.query(
+      "SELECT SUM(total_amount) as monthly_revenue FROM bookings WHERE status = 'Checked_out' AND payment_status = 'Paid' AND MONTH(check_out_date) = ? AND YEAR(check_out_date) = ?",
       [currentMonth, currentYear],
     );
+
+    const [serviceRev] = await db.query(
+      `SELECT SUM(bs.total_price) as service_revenue 
+       FROM booking_services bs
+       JOIN bookings b ON bs.booking_id = b.id
+       WHERE b.status = 'Checked_out' AND b.payment_status = 'Paid'
+       AND bs.status != 'Cancelled'
+       AND MONTH(b.check_out_date) = ? 
+       AND YEAR(b.check_out_date) = ?`,
+      [currentMonth, currentYear],
+    );
+
+    const roomRevenue = parseFloat(roomRev[0]?.monthly_revenue || 0);
+    const serviceRevenue = parseFloat(serviceRev[0]?.service_revenue || 0);
 
     return {
       rooms: roomStats,
       bookings: bookingStats[0],
-      revenue: revenue[0].monthly_revenue || 0,
+      room_revenue: roomRevenue,
+      service_revenue: serviceRevenue,
+      revenue: roomRevenue + serviceRevenue,
     };
   },
 };
