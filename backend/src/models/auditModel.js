@@ -56,6 +56,14 @@ const Audit = {
       totalRecords: countRows[0].total,
     };
   },
+
+  cleanupOldLogs: async (months = 6) => {
+    const [result] = await db.query(
+      "DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL ? MONTH",
+      [months],
+    );
+    return result.affectedRows;
+  },
 };
 
 module.exports = Audit;

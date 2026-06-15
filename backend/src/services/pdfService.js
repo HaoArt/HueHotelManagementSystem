@@ -124,7 +124,11 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       customerInfoTop + 45,
     );
     doc.text(
-      `So dem / Nights: ${invoiceData.total_days} dem`,
+      `So dem / Nights: ${
+        invoiceData.total_days === "Theo giờ (Day-use)"
+          ? "Day-use"
+          : invoiceData.total_days + " dem"
+      }`,
       300,
       customerInfoTop + 60,
     );
@@ -157,48 +161,72 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       lateOut = 0,
       overstay = 0,
       changeRoom = 0;
+    let fallbackReason = "";
+    let customerNote = "";
+
     const noteStr = invoiceData.note || "";
 
-    const hMatch = noteStr.match(/\[HolidaySurcharge:(\d+(?:\.\d+)?)\]/);
-    if (hMatch) holiday = parseFloat(hMatch[1]);
+    try {
+      const metadata = JSON.parse(noteStr);
+      holiday = metadata.holiday_surcharge || 0;
+      earlyIn = metadata.early_in_surcharge || 0;
+      lateOut = metadata.late_out_surcharge || 0;
+      overstay = metadata.overstay_surcharge || 0;
+      changeRoom = metadata.change_room_fee || 0;
+      fallbackReason = (metadata.logs || []).join("; ");
+      customerNote = metadata.customer_note || "";
+    } catch (e) {
+      const hMatches = [
+        ...noteStr.matchAll(/\[HolidaySurcharge:(-?\d+(?:\.\d+)?)\]/g),
+      ];
+      hMatches.forEach((m) => (holiday += parseFloat(m[1])));
+      const eMatches = [
+        ...noteStr.matchAll(/\[EarlyInSurcharge:(-?\d+(?:\.\d+)?)\]/g),
+      ];
+      eMatches.forEach((m) => (earlyIn += parseFloat(m[1])));
+      const lMatches = [
+        ...noteStr.matchAll(/\[LateOutSurcharge:(-?\d+(?:\.\d+)?)\]/g),
+      ];
+      lMatches.forEach((m) => (lateOut += parseFloat(m[1])));
+      const oMatches = [
+        ...noteStr.matchAll(/\[OverstaySurcharge:(-?\d+(?:\.\d+)?)\]/g),
+      ];
+      oMatches.forEach((m) => (overstay += parseFloat(m[1])));
+      const cMatches = [
+        ...noteStr.matchAll(/\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/g),
+      ];
+      cMatches.forEach((m) => (changeRoom += parseFloat(m[1])));
 
-    const eMatch = noteStr.match(/\[EarlyInSurcharge:(\d+(?:\.\d+)?)\]/);
-    if (eMatch) earlyIn = parseFloat(eMatch[1]);
-
-    const lMatches = [
-      ...noteStr.matchAll(/\[LateOutSurcharge:(\d+(?:\.\d+)?)\]/g),
-    ];
-    lMatches.forEach((m) => (lateOut += parseFloat(m[1])));
-
-    const oMatch = noteStr.match(/\[OverstaySurcharge:(\d+(?:\.\d+)?)\]/);
-    if (oMatch) overstay = parseFloat(oMatch[1]);
-
-    const cMatch = noteStr.match(/\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/);
-    if (cMatch) changeRoom = parseFloat(cMatch[1]);
-
-    let knownTotal = holiday + earlyIn + lateOut + overstay + changeRoom;
-    let roomTotal = Number(invoiceData.base_price) * invoiceData.total_days;
-    let roomGoc = roomTotal;
-    let fallback =
-      Number(invoiceData.total_amount) +
-      Number(invoiceData.discount) -
-      roomTotal -
-      knownTotal;
-
-    if (fallback < 0) {
-      roomGoc =
-        Number(invoiceData.total_amount) +
-        Number(invoiceData.discount) -
-        knownTotal;
-      fallback = 0;
+      const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+      if (sysNotes && sysNotes.length > 0) {
+        fallbackReason = sysNotes
+          .map((n) => n.replace("[Hệ thống:", "").replace("]", "").trim())
+          .join("; ");
+      }
+      customerNote = noteStr.replace(/\[.*?\]/g, "").trim();
     }
 
-    let fallbackReason = "";
-    const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
-    if (sysNotes && sysNotes.length > 0) {
-      fallbackReason = sysNotes
-        .map((n) => n.replace("[Hệ thống:", "").replace("]", "").trim())
-        .join("; ");
+    let knownTotal = holiday + earlyIn + lateOut + overstay + changeRoom;
+
+    let isDayUse =
+      invoiceData.total_days === "Theo giờ (Day-use)" ||
+      invoiceData.total_days === 0;
+    let parsedDays = isDayUse ? 0 : Number(invoiceData.total_days);
+
+    let originalRoomTotal =
+      Number(invoiceData.total_amount) + Number(invoiceData.discount);
+
+    let rawRoomTotal =
+      Number(invoiceData.base_price) > 0 && parsedDays > 0
+        ? Number(invoiceData.base_price) * parsedDays
+        : originalRoomTotal;
+
+    let roomGoc = rawRoomTotal;
+    let fallback = originalRoomTotal - rawRoomTotal - knownTotal;
+
+    if (fallback < 0 || isDayUse) {
+      roomGoc = originalRoomTotal - knownTotal;
+      fallback = 0;
     }
 
     if (fallback > 0 && !fallbackReason) {
@@ -206,12 +234,56 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       fallback = 0;
     }
 
+    let overstayDays = "-";
+    let overstayDaysNum = 0;
+    const odMatch = fallbackReason.match(/ở lố (\d+) đêm/);
+    if (odMatch) {
+      overstayDays = odMatch[1];
+      overstayDaysNum = parseInt(odMatch[1]);
+    } else if (overstay > 0 && Number(invoiceData.base_price) > 0) {
+      let calcOd = Math.round(overstay / Number(invoiceData.base_price));
+      overstayDaysNum = calcOd > 0 ? calcOd : 1;
+      overstayDays = overstayDaysNum.toString();
+    }
+
+    let earlyInDays = "-";
+    let earlyInDaysNum = 0;
+    const eiMatch = fallbackReason.match(
+      /thêm (\d+) đêm do khách Check-in sớm/,
+    );
+    if (eiMatch) {
+      earlyInDays = eiMatch[1];
+      earlyInDaysNum = parseInt(eiMatch[1]);
+    } else if (earlyIn > 0 && Number(invoiceData.base_price) > 0) {
+      let calcEi = Math.round(earlyIn / Number(invoiceData.base_price));
+      earlyInDaysNum = calcEi > 0 ? calcEi : 1;
+      earlyInDays = earlyInDaysNum.toString();
+    }
+
+    // TÍNH TOÁN SỐ LƯỢNG NGÀY LƯU TRÚ THỰC TẾ (Loại trừ các ngày Check-in sớm và Ở lố đã tính riêng)
+    let displayRoomDays = parsedDays;
+    if (!isDayUse) {
+      displayRoomDays = parsedDays - overstayDaysNum - earlyInDaysNum;
+      if (displayRoomDays <= 0) displayRoomDays = 1; // Luôn đảm bảo hiển thị ít nhất 1 ngày
+    }
+
+    // HIỆU CHỈNH LẠI ĐƠN GIÁ (Nếu khách có đổi phòng)
+    let displayBasePrice = Number(invoiceData.base_price);
+    if (
+      !isDayUse &&
+      Math.abs(roomGoc - displayBasePrice * displayRoomDays) > 1000
+    ) {
+      displayBasePrice = roomGoc / displayRoomDays;
+    } else if (isDayUse) {
+      displayBasePrice = roomGoc;
+    }
+
     doc.text(`Tien phong luu tru (Room Charge)`, 50, currentY);
-    doc.text(`${invoiceData.total_days}`, 250, currentY, {
+    doc.text(`${isDayUse ? "Day-use" : displayRoomDays}`, 250, currentY, {
       width: 50,
       align: "center",
     });
-    doc.text(`${formatCurrency(invoiceData.base_price)}`, 310, currentY, {
+    doc.text(`${formatCurrency(displayBasePrice)}`, 310, currentY, {
       width: 100,
       align: "right",
     });
@@ -241,21 +313,34 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
       });
     }
 
-    if (holiday > 0) {
+    if (holiday !== 0) {
       currentY += 20;
-      doc.text("Phu thu Le/Tet (Holiday)", 50, currentY);
+      if (holiday < 0) doc.fillColor("green");
+      doc.text(
+        holiday > 0
+          ? "Phu thu Le/Tet (Holiday)"
+          : "Hoan phu thu Le/Tet (Refund)",
+        50,
+        currentY,
+      );
       doc.text("-", 250, currentY, { width: 50, align: "center" });
       doc.text("-", 310, currentY, { width: 100, align: "right" });
       doc.text(`${formatCurrency(holiday)}`, 430, currentY, {
         width: 115,
         align: "right",
       });
+      doc.fillColor(blackColor);
     }
     if (earlyIn > 0) {
       currentY += 20;
       doc.text("Phu thu Check-in som (Early In)", 50, currentY);
-      doc.text("-", 250, currentY, { width: 50, align: "center" });
-      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(earlyInDays, 250, currentY, { width: 50, align: "center" });
+      doc.text(
+        earlyInDays !== "-" ? `${formatCurrency(invoiceData.base_price)}` : "-",
+        310,
+        currentY,
+        { width: 100, align: "right" },
+      );
       doc.text(`${formatCurrency(earlyIn)}`, 430, currentY, {
         width: 115,
         align: "right",
@@ -274,8 +359,15 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
     if (overstay > 0) {
       currentY += 20;
       doc.text("Phu thu o lo ngay (Overstay)", 50, currentY);
-      doc.text("-", 250, currentY, { width: 50, align: "center" });
-      doc.text("-", 310, currentY, { width: 100, align: "right" });
+      doc.text(overstayDays, 250, currentY, { width: 50, align: "center" });
+      doc.text(
+        overstayDays !== "-"
+          ? `${formatCurrency(invoiceData.base_price)}`
+          : "-",
+        310,
+        currentY,
+        { width: 100, align: "right" },
+      );
       doc.text(`${formatCurrency(overstay)}`, 430, currentY, {
         width: 115,
         align: "right",
@@ -283,6 +375,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
     }
     if (changeRoom !== 0) {
       currentY += 20;
+      if (changeRoom < 0) doc.fillColor("green");
       doc.text("Phi doi phong (Room Change)", 50, currentY);
       doc.text("-", 250, currentY, { width: 50, align: "center" });
       doc.text("-", 310, currentY, { width: 100, align: "right" });
@@ -290,8 +383,7 @@ exports.generateInvoicePDF = (dataCallback, endCallback, invoiceData) => {
         width: 115,
         align: "right",
       });
-      if (changeRoom < 0) doc.fillColor("green");
-      else doc.fillColor(blackColor);
+      doc.fillColor(blackColor);
     }
     if (fallback > 0) {
       currentY += 20;

@@ -32,9 +32,11 @@ const Review = {
 
   getTop: async (limit, rating) => {
     const [rows] = await db.query(
-      `SELECT * FROM reviews 
-       WHERE rating = ? 
-       ORDER BY created_at DESC 
+      `SELECT r.*, u.full_name 
+       FROM reviews r 
+       JOIN users u ON r.user_id = u.id 
+       WHERE r.rating = ? 
+       ORDER BY r.created_at DESC 
        LIMIT ?`,
       [rating, limit],
     );

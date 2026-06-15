@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Divider,
   FormControl,
   InputLabel,
@@ -1311,8 +1310,14 @@ const AdminBookingsPage = () => {
               {getStatusChip(detailDialog.booking)}
             </DialogTitle>
             <DialogContent sx={{ pt: 4, pb: 4 }}>
-              <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: { xs: "column", md: "row" },
+                  gap: 4,
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
                   <Paper
                     elevation={0}
                     sx={{
@@ -1426,9 +1431,9 @@ const AdminBookingsPage = () => {
                       </Box>
                     </Box>
                   </Paper>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box sx={{ flex: 1 }}>
                   <Paper
                     elevation={0}
                     sx={{
@@ -1459,6 +1464,70 @@ const AdminBookingsPage = () => {
                     <Divider sx={{ mb: 2 }} />
 
                     {(() => {
+                      // ✨ BỘ TÍNH TOÁN TÀI CHÍNH MINH BẠCH (SỬ DỤNG JSON)
+                      let holiday = 0,
+                        earlyIn = 0,
+                        lateOut = 0,
+                        overstay = 0,
+                        changeRoom = 0;
+                      let fallbackReason = "";
+                      let customerNote = "";
+
+                      try {
+                        const metadata = JSON.parse(
+                          detailDialog.booking.note || "{}",
+                        );
+                        holiday = metadata.holiday_surcharge || 0;
+                        earlyIn = metadata.early_in_surcharge || 0;
+                        lateOut = metadata.late_out_surcharge || 0;
+                        overstay = metadata.overstay_surcharge || 0;
+                        changeRoom = metadata.change_room_fee || 0;
+                        fallbackReason = (metadata.logs || []).join("; ");
+                        customerNote = metadata.customer_note || "";
+                      } catch (e) {
+                        // Tương thích ngược với hóa đơn cũ
+                        const noteStr = detailDialog.booking.note || "";
+                        [
+                          ...noteStr.matchAll(
+                            /\[HolidaySurcharge:(-?\d+(?:\.\d+)?)\]/g,
+                          ),
+                        ].forEach((m) => (holiday += parseFloat(m[1])));
+                        [
+                          ...noteStr.matchAll(
+                            /\[EarlyInSurcharge:(-?\d+(?:\.\d+)?)\]/g,
+                          ),
+                        ].forEach((m) => (earlyIn += parseFloat(m[1])));
+                        [
+                          ...noteStr.matchAll(
+                            /\[LateOutSurcharge:(-?\d+(?:\.\d+)?)\]/g,
+                          ),
+                        ].forEach((m) => (lateOut += parseFloat(m[1])));
+                        [
+                          ...noteStr.matchAll(
+                            /\[OverstaySurcharge:(-?\d+(?:\.\d+)?)\]/g,
+                          ),
+                        ].forEach((m) => (overstay += parseFloat(m[1])));
+                        [
+                          ...noteStr.matchAll(
+                            /\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/g,
+                          ),
+                        ].forEach((m) => (changeRoom += parseFloat(m[1])));
+                        const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+                        if (sysNotes)
+                          fallbackReason = sysNotes
+                            .map((n) =>
+                              n
+                                .replace("[Hệ thống:", "")
+                                .replace("]", "")
+                                .trim(),
+                            )
+                            .join("; ");
+                        customerNote = noteStr.replace(/\[.*?\]/g, "").trim();
+                      }
+
+                      const knownTotal =
+                        holiday + earlyIn + lateOut + overstay + changeRoom;
+
                       const finalDbAmount = parseFloat(
                         detailDialog.dynamicRoomTotal ??
                           detailDialog.booking.total_amount ??
@@ -1478,21 +1547,34 @@ const AdminBookingsPage = () => {
                       const checkOut = new Date(
                         detailDialog.booking.check_out_date,
                       );
+
                       let totalDays = Math.ceil(
                         Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24),
                       );
-                      if (totalDays === 0) totalDays = 1;
+
+                      // Đồng bộ hiển thị số ngày cho đơn Day-use
+                      let displayDays = totalDays;
+                      if (checkIn.toDateString() === checkOut.toDateString()) {
+                        displayDays = 0;
+                      } else if (totalDays === 0) {
+                        displayDays = 1;
+                      }
 
                       const basePrice = parseFloat(
                         detailDialog.booking.base_price || 0,
                       );
-                      const rawRoomTotal = basePrice > 0 ? basePrice * totalDays : originalRoomTotal;
-                      let roomGoc = rawRoomTotal;
-                      let totalSurcharge = originalRoomTotal - rawRoomTotal;
 
-                      if (totalSurcharge < 0) {
-                        roomGoc = originalRoomTotal;
-                        totalSurcharge = 0;
+                      const rawRoomTotal =
+                        basePrice > 0 && displayDays > 0
+                          ? basePrice * displayDays
+                          : originalRoomTotal;
+                      let roomGoc = rawRoomTotal;
+                      let fallback =
+                        originalRoomTotal - rawRoomTotal - knownTotal;
+
+                      if (fallback < 0 || displayDays === 0) {
+                        roomGoc = originalRoomTotal - knownTotal;
+                        fallback = 0;
                       }
 
                       const finalTotal =
@@ -1502,74 +1584,9 @@ const AdminBookingsPage = () => {
                       );
                       const remainingAmt = finalTotal - depositAmt;
 
-                      let fallbackReason = "";
-                      const noteStr = detailDialog.booking.note || "";
-                      const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
-                      if (sysNotes && sysNotes.length > 0) {
-                        fallbackReason = sysNotes.map((n) => n.replace('[Hệ thống:', '').replace(']', '').trim()).join('; ');
-                      }
-
                       return (
-                        <Stack spacing={1.5} sx={{ mb: 2 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography variant="body2" color="text.secondary">
-                              Tiền phòng lưu trú ({totalDays} đêm):
-                            </Typography>
-                            <Typography variant="body2" fontWeight="bold">
-                              {roomGoc.toLocaleString()} đ
-                            </Typography>
-                          </Box>
-                          
-                          {totalSurcharge > 0 && (
-                            <Box sx={{ mb: 1 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <Typography variant="body2" color="error.main">
-                                  Phụ thu (Lễ Tết/Check-in sớm/Trả trễ):
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  fontWeight="bold"
-                                  color="error.main"
-                                >
-                                  +{totalSurcharge.toLocaleString()} đ
-                                </Typography>
-                              </Box>
-                            </Box>
-                          )}
-
-                          {/* MINH BẠCH LỊCH SỬ BIẾN ĐỘNG (Luôn hiển thị nếu có note) */}
-                          {fallbackReason && (
-                            <Box sx={{ mb: 1.5, p: 1, bgcolor: "rgba(0,0,0,0.03)", borderRadius: 1, borderLeft: "3px solid #9e9e9e" }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", display: "block", whiteSpace: "pre-wrap" }}>
-                                <b>Lịch sử biến động giá:</b><br/>{fallbackReason.split('; ').join('\n')}
-                              </Typography>
-                            </Box>
-                          )}
-
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography variant="body2" color="text.secondary">
-                              Tiền dịch vụ phát sinh:
-                            </Typography>
-                            <Typography variant="body2" fontWeight="bold">
-                              {servicesTotal.toLocaleString()} đ
-                            </Typography>
-                          </Box>
-                          {discountAmt > 0 && (
+                        <>
+                          <Stack spacing={1.5} sx={{ mb: 2 }}>
                             <Box
                               sx={{
                                 display: "flex",
@@ -1580,118 +1597,340 @@ const AdminBookingsPage = () => {
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                Giảm giá (Coupon/Hạng):
+                                Tiền phòng lưu trú (
+                                {displayDays === 0
+                                  ? "Thuê theo giờ"
+                                  : `${displayDays} đêm`}
+                                ):
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {roomGoc.toLocaleString()} đ
+                              </Typography>
+                            </Box>
+
+                            {holiday > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="500"
+                                >
+                                  Phụ phí Lễ/Tết:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{holiday.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            {earlyIn > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="500"
+                                >
+                                  Phụ thu Check-in sớm:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{earlyIn.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            {lateOut > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="500"
+                                >
+                                  Phụ thu Check-out trễ:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{lateOut.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            {overstay > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="500"
+                                >
+                                  Phụ thu ở lố ngày:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{overstay.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            {changeRoom !== 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color={
+                                    changeRoom > 0
+                                      ? "error.main"
+                                      : "success.main"
+                                  }
+                                  fontWeight="500"
+                                >
+                                  Phí đổi phòng:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color={
+                                    changeRoom > 0
+                                      ? "error.main"
+                                      : "success.main"
+                                  }
+                                >
+                                  {changeRoom > 0 ? "+" : ""}
+                                  {changeRoom.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            {fallback > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="500"
+                                >
+                                  Phụ thu phát sinh:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="error.main"
+                                >
+                                  +{fallback.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {fallbackReason && (
+                              <Box
+                                sx={{
+                                  mb: 1.5,
+                                  p: 1,
+                                  bgcolor: "rgba(0,0,0,0.03)",
+                                  borderRadius: 1,
+                                  borderLeft: "3px solid #9e9e9e",
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontStyle: "italic",
+                                    display: "block",
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  <b>Lịch sử biến động giá:</b>
+                                  <br />
+                                  {fallbackReason.split("; ").join("\n")}
+                                </Typography>
+                              </Box>
+                            )}
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Tiền dịch vụ phát sinh:
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {servicesTotal.toLocaleString()} đ
+                              </Typography>
+                            </Box>
+                            {discountAmt > 0 && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  Giảm giá (Coupon/Hạng):
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="error.main"
+                                  fontWeight="bold"
+                                >
+                                  - {discountAmt.toLocaleString()} đ
+                                </Typography>
+                              </Box>
+                            )}
+                            <Divider />
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Typography variant="body1" fontWeight="bold">
+                                Tổng thanh toán:
+                              </Typography>
+                              <Typography
+                                variant="h6"
+                                color="primary.main"
+                                fontWeight="bold"
+                              >
+                                {finalTotal.toLocaleString()} đ
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                color="warning.main"
+                                fontWeight="bold"
+                              >
+                                Đã đặt cọc/Thanh toán trước:
                               </Typography>
                               <Typography
                                 variant="body2"
-                                color="error.main"
+                                color="warning.main"
                                 fontWeight="bold"
                               >
-                                - {discountAmt.toLocaleString()} đ
+                                - {depositAmt.toLocaleString()} đ
                               </Typography>
                             </Box>
-                          )}
-                          <Divider />
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
+                            <Box
+                              sx={{
+                                mt: 1,
+                                p: 1.5,
+                                bgcolor:
+                                  remainingAmt > 0 ? "#ffebee" : "#e8f5e9",
+                                borderRadius: 1,
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight="bold"
+                                color={
+                                  remainingAmt > 0
+                                    ? "error.main"
+                                    : "success.main"
+                                }
+                              >
+                                {remainingAmt > 0
+                                  ? "CẦN THU THÊM:"
+                                  : "ĐÃ THANH TOÁN ĐỦ / CẦN HOÀN TRẢ:"}
+                              </Typography>
+                              <Typography
+                                variant="h5"
+                                fontWeight="bold"
+                                color={
+                                  remainingAmt > 0
+                                    ? "error.main"
+                                    : "success.main"
+                                }
+                              >
+                                {Math.abs(remainingAmt).toLocaleString()} đ
+                              </Typography>
+                            </Box>
+                          </Stack>
+
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight="bold"
+                            gutterBottom
                           >
-                            <Typography variant="body1" fontWeight="bold">
-                              Tổng thanh toán:
-                            </Typography>
-                            <Typography
-                              variant="h6"
-                              color="primary.main"
-                              fontWeight="bold"
-                            >
-                              {finalTotal.toLocaleString()} đ
-                            </Typography>
-                          </Box>
+                            Ghi chú của khách:
+                          </Typography>
                           <Box
                             sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              color="warning.main"
-                              fontWeight="bold"
-                            >
-                              Đã đặt cọc/Thanh toán trước:
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color="warning.main"
-                              fontWeight="bold"
-                            >
-                              - {depositAmt.toLocaleString()} đ
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              mt: 1,
-                              p: 1.5,
-                              bgcolor: remainingAmt > 0 ? "#ffebee" : "#e8f5e9",
+                              flexGrow: 1,
+                              p: 2,
+                              bgcolor: "#f5f5f5",
                               borderRadius: 1,
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
+                              fontStyle: customerNote ? "normal" : "italic",
+                              color: customerNote
+                                ? "text.primary"
+                                : "text.secondary",
                             }}
                           >
-                            <Typography
-                              variant="subtitle2"
-                              fontWeight="bold"
-                              color={
-                                remainingAmt > 0 ? "error.main" : "success.main"
-                              }
-                            >
-                              {remainingAmt > 0
-                                ? "CẦN THU THÊM:"
-                                : "ĐÃ THANH TOÁN ĐỦ / CẦN HOÀN TRẢ:"}
-                            </Typography>
-                            <Typography
-                              variant="h5"
-                              fontWeight="bold"
-                              color={
-                                remainingAmt > 0 ? "error.main" : "success.main"
-                              }
-                            >
-                              {Math.abs(remainingAmt).toLocaleString()} đ
-                            </Typography>
+                            {customerNote || "Không có ghi chú thêm."}
                           </Box>
-                        </Stack>
+                        </>
                       );
                     })()}
-
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight="bold"
-                      gutterBottom
-                    >
-                      Ghi chú của khách:
-                    </Typography>
-                    <Box
-                      sx={{
-                        flexGrow: 1,
-                        p: 2,
-                        bgcolor: "#f5f5f5",
-                        borderRadius: 1,
-                        fontStyle: detailDialog.booking.note
-                          ? "normal"
-                          : "italic",
-                        color: detailDialog.booking.note
-                          ? "text.primary"
-                          : "text.secondary",
-                      }}
-                    >
-                      {detailDialog.booking.note || "Không có ghi chú thêm."}
-                    </Box>
                   </Paper>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </DialogContent>
             <DialogActions
               sx={{ p: 3, bgcolor: "white", borderTop: "1px solid #e0e0e0" }}
@@ -1762,63 +2001,74 @@ const AdminBookingsPage = () => {
               bgcolor: "white",
             }}
           >
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Số điện thoại liên hệ (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={walkInForm.phone}
-                  onChange={(e) =>
-                    setWalkInForm({ ...walkInForm, phone: e.target.value })
-                  }
-                  onBlur={handlePhoneBlur}
-                  placeholder="Gõ SĐT khách..."
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 3,
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Số điện thoại liên hệ (*)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={walkInForm.phone}
+                    onChange={(e) =>
+                      setWalkInForm({ ...walkInForm, phone: e.target.value })
+                    }
+                    onBlur={handlePhoneBlur}
+                    placeholder="Gõ SĐT khách..."
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
 
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Họ tên khách hàng (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={walkInForm.full_name}
-                  onChange={(e) =>
-                    setWalkInForm({ ...walkInForm, full_name: e.target.value })
-                  }
-                  placeholder="Nhập họ và tên..."
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Họ tên khách hàng (*)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={walkInForm.full_name}
+                    onChange={(e) =>
+                      setWalkInForm({
+                        ...walkInForm,
+                        full_name: e.target.value,
+                      })
+                    }
+                    placeholder="Nhập họ và tên..."
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonIcon fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+              </Box>
 
-              <Grid item xs={12}>
+              <Box>
                 <Typography
                   variant="body2"
                   fontWeight="bold"
@@ -1848,99 +2098,118 @@ const AdminBookingsPage = () => {
                     )}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Ngày nhận phòng (Hôm nay)
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="date"
-                  size="small"
-                  value={walkInForm.check_in}
-                  disabled
-                  sx={{ bgcolor: "#f1f5f9" }}
-                />
-              </Grid>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 3,
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Ngày nhận phòng (Hôm nay)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    size="small"
+                    value={walkInForm.check_in}
+                    disabled
+                    sx={{ bgcolor: "#f1f5f9" }}
+                  />
+                </Box>
 
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Ngày trả phòng dự kiến (*)
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="date"
-                  size="small"
-                  value={walkInForm.check_out}
-                  onChange={(e) =>
-                    setWalkInForm({ ...walkInForm, check_out: e.target.value })
-                  }
-                  error={
-                    new Date(walkInForm.check_in) >=
-                    new Date(walkInForm.check_out)
-                  }
-                />
-              </Grid>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Ngày trả phòng dự kiến (*)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    size="small"
+                    value={walkInForm.check_out}
+                    onChange={(e) =>
+                      setWalkInForm({
+                        ...walkInForm,
+                        check_out: e.target.value,
+                      })
+                    }
+                    error={
+                      new Date(walkInForm.check_in) >=
+                      new Date(walkInForm.check_out)
+                    }
+                  />
+                </Box>
+              </Box>
 
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Tiền mặt/Chuyển khoản đã thu (VNĐ)
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="number"
-                  size="small"
-                  value={walkInForm.deposit_amount}
-                  onChange={(e) =>
-                    setWalkInForm({
-                      ...walkInForm,
-                      deposit_amount: e.target.value,
-                    })
-                  }
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">đ</InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 3,
+                  flexDirection: { xs: "column", sm: "row" },
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Tiền mặt/Chuyển khoản đã thu (VNĐ)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={walkInForm.deposit_amount}
+                    onChange={(e) =>
+                      setWalkInForm({
+                        ...walkInForm,
+                        deposit_amount: e.target.value,
+                      })
+                    }
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">đ</InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
 
-              <Grid item xs={12} sm={6}>
-                <Typography
-                  variant="body2"
-                  fontWeight="bold"
-                  color="text.primary"
-                  sx={{ mb: 1 }}
-                >
-                  Ghi chú (Yêu cầu thêm)
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={walkInForm.note}
-                  onChange={(e) =>
-                    setWalkInForm({ ...walkInForm, note: e.target.value })
-                  }
-                  placeholder="Ví dụ: Khách ở tầng cao..."
-                />
-              </Grid>
-            </Grid>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ mb: 1 }}
+                  >
+                    Ghi chú (Yêu cầu thêm)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={walkInForm.note}
+                    onChange={(e) =>
+                      setWalkInForm({ ...walkInForm, note: e.target.value })
+                    }
+                    placeholder="Ví dụ: Khách ở tầng cao..."
+                  />
+                </Box>
+              </Box>
+            </Box>
           </Paper>
         </DialogContent>
 

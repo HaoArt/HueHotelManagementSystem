@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const db = require("../config/db");
 const { sendReminderEmail } = require("../utils/emailService");
+const Booking = require("../models/bookingModel");
 
 cron.schedule("0 8 * * *", async () => {
   try {

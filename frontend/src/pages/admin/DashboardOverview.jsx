@@ -227,8 +227,12 @@ const DashboardOverview = () => {
       name: "Dịch vụ phát sinh",
       value: parseFloat(stats?.service_revenue || 0),
     },
+    {
+      name: "Phí phạt hủy",
+      value: parseFloat(stats?.penalty_revenue || 0),
+    },
   ];
-  const PIE_COLORS = [ COLORS.teal,COLORS.primary];
+  const PIE_COLORS = [ COLORS.teal, COLORS.primary, COLORS.error];
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -394,6 +398,7 @@ const DashboardOverview = () => {
                     fontWeight={600}
                     color="text.secondary"
                     gutterBottom
+                    sx={{fontWeight:'bold'}}
                   >
                     {card.title}
                   </Typography>

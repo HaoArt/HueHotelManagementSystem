@@ -450,7 +450,7 @@ const AdminAccountsPage = () => {
               value="All"
               sx={{ color: COLORS.teal }}
             />
-            <Tab label="Ban Giám Đốc" value="Admin" sx={{ color: "#c62828" }} />
+            <Tab label="Quản trị viên" value="Admin" sx={{ color: "#c62828" }} />
             <Tab
               label="Lễ Tân"
               value="Receptionist"
@@ -532,13 +532,21 @@ const AdminAccountsPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 4 }}>
+                  <TableCell
+                    colSpan={user?.role === "Admin" ? 6 : 5}
+                    align="center"
+                    sx={{ py: 4 }}
+                  >
                     <CircularProgress size={30} sx={{ color: COLORS.teal }} />
                   </TableCell>
                 </TableRow>
               ) : accounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={user?.role === "Admin" ? 6 : 5} align="center" sx={{ py: 5 }}>
+                  <TableCell
+                    colSpan={user?.role === "Admin" ? 6 : 5}
+                    align="center"
+                    sx={{ py: 5 }}
+                  >
                     <Typography color="text.secondary">
                       Không tìm thấy tài khoản nào.
                     </Typography>
@@ -602,14 +610,21 @@ const AdminAccountsPage = () => {
                       <Stack direction="row" spacing={1} alignItems="center">
                         <ShieldIcon
                           sx={{
-                            color: (acc.trust_score ?? 100) >= 80 ? "#2e7d32" : "#c62828",
+                            color:
+                              (acc.trust_score ?? 100) >= 80
+                                ? "#2e7d32"
+                                : "#c62828",
                             fontSize: 18,
                           }}
                         />
                         <Typography
                           variant="body2"
                           fontWeight="bold"
-                          color={(acc.trust_score ?? 100) >= 80 ? "#2e7d32" : "#c62828"}
+                          color={
+                            (acc.trust_score ?? 100) >= 80
+                              ? "#2e7d32"
+                              : "#c62828"
+                          }
                         >
                           {acc.trust_score ?? 100}/100
                         </Typography>
@@ -626,57 +641,57 @@ const AdminAccountsPage = () => {
                             spacing={1}
                             justifyContent="flex-end"
                           >
-                          <Tooltip title="Cấp lại mật khẩu (Đưa về mặc định)">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleResetPassword(acc)}
-                              sx={{
-                                color: "#ed6c02",
-                                bgcolor: "rgba(237, 108, 2, 0.1)",
-                                borderRadius: 1,
-                                "&:hover": {
-                                  bgcolor: "rgba(237, 108, 2, 0.2)",
-                                },
-                              }}
+                            <Tooltip title="Cấp lại mật khẩu (Đưa về mặc định)">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleResetPassword(acc)}
+                                sx={{
+                                  color: "#ed6c02",
+                                  bgcolor: "rgba(237, 108, 2, 0.1)",
+                                  borderRadius: 1,
+                                  "&:hover": {
+                                    bgcolor: "rgba(237, 108, 2, 0.2)",
+                                  },
+                                }}
+                              >
+                                <VpnKeyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip
+                              title={
+                                acc.status === "Active"
+                                  ? "Khóa tài khoản"
+                                  : "Mở khóa tài khoản"
+                              }
                             >
-                              <VpnKeyIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip
-                            title={
-                              acc.status === "Active"
-                                ? "Khóa tài khoản"
-                                : "Mở khóa tài khoản"
-                            }
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={() => handleToggleStatus(acc)}
-                              sx={{
-                                color:
-                                  acc.status === "Active"
-                                    ? COLORS.error
-                                    : "#2e7d32",
-                                bgcolor:
-                                  acc.status === "Active"
-                                    ? "rgba(211, 47, 47, 0.1)"
-                                    : "rgba(46, 125, 50, 0.1)",
-                                borderRadius: 1,
-                                "&:hover": {
+                              <IconButton
+                                size="small"
+                                onClick={() => handleToggleStatus(acc)}
+                                sx={{
+                                  color:
+                                    acc.status === "Active"
+                                      ? COLORS.error
+                                      : "#2e7d32",
                                   bgcolor:
                                     acc.status === "Active"
-                                      ? "rgba(211, 47, 47, 0.2)"
-                                      : "rgba(46, 125, 50, 0.2)",
-                                },
-                              }}
-                            >
-                              {acc.status === "Active" ? (
-                                <BlockIcon fontSize="small" />
-                              ) : (
-                                <CheckCircleIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </Tooltip>
+                                      ? "rgba(211, 47, 47, 0.1)"
+                                      : "rgba(46, 125, 50, 0.1)",
+                                  borderRadius: 1,
+                                  "&:hover": {
+                                    bgcolor:
+                                      acc.status === "Active"
+                                        ? "rgba(211, 47, 47, 0.2)"
+                                        : "rgba(46, 125, 50, 0.2)",
+                                  },
+                                }}
+                              >
+                                {acc.status === "Active" ? (
+                                  <BlockIcon fontSize="small" />
+                                ) : (
+                                  <CheckCircleIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
                           </Stack>
                         )}
                       </TableCell>
@@ -881,7 +896,7 @@ const AdminAccountsPage = () => {
                   }
                 >
                   <MenuItem value="Receptionist">Lễ Tân</MenuItem>
-                  <MenuItem value="Admin">Ban Giám Đốc</MenuItem>
+                  <MenuItem value="Admin">Quản trị viên</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

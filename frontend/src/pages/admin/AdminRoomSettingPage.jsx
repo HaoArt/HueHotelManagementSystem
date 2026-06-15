@@ -146,7 +146,29 @@ const AdminRoomSettingsPage = () => {
 
   const handleImageChange = (e) => {
     if (e.target.files) {
-      setSelectedImages((prev) => [...prev, ...Array.from(e.target.files)]);
+      const files = Array.from(e.target.files);
+      const validFiles = [];
+      let hasLargeFile = false;
+
+      files.forEach((file) => {
+        if (file.size > 10 * 1024 * 1024) {
+          hasLargeFile = true;
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (hasLargeFile) {
+        setSnackbar({
+          open: true,
+          message: "Một số ảnh quá lớn (>10MB) đã bị hệ thống loại bỏ!",
+          severity: "warning",
+        });
+      }
+
+      if (validFiles.length > 0) {
+        setSelectedImages((prev) => [...prev, ...validFiles]);
+      }
     }
   };
 
@@ -881,8 +903,8 @@ const AdminRoomSettingsPage = () => {
               bgcolor: "white",
             }}
           >
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+              <Box sx={{ width: { xs: "100%", sm: "calc(50% - 12px)" } }}>
                 <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
                   Tên Hạng (VD: Deluxe, Suite...) (*)
                 </Typography>
@@ -894,8 +916,8 @@ const AdminRoomSettingsPage = () => {
                     setTypeForm({ ...typeForm, type_name: e.target.value })
                   }
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box sx={{ width: { xs: "100%", sm: "calc(50% - 12px)" } }}>
                 <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
                   Giá tiền 1 đêm (VNĐ) (*)
                 </Typography>
@@ -908,8 +930,8 @@ const AdminRoomSettingsPage = () => {
                     setTypeForm({ ...typeForm, base_price: e.target.value })
                   }
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box sx={{ width: { xs: "100%", sm: "calc(50% - 12px)" } }}>
                  <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
                   Diện tích (m²)
                 </Typography>
@@ -922,8 +944,8 @@ const AdminRoomSettingsPage = () => {
                     setTypeForm({ ...typeForm, area: e.target.value })
                   }
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box sx={{ width: { xs: "100%", sm: "calc(50% - 12px)" } }}>
                 <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
                   Sức chứa (Người)
                 </Typography>
@@ -939,8 +961,8 @@ const AdminRoomSettingsPage = () => {
                     })
                   }
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box sx={{ width: "100%" }}>
                 <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
                   Mô tả tiện ích phòng
                 </Typography>
@@ -953,8 +975,8 @@ const AdminRoomSettingsPage = () => {
                     setTypeForm({ ...typeForm, description: e.target.value })
                   }
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <Box
               sx={{

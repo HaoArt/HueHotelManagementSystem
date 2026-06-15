@@ -307,7 +307,12 @@ const AdminRoomsPage = () => {
     setFolioData(servicesUsed);
     const dynamicRoomTotal = folioRes.data?.roomTotal || roomTotalAmount;
     const totalService = servicesUsed.reduce(
-      (sum, item) => sum + parseFloat(item.total_price),
+      (sum, item) => {
+        if (item.status === "Cancelled") {
+          return sum + parseFloat(item.cancellation_fee || 0);
+        }
+        return sum + parseFloat(item.total_price || 0);
+      },
       0,
     );
     setTotalFolioAmount(parseFloat(dynamicRoomTotal) + totalService);
@@ -589,8 +594,17 @@ const AdminRoomsPage = () => {
           mb: { xs: 2.5, sm: 3, md: 4 },
         }}
       >
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          flexWrap: "nowrap", // Ngăn rớt hàng
+          overflowX: "auto", // Thêm thanh cuộn ngang trên mobile để không vỡ UI
+          pb: 0.5,
+        }}
+      >
+        <Box sx={{ flex: { xs: "0 0 220px", md: 2 } }}>
             <TextField
               fullWidth
               placeholder="Tìm số phòng..."
@@ -606,8 +620,8 @@ const AdminRoomsPage = () => {
               sx={inputStyle}
               size="small"
             />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: { xs: "0 0 180px", md: 1.5 } }}>
             <FormControl fullWidth size="small" sx={inputStyle}>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -622,8 +636,8 @@ const AdminRoomsPage = () => {
                 <MenuItem value="Maintenance">Bảo trì (Maintenance)</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: { xs: "0 0 160px", md: 1.5 } }}>
             <FormControl fullWidth size="small" sx={inputStyle}>
               <InputLabel>Loại phòng</InputLabel>
               <Select
@@ -638,8 +652,8 @@ const AdminRoomsPage = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
+        </Box>
+        <Box sx={{ flex: { xs: "0 0 120px", md: 1 } }}>
             <Button
               fullWidth
               variant="outlined"
@@ -658,8 +672,8 @@ const AdminRoomsPage = () => {
             >
               Xóa lọc
             </Button>
-          </Grid>
-        </Grid>
+        </Box>
+      </Box>
       </Paper>
 
       {viewMode === "grid" ? (
@@ -1068,55 +1082,58 @@ const AdminRoomsPage = () => {
             </Box>
           ) : currentBooking ? (
             (() => {
-              // ✨ BỘ TÍNH TOÁN TÀI CHÍNH MINH BẠCH
-              let holiday = 0,
-                earlyIn = 0,
-                lateOut = 0;
-              const noteStr = currentBooking.note || "";
-              const hMatch = noteStr.match(
-                /\[HolidaySurcharge:(\d+(?:\.\d+)?)\]/,
-              );
-              if (hMatch) holiday = parseFloat(hMatch[1]);
-              const eMatch = noteStr.match(
-                /\[EarlyInSurcharge:(\d+(?:\.\d+)?)\]/,
-              );
-              if (eMatch) earlyIn = parseFloat(eMatch[1]);
-              const lMatches = [
-                ...noteStr.matchAll(/\[LateOutSurcharge:(\d+(?:\.\d+)?)\]/g),
-              ];
-              lMatches.forEach((m) => (lateOut += parseFloat(m[1])));
+              // ✨ BỘ TÍNH TOÁN TÀI CHÍNH MINH BẠCH (SỬ DỤNG JSON)
+              let holiday = 0, earlyIn = 0, lateOut = 0, overstay = 0, changeRoom = 0;
+              let fallbackReason = "";
+              let customerNote = "";
 
-              const knownTotal = holiday + earlyIn + lateOut;
+              try {
+                const metadata = JSON.parse(currentBooking.note || "{}");
+                holiday = metadata.holiday_surcharge || 0;
+                earlyIn = metadata.early_in_surcharge || 0;
+                lateOut = metadata.late_out_surcharge || 0;
+                overstay = metadata.overstay_surcharge || 0;
+                changeRoom = metadata.change_room_fee || 0;
+                fallbackReason = (metadata.logs || []).join("; ");
+                customerNote = metadata.customer_note || "";
+              } catch (e) {
+                // Tương thích ngược với hóa đơn cũ
+                const noteStr = currentBooking.note || "";
+                [...noteStr.matchAll(/\[HolidaySurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (holiday += parseFloat(m[1])));
+                [...noteStr.matchAll(/\[EarlyInSurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (earlyIn += parseFloat(m[1])));
+                [...noteStr.matchAll(/\[LateOutSurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (lateOut += parseFloat(m[1])));
+                [...noteStr.matchAll(/\[OverstaySurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (overstay += parseFloat(m[1])));
+                [...noteStr.matchAll(/\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (changeRoom += parseFloat(m[1])));
+                const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+                if (sysNotes) fallbackReason = sysNotes.map((n) => n.replace("[Hệ thống:", "").replace("]", "").trim()).join("; ");
+                customerNote = noteStr.replace(/\[.*?\]/g, "").trim();
+              }
+
+              const knownTotal = holiday + earlyIn + lateOut + overstay + changeRoom;
               const originalRoomTotal =
                 parseFloat(currentBooking.total_amount || 0) +
                 parseFloat(currentBooking.discount_amount || 0);
 
               const checkIn = new Date(currentBooking.check_in_date);
               const checkOut = new Date(currentBooking.check_out_date);
-              let totalDays =
-                Math.ceil(
-                  Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24),
-                ) || 1;
+              let totalDays = Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+              let displayDays = totalDays;
+              if (checkIn.toDateString() === checkOut.toDateString()) {
+                displayDays = 0;
+              } else if (totalDays === 0) {
+                displayDays = 1;
+              }
 
               const basePrice = parseFloat(currentBooking.base_price || 0);
 
-              const rawRoomTotal = basePrice > 0 ? basePrice * totalDays : originalRoomTotal;
+              const rawRoomTotal = (basePrice > 0 && displayDays > 0) ? basePrice * displayDays : originalRoomTotal;
               let roomGoc = rawRoomTotal;
               let fallback = originalRoomTotal - rawRoomTotal - knownTotal;
 
-              if (fallback < 0) {
+              if (fallback < 0 || displayDays === 0) {
                 roomGoc = originalRoomTotal - knownTotal;
                 fallback = 0;
-              }
-
-              let fallbackReason = "";
-              const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
-              if (sysNotes && sysNotes.length > 0) {
-                fallbackReason = sysNotes
-                  .map((n) =>
-                    n.replace("[Hệ thống:", "").replace("]", "").trim(),
-                  )
-                  .join("; ");
               }
 
               if (fallback > 0 && !fallbackReason) {
@@ -1625,7 +1642,7 @@ const AdminRoomsPage = () => {
                         }}
                       >
                         <Typography variant="body2" color="text.secondary">
-                          1. Tiền phòng lưu trú
+                          1. Tiền phòng lưu trú ({displayDays === 0 ? "Theo giờ (Day-use)" : `${displayDays} đêm`})
                         </Typography>
                         <Typography variant="body2" fontWeight="bold">
                           {roomGoc.toLocaleString()} đ
@@ -1699,6 +1716,28 @@ const AdminRoomsPage = () => {
                           >
                             +{lateOut.toLocaleString()} đ
                           </Typography>
+                        </Box>
+                      )}
+                      {overstay > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="body2" color="error.main" fontWeight="500">Phụ thu ở lố ngày</Typography>
+                          <Typography variant="body2" fontWeight="bold" color="error.main">+{overstay.toLocaleString()} đ</Typography>
+                        </Box>
+                      )}
+                      {changeRoom !== 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="body2" color={changeRoom > 0 ? "error.main" : "success.main"} fontWeight="500">Phí đổi phòng</Typography>
+                          <Typography variant="body2" fontWeight="bold" color={changeRoom > 0 ? "error.main" : "success.main"}>{changeRoom > 0 ? "+" : ""}{changeRoom.toLocaleString()} đ</Typography>
                         </Box>
                       )}
                       {fallback > 0 && (
@@ -2141,11 +2180,16 @@ const AdminRoomsPage = () => {
             >
               {rooms
                 .filter((r) => r.status === "Available")
-                .map((r) => (
-                  <MenuItem key={r.id} value={r.id}>
-                    Phòng {r.room_number} - {r.type_name || r.name}
-                  </MenuItem>
-                ))}
+                .map((r) => {
+                  const isSameType =
+                    currentBooking && r.room_type_id === currentBooking.room_type_id;
+                  return (
+                    <MenuItem key={r.id} value={r.id}>
+                      Phòng {r.room_number} - Hạng: {r.type_name || r.name}{" "}
+                      {isSameType ? "(Cùng hạng)" : "⭐ (Nâng hạng)"}
+                    </MenuItem>
+                  );
+                })}
             </Select>
           </FormControl>
           <FormControlLabel

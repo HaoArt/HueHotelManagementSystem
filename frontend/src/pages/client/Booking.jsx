@@ -739,7 +739,7 @@ const Booking = () => {
                         2. Nâng Cấp Trải Nghiệm
                       </Typography>
                       <Typography variant="body2" color={LUXURY.warmGray}>
-                        Thêm các dịch vụ chuẩn 5 sao để chuyến đi thêm hoàn hảo
+                        Thêm các dịch vụ để chuyến đi thêm hoàn hảo
                       </Typography>
                     </Box>
                   </Stack>

@@ -6,6 +6,7 @@ require("dotenv").config();
 require("./cron/holdRoomCron");
 require("./cron/reminderCron");
 require("./cron/cleanupOtpCron");
+require("./cron/cleanupAuditCron");
 
 const authRoutes = require("./routes/authRoutes");
 const roomRoutes = require("./routes/roomRoutes");
@@ -24,6 +25,9 @@ const destinationRoutes = require("./routes/destinationRoutes");
 const configRoutes = require("./routes/configRoutes");
 
 const app = express();
+
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: [
@@ -35,12 +39,6 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
-
-// Route Health Check để kiểm tra server có hoạt động không (Rất hữu ích khi test deploy)
-app.get("/", (req, res) => {
-  res.status(200).json({ message: "Welcome to Hue Hotel API! Server is running fine." });
-});
-
 app.use("/api/auth", authRoutes);
 app.use("/api/users", UserRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -70,6 +68,3 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`👉 Bấm vào đây để test API: http://localhost:${PORT}/api`);
 });
-
-// Export app để hỗ trợ deploy dạng Serverless Functions (Ví dụ: deploy backend lên Vercel)
-module.exports = app;
