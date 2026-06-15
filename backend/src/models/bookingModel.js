@@ -103,7 +103,12 @@ const Booking = {
     return result;
   },
 
-  updateEarlyCheckIn: async (id, new_check_in_date, new_total_amount, noteAppend = "") => {
+  updateEarlyCheckIn: async (
+    id,
+    new_check_in_date,
+    new_total_amount,
+    noteAppend = "",
+  ) => {
     return await db.query(
       "UPDATE bookings SET check_in_date = ?, total_amount = ?, note = CONCAT(IFNULL(note, ''), ?) WHERE id = ?",
       [new_check_in_date, new_total_amount, noteAppend, id],
@@ -253,11 +258,19 @@ const Booking = {
   getPaginatedForAdmin: async (limit, offset, status, search) => {
     let query = `
       SELECT b.*, u.full_name as customer_name, u.phone as customer_phone, 
-             r.room_number, rt.type_name
+             r.room_number, rt.type_name,
+             (b.total_amount + COALESCE(svc_totals.total, 0)) AS grand_total
       FROM bookings b
       LEFT JOIN users u ON b.user_id = u.id
       LEFT JOIN rooms r ON b.room_id = r.id
       LEFT JOIN room_types rt ON b.room_type_id = rt.id
+      LEFT JOIN (
+          SELECT 
+              booking_id, 
+              SUM(IF(status = 'Cancelled', cancellation_fee, total_price)) as total
+          FROM booking_services
+          GROUP BY booking_id
+      ) AS svc_totals ON b.id = svc_totals.booking_id
       WHERE 1=1
     `;
     let countQuery = `
@@ -268,9 +281,15 @@ const Booking = {
     `;
     let params = [];
     if (status && status !== "All") {
-      query += ` AND b.status = ?`;
-      countQuery += ` AND b.status = ?`;
-      params.push(status);
+      if (status === "Checked_out") {
+        // Gộp cả đơn "Đã hoàn tất" và "Đã hủy" vào tab Lịch sử
+        query += ` AND b.status IN ('Checked_out', 'Cancelled')`;
+        countQuery += ` AND b.status IN ('Checked_out', 'Cancelled')`;
+      } else {
+        query += ` AND b.status = ?`;
+        countQuery += ` AND b.status = ?`;
+        params.push(status);
+      }
     }
     if (search) {
       query += ` AND (u.full_name LIKE ? OR u.phone LIKE ? OR b.id LIKE ?)`;

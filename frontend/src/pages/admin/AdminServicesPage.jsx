@@ -311,45 +311,6 @@ const AdminServicesPage = () => {
         </Stack>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          ...glassCardSx,
-          mb: { xs: 2.5, sm: 3, md: 4 },
-          p: { xs: 1, sm: 1.25 },
-        }}
-      >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "minmax(0, 2fr) minmax(0, 1fr)",
-            },
-            gap: 1.25,
-            px: { xs: 1.25, sm: 1.5 },
-            py: 1,
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary", fontWeight: 600 }}
-          >
-            Danh sách dịch vụ bổ sung cho khách lưu trú
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: COLORS.teal,
-              fontWeight: 700,
-              textAlign: { xs: "left", sm: "right" },
-            }}
-          >
-            Quản lý nhanh: tạo, cập nhật hoặc xóa dịch vụ
-          </Typography>
-        </Box>
-      </Paper>
-
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: "4px" }}>
           {error}

@@ -27,7 +27,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -523,8 +522,9 @@ const AdminCouponsPage = () => {
           {dialog.isEdit ? "Cập Nhật Mã Giảm Giá" : "Tạo Mã Giảm Giá Mới"}
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Mã Coupon (VD: SUMMER2026)"
                 fullWidth
@@ -539,8 +539,9 @@ const AdminCouponsPage = () => {
                 required
                 sx={inputStyle}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
               <FormControl fullWidth size="small" sx={inputStyle}>
                 <InputLabel>Loại giảm giá</InputLabel>
                 <Select
@@ -556,8 +557,11 @@ const AdminCouponsPage = () => {
                   <MenuItem value="Fixed">Giảm số tiền cố định (VNĐ)</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Giá trị giảm"
                 type="number"
@@ -570,8 +574,9 @@ const AdminCouponsPage = () => {
                 required
                 sx={inputStyle}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Giảm tối đa (VNĐ) - Dành cho loại %"
                 type="number"
@@ -586,8 +591,11 @@ const AdminCouponsPage = () => {
                 }
                 sx={inputStyle}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Giá trị đơn hàng tối thiểu (VNĐ)"
                 type="number"
@@ -599,8 +607,9 @@ const AdminCouponsPage = () => {
                 }
                 sx={inputStyle}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Ngày hết hạn"
                 type="date"
@@ -616,8 +625,11 @@ const AdminCouponsPage = () => {
                   "& .MuiInputBase-root": { whiteSpace: "nowrap" },
                 }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+              <Box sx={{ flex: 1 }}>
               <TextField
                 label="Giới hạn số lần sử dụng"
                 type="number"
@@ -629,8 +641,9 @@ const AdminCouponsPage = () => {
                 }
                 sx={inputStyle}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
               <FormControl fullWidth size="small" sx={inputStyle}>
                 <InputLabel>Trạng thái</InputLabel>
                 <Select
@@ -644,8 +657,10 @@ const AdminCouponsPage = () => {
                   <MenuItem value="Inactive">Tạm khóa</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12}>
+              </Box>
+            </Box>
+
+            <Box>
               <TextField
                 label="Mô tả chi tiết"
                 multiline
@@ -657,8 +672,8 @@ const AdminCouponsPage = () => {
                 }
                 sx={inputStyle}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${COLORS.border}` }}>
           <Button

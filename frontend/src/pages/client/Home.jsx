@@ -990,17 +990,13 @@ const Home = () => {
                           fontSize: "0.9rem",
                         }}
                       >
-                        {(review.author_name ||
-                          review.customer_name ||
-                          "K")[0].toUpperCase()}
+                        {(review.full_name || "K")[0].toUpperCase()}
                       </Avatar>
                       <Typography
                         variant="subtitle2"
                         sx={{ color: LUXURY.charcoal, fontWeight: 600 }}
                       >
-                        {review.full_name ||
-                          review.customer_name ||
-                          "Khách hàng"}
+                        {review.full_name || "Khách hàng"}
                       </Typography>
                     </Stack>
                   </Card>

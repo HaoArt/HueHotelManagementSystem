@@ -42,30 +42,12 @@ const Folio = {
       throw new Error("Không tìm thấy thông tin đơn đặt phòng!");
     }
     let roomTotal = parseFloat(bookingData[0].total_amount) || 0;
-    if (bookingData[0].status === "Checked_in") {
-      const today = new Date();
-      const expectedCheckOut = new Date(bookingData[0].check_out_date);
-      const todayZero = new Date(today).setHours(0, 0, 0, 0);
-      const expectedZero = new Date(expectedCheckOut).setHours(0, 0, 0, 0);
-      if (todayZero !== expectedZero) {
-        const checkInZero = new Date(bookingData[0].check_in_date).setHours(
-          0,
-          0,
-          0,
-          0,
-        );
-        let actualDays = Math.ceil(
-          Math.abs(todayZero - checkInZero) / (1000 * 60 * 60 * 24),
-        );
-        if (actualDays === 0) actualDays = 1;
-        roomTotal =
-          actualDays * parseFloat(bookingData[0].base_price) -
-          parseFloat(bookingData[0].discount_amount || 0);
-      }
-    }
-    bookingData[0].total_amount = roomTotal;
+
+    // Đã xóa bỏ đoạn code tính toán lại roomTotal cũ vì nó làm mất các khoản phụ thu
+    // Lễ/Tết, Check-in sớm, Check-out trễ, Đổi phòng đã được cập nhật chuẩn xác trong Database.
+
     const [servicesData] = await db.query(
-      `SELECT bs.id, bs.status, bs.quantity, bs.total_price, bs.created_at, bs.usage_time, bs.note, s.name as services_name, s.price as unit_price, s.service_type 
+      `SELECT bs.id, bs.status, bs.quantity, bs.total_price, bs.cancellation_fee, bs.created_at, bs.usage_time, bs.note, s.name as services_name, s.price as unit_price, s.service_type 
       FROM booking_services bs 
       JOIN services s ON bs.service_id = s.id
       WHERE bs.booking_id=?

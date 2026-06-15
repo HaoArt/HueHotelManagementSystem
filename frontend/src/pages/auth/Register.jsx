@@ -680,7 +680,7 @@ const Register = () => {
             color={LUXURY.charcoal}
             gutterBottom
           >
-            1. Thời gian Nhận / Trả phòng
+            1. Nhận / Trả phòng & Phụ thu
           </Typography>
           <Typography
             variant="body2"
@@ -688,11 +688,11 @@ const Register = () => {
             paragraph
             sx={{ lineHeight: 1.8 }}
           >
-            - Giờ nhận phòng (Check-in) quy định là từ <b>14:00</b>.<br />- Giờ
-            trả phòng (Check-out) quy định là trước <b>12:00</b> trưa.
-            <br />
-            Việc nhận phòng sớm hoặc trả phòng trễ sẽ tùy thuộc vào tình trạng
-            phòng trống và có thể phát sinh phụ phí.
+            - Giờ nhận phòng (Check-in) từ <b>14:00</b>. Giờ trả phòng (Check-out) trước <b>12:00</b> trưa.<br />
+            - <b>Trả phòng trễ (Late Check-out):</b><br />
+            &nbsp;&nbsp;+ Từ 12:00 đến 15:00: Phụ thu 30% giá phòng gốc.<br />
+            &nbsp;&nbsp;+ Từ 15:00 đến 18:00: Phụ thu 50% giá phòng gốc.<br />
+            &nbsp;&nbsp;+ Sau 18:00: Phụ thu 100% giá phòng gốc.
           </Typography>
 
           <Typography
@@ -701,7 +701,7 @@ const Register = () => {
             color={LUXURY.charcoal}
             gutterBottom
           >
-            2. Quy định Lưu trú
+            2. Quy định Hủy phòng & Hoàn tiền
           </Typography>
           <Typography
             variant="body2"
@@ -709,13 +709,9 @@ const Register = () => {
             paragraph
             sx={{ lineHeight: 1.8 }}
           >
-            - Vui lòng xuất trình Căn cước công dân hoặc Hộ chiếu khi làm thủ
-            tục nhận phòng.
-            <br />
-            - Tuyệt đối nghiêm cấm mang theo vũ khí, chất cháy nổ, ma túy và thú
-            cưng vào khuôn viên khách sạn.
-            <br />- Khách sạn là không gian không hút thuốc (ngoại trừ khu vực
-            ban công hoặc khu vực được chỉ định).
+            - <b>Hủy trước 48 giờ</b> so với ngày Check-in: Hoàn 100% tiền cọc.<br />
+            - <b>Hủy trong vòng 24 - 48 giờ:</b> Phạt 50% tiền cọc.<br />
+            - <b>Hủy sát giờ (Dưới 24 giờ):</b> Phạt 100% tiền cọc (Không hoàn tiền).
           </Typography>
 
           <Typography
@@ -724,7 +720,7 @@ const Register = () => {
             color={LUXURY.charcoal}
             gutterBottom
           >
-            3. Tài sản và Trách nhiệm
+            3. Điểm Tín Nhiệm (Thưởng / Phạt)
           </Typography>
           <Typography
             variant="body2"
@@ -732,9 +728,9 @@ const Register = () => {
             paragraph
             sx={{ lineHeight: 1.8 }}
           >
-            Mọi hư hỏng đối với tài sản, trang thiết bị trong phòng do lỗi của
-            quý khách sẽ được yêu cầu bồi thường theo đúng bảng giá quy định của
-            khách sạn.
+            - <b>Thưởng điểm:</b> Bạn được cộng điểm khi Check-in thành công (+5), Check-out (+5) và để lại đánh giá (+2).<br />
+            - <b>Phạt điểm:</b> Việc hủy phòng sẽ bị trừ điểm tùy mức độ sát giờ: Hủy trước 48h (-5), hủy 24-48h (-10), hủy dưới 24h (-20).<br />
+            - <b>Giới hạn:</b> Nếu điểm tín nhiệm giảm xuống <b>dưới 80</b>, hệ thống sẽ KHÓA tính năng "Thanh toán tại quầy" và bắt buộc bạn phải thanh toán/đặt cọc trước cho mọi đơn hàng.
           </Typography>
 
           <Typography
@@ -743,7 +739,25 @@ const Register = () => {
             color={LUXURY.charcoal}
             gutterBottom
           >
-            4. Quy định Hủy Dịch vụ (Room Service)
+            4. Quy định Thanh Toán & Giữ Chỗ
+          </Typography>
+          <Typography
+            variant="body2"
+            color={LUXURY.warmGray}
+            paragraph
+            sx={{ lineHeight: 1.8 }}
+          >
+            - Đơn đặt phòng có giá trị từ <b>4.000.000 VNĐ</b> hoặc đặt cách ngày nhận phòng <b>trên 14 ngày</b> bắt buộc phải Đặt cọc trực tuyến.<br />
+            - <b>Giai đoạn Lễ / Tết:</b> Bắt buộc thanh toán trước 50% (Ngày thường 30%) và không áp dụng giữ chỗ thanh toán tại quầy.
+          </Typography>
+
+          <Typography
+            variant="subtitle1"
+            fontWeight="800"
+            color={LUXURY.charcoal}
+            gutterBottom
+          >
+            5. Quy định Hủy Dịch vụ (Room Service)
           </Typography>
           <Typography
             variant="body2"
@@ -753,6 +767,25 @@ const Register = () => {
           >
             - <b>Dịch vụ đặt trước (Hẹn giờ):</b> Quý khách được phép hủy miễn phí nếu báo trước ít nhất <b>2 tiếng</b> so với giờ hẹn. Hủy dưới 2 tiếng sẽ chịu phí phạt 50%. Quá giờ hẹn không sử dụng sẽ chịu phí 100%.<br />
             - <b>Dịch vụ dùng ngay:</b> Quý khách được phép hủy miễn phí trong lúc hệ thống đang chuẩn bị (Trước khi Lễ tân xác nhận "Đã phục vụ").
+          </Typography>
+
+          <Typography
+            variant="subtitle1"
+            fontWeight="800"
+            color={LUXURY.charcoal}
+            gutterBottom
+          >
+            6. Trách Nhiệm Lưu Trú
+          </Typography>
+          <Typography
+            variant="body2"
+            color={LUXURY.warmGray}
+            paragraph
+            sx={{ lineHeight: 1.8, mb: 0 }}
+          >
+            - Vui lòng xuất trình CCCD hoặc Hộ chiếu khi nhận phòng.<br />
+            - Khách sạn là không gian không hút thuốc (trừ ban công). Nghiêm cấm mang vũ khí, ma túy, chất cháy nổ và thú cưng vào khuôn viên.<br />
+            - Mọi hư hỏng tài sản trong phòng sẽ được tính phí bồi thường theo quy định.
           </Typography>
         </DialogContent>
         <Divider sx={{ borderColor: LUXURY.softGray }} />

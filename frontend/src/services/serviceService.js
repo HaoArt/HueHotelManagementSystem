@@ -10,7 +10,7 @@ const ServiceService = {
     }
   },
 
-  addService: async (serviceData) => {
+  createService: async (serviceData) => {
     try {
       const response = await api.post("/services", serviceData);
       return response.data;

@@ -27,6 +27,15 @@ exports.createBooking = async (req, res) => {
     } = req.body;
     const user_id = req.user.id || req.user.userId;
     const user = await User.findById(user_id);
+
+    // Chặn hoàn toàn thao tác nếu điểm tín nhiệm < 0 hoặc tài khoản đã bị khóa
+    if (user.trust_score < 0 || user.status === "Locked") {
+      return res.status(403).json({
+        status: "error",
+        message: "Tài khoản của bạn đã bị khóa do điểm tín nhiệm dưới 0. Không thể đặt phòng!",
+      });
+    }
+
     //Lấy cấu hình đặt cọc
     const configs = await SystemConfig.getAll();
     const depositConfig = configs.find(
@@ -66,10 +75,13 @@ exports.createBooking = async (req, res) => {
         .status(400)
         .json({ message: "Ngày nhận phòng không được nằm trong quá khứ!" });
     }
-    if (new Date(check_in) >= new Date(check_out)) {
-      return res
-        .status(400)
-        .json({ message: "Ngày trả phòng phải sau ngày nhận phòng!" });
+    if (
+      new Date(check_in).setHours(0, 0, 0, 0) >=
+      new Date(check_out).setHours(0, 0, 0, 0)
+    ) {
+      return res.status(400).json({
+        message: "Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm!",
+      });
     }
 
     const availableRooms = await Booking.findAvailableRooms(
@@ -120,7 +132,7 @@ exports.createBooking = async (req, res) => {
     checkOutDate.setHours(0, 0, 0, 0);
 
     let currentDate = new Date(checkInDate);
-    // Duyệt qua từng đêm lưu trú để tính tiền và phụ thu chính xác
+    // Duyệt qua từng đêm lưu trú để tính tiền
     while (currentDate < checkOutDate) {
       baseTotal += parseFloat(roomType.base_price);
 
@@ -156,6 +168,7 @@ exports.createBooking = async (req, res) => {
     }
     let servicesTotalAmount = 0;
     let validServices = [];
+    // Xử lý dịch vụ kèm theo nếu có
     if (services && services.length > 0) {
       for (let s of services) {
         if (s.quantity > 0) {
@@ -217,6 +230,19 @@ exports.createBooking = async (req, res) => {
         });
       }
 
+      const [usedCheck] = await connection.query(
+        "SELECT id FROM bookings WHERE user_id = ? AND coupon_id = ? AND status != 'Cancelled'",
+        [user_id, coupon.id],
+      );
+      if (usedCheck.length > 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          message:
+            "Bạn đã sử dụng mã giảm giá này cho một đơn đặt phòng trước đó rồi!",
+        });
+      }
+
       if (coupon.discount_type === "Percentage") {
         couponDiscountAmount = (totalAfterRank * coupon.discount_value) / 100;
         if (
@@ -233,7 +259,6 @@ exports.createBooking = async (req, res) => {
     }
 
     let grandTotalAmount = totalForDiscount - totalDiscountAmount;
-    // SỬA LỖI DOUBLE CHARGE: Cột total_amount trong DB chỉ lưu tiền phòng (bao gồm Lễ và Giảm giá). Dịch vụ đã nằm ở bảng riêng.
     let finalRoomTotalAmountToSave =
       baseTotal + surchargeAmount - totalDiscountAmount;
 
@@ -289,9 +314,13 @@ exports.createBooking = async (req, res) => {
       hold_until = pendingTime; // Giữ 15 phút chờ chuyển khoản
     }
 
-    let noteToSave = note || "";
+    let metadata = {
+      customer_note: note || "",
+      holiday_surcharge: surchargeAmount > 0 ? surchargeAmount : 0,
+      logs: []
+    };
     if (surchargeAmount > 0) {
-      noteToSave += ` [HolidaySurcharge:${surchargeAmount}]`;
+      metadata.logs.push(`Phụ thu lễ/tết: ${surchargeAmount.toLocaleString("vi-VN")}đ`);
     }
 
     const bookingId = await Booking.create(
@@ -307,7 +336,7 @@ exports.createBooking = async (req, res) => {
         discount_amount: totalDiscountAmount,
         status: initial_status,
         hold_until: hold_until,
-        note: noteToSave,
+        note: JSON.stringify(metadata),
         payment_method: payment_method,
         payment_status: "Unpaid",
       },
@@ -329,7 +358,6 @@ exports.createBooking = async (req, res) => {
     }
 
     if (appliedCouponId) {
-      // ✨ SỬA LỖI RACE CONDITION: Gọi hàm cập nhật an toàn từ tầng Model theo đúng chuẩn MVC
       const isCouponValid = await Coupon.incrementUsageSafe(
         appliedCouponId,
         connection,
@@ -345,12 +373,9 @@ exports.createBooking = async (req, res) => {
         });
       }
     }
-
-    // Commit Transaction nếu mọi thao tác DB đều thành công
     await connection.commit();
     connection.release();
 
-    // Format giờ hiển thị
     const formattedHoldTime = hold_until.toLocaleString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
@@ -462,6 +487,15 @@ exports.createWalkInBooking = async (req, res) => {
     const paymentStatus =
       parseFloat(deposit_amount || 0) >= finalTotalAmount ? "Paid" : "Unpaid";
 
+    let metadata = {
+      customer_note: note || "Khách Walk-in trực tiếp tại quầy lễ tân",
+      holiday_surcharge: surchargeAmount > 0 ? surchargeAmount : 0,
+      logs: []
+    };
+    if (surchargeAmount > 0) {
+      metadata.logs.push(`Phụ thu lễ/tết: ${surchargeAmount.toLocaleString("vi-VN")}đ`);
+    }
+
     const bookingId = await Booking.createWalkIn({
       user_id: user_id,
       room_type_id: room.room_type_id,
@@ -473,7 +507,7 @@ exports.createWalkInBooking = async (req, res) => {
       status: "Checked_in",
       payment_method: "PayAtDesk",
       payment_status: paymentStatus,
-      note: note || "Khách Walk-in trực tiếp tại quầy lễ tân",
+      note: JSON.stringify(metadata),
     });
 
     await Room.updateStatus(room.id, "Occupied");
@@ -535,6 +569,7 @@ exports.checkIn = async (req, res) => {
 
     const expectedCheckOutDate = new Date(booking.check_out_date);
     expectedCheckOutDate.setHours(0, 0, 0, 0);
+
     if (today >= expectedCheckOutDate) {
       return res.status(400).json({
         status: "error",
@@ -542,6 +577,7 @@ exports.checkIn = async (req, res) => {
           "Lỗi: Đơn đặt phòng này đã hết hạn lưu trú từ trước, không thể Check-in nữa!",
       });
     }
+
     let targetRoomId = override_room_id || booking.room_id;
     const room = await Room.getById(targetRoomId);
 
@@ -559,13 +595,12 @@ exports.checkIn = async (req, res) => {
           message: `Phòng ${room.room_number} đêm nay hiện tại đang bận hoặc chưa dọn dẹp (Trạng thái: ${room.status}). Vui lòng chọn đổi sang một phòng trống khác ngay giao diện này trước khi xác nhận Check-in sớm ngày!`,
         });
       }
-      //Tính toán số đêm đến sớm phát sinh thực tế
+      //số đêm đến sớm phát sinh thực tế
       const diffInMs = expectedCheckInDate - today;
       const extraNights = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
 
       const roomType = await RoomType.getById(booking.room_type_id);
 
-      // TÍNH ĐÚNG/ĐỦ: Tính tiền gốc + Phụ thu Lễ Tết cho những ngày đến sớm
       let extraChargeAmount = 0;
       let earlySurchargeAmount = 0;
       const surchargeRules = await Surcharge.getAppliedRules(
@@ -600,12 +635,30 @@ exports.checkIn = async (req, res) => {
       const newTotalAmount = parseFloat(booking.total_amount) + totalExtra;
 
       //Thực hiện cập nhật lùi ngày check-in và tăng tổng tiền đơn đặt phòng trong DB
-      let noteAppend = ` [Hệ thống: Tự động tính thêm ${extraNights} đêm do khách Check-in sớm vào lúc ${actualToday.toLocaleString("vi-VN")} (Phí: ${totalExtra.toLocaleString("vi-VN")}đ)] [EarlyInSurcharge:${totalExtra}]`;
+      let metadata = { customer_note: "", logs: [] };
+      try {
+        const parsed = JSON.parse(booking.note);
+        if (parsed && typeof parsed === "object") {
+          metadata = parsed;
+        } else {
+          metadata.customer_note = booking.note || "";
+        }
+      } catch(e) { metadata.customer_note = booking.note || ""; }
+      if (!metadata.logs) metadata.logs = [];
+
+      metadata.early_in_surcharge = (metadata.early_in_surcharge || 0) + extraChargeAmount;
+      metadata.logs.push(`Tự động tính thêm ${extraNights} đêm do khách Check-in sớm vào lúc ${actualToday.toLocaleString("vi-VN")} (Phí: ${extraChargeAmount.toLocaleString("vi-VN")}đ)`);
+
+      if (earlySurchargeAmount > 0) {
+        metadata.holiday_surcharge = (metadata.holiday_surcharge || 0) + earlySurchargeAmount;
+        metadata.logs.push(`Phụ thu lễ/tết cho những đêm đến sớm (${earlySurchargeAmount.toLocaleString("vi-VN")}đ)`);
+      }
+
       await Booking.updateEarlyCheckIn(
         id,
         actualToday,
         newTotalAmount,
-        noteAppend,
+        JSON.stringify(metadata)
       );
     }
 
@@ -624,27 +677,39 @@ exports.checkIn = async (req, res) => {
       }
     }
 
-    // Kiểm tra trạng thái phòng bẩn lần cuối để đảm bảo an toàn vận hành
-    if (room.status === "Dirty" && today >= expectedCheckInDate) {
+    if (room.status !== "Available" && today >= expectedCheckInDate) {
       return res.status(400).json({
         status: "error",
-        message: `Phòng ${room.room_number} đang chờ dọn dẹp (Dirty). Lễ tân vui lòng chờ dọn dẹp hoặc chọn phòng trống khác!`,
+        message: `Phòng ${room.room_number} hiện chưa sẵn sàng (Đang ${room.status}). Vui lòng chờ khách cũ trả phòng/dọn dẹp xong, hoặc Lễ tân hãy Đổi sang phòng trống khác!`,
       });
     }
 
     await Booking.updateStatus(id, "Checked_in");
+
     await Room.updateStatus(targetRoomId, "Occupied");
     await User.updateTrustScore(booking.user_id, 5);
 
+    const adminId = req.user?.id || req.user?.userId || 1;
+    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+    await Audit.logAction(
+      adminId,
+      "CHECK_IN",
+      id,
+      { status: booking.status, room: booking.room_number },
+      { status: "Checked_in", room: room.room_number },
+      clientIp
+    ).catch(err => console.error("Lỗi ghi log Audit Check-in:", err));
+
     return res.status(200).json({
       status: "OK",
-      message: `Đã xử lý Check-in thành công khách vào phòng ${room.room_number}. Hệ thống đã tự động tính toán đồng bộ ngày giờ thực tế.`,
+      message: `Đã xử lý Check-in thành công khách vào phòng ${room.room_number}.`,
     });
   } catch (error) {
     console.error("Lỗi Check-in tổng hợp:", error);
     return res.status(500).json({ status: "error", message: "Lỗi server" });
   }
 };
+
 exports.checkOut = async (req, res) => {
   try {
     const id = req.params.id;
@@ -666,45 +731,51 @@ exports.checkOut = async (req, res) => {
     const actualToday = new Date();
     const checkInTime = new Date(booking.check_in_date);
     const roomType = await RoomType.getById(booking.room_type_id);
-    const expectedCheckOut = new Date(booking.check_out_date);
 
-    // ĐÚNG LOGIC: Chỉ áp dụng tính tiền Day-use nếu đơn đặt phòng BẮT ĐẦU VÀ KẾT THÚC CÙNG NGÀY
-    // Nếu khách Check-out sớm (Early Check-out) so với lịch trình, giữ nguyên hóa đơn để không thất thoát doanh thu
-    if (
-      checkInTime.toDateString() === actualToday.toDateString() &&
-      expectedCheckOut.toDateString() === actualToday.toDateString()
-    ) {
-      //  thời gian thực tế theo giờ làm tròn lên
+    const basePrice = parseFloat(roomType.base_price);
+    let newTotalAmount = parseFloat(booking.total_amount);
+    
+    let metadata = { customer_note: "", logs: [] };
+    try {
+      const parsed = JSON.parse(booking.note);
+      if (parsed && typeof parsed === "object") {
+        metadata = parsed;
+      } else {
+        metadata.customer_note = booking.note || "";
+      }
+    } catch(e) { metadata.customer_note = booking.note || ""; }
+    if (!metadata.logs) metadata.logs = [];
+
+    if (checkInTime.toDateString() === actualToday.toDateString()) {
       const diffInMs = Math.abs(actualToday - checkInTime);
       let actualHours = Math.ceil(diffInMs / (1000 * 60 * 60));
 
-      if (actualHours === 0) actualHours = 1; // Ở chưa đầy 1 tiếng vẫn tính tròn 1 tiếng
-
-      //2 giờ đầu tiên: Tính bằng 30% giá gốc 1 đêm
-      // - Mỗi giờ phát sinh tiếp theo: Tính bằng 10% giá gốc 1 đêm
-      const first2hPrice = parseFloat(roomType.base_price) * 0.3;
-      const extraHourPrice = parseFloat(roomType.base_price) * 0.1;
+      if (actualHours === 0) actualHours = 1;
 
       let calculatedRoomAmount = 0;
-      if (actualHours <= 2) {
-        calculatedRoomAmount = first2hPrice;
+      if (actualHours === 1) {
+        calculatedRoomAmount = basePrice * 0.2;
+      } else if (actualHours === 2) {
+        calculatedRoomAmount = basePrice * 0.3;
       } else {
-        calculatedRoomAmount =
-          first2hPrice + (actualHours - 2) * extraHourPrice;
+        calculatedRoomAmount = basePrice * 0.3 + (actualHours - 2) * (basePrice * 0.1);
       }
 
-      // nếu tổng tiền giờ cộng dồn vượt quá tiền 1 đêm gốc hệ thống tự ghìm lại chỉ thu tối đa bằng tiền 1 đêm, không thu lố của khách.
-      if (calculatedRoomAmount > parseFloat(roomType.base_price)) {
-        calculatedRoomAmount = parseFloat(roomType.base_price);
+      if (calculatedRoomAmount > basePrice) {
+        calculatedRoomAmount = basePrice;
       }
-      const newTotalAmount =
-        calculatedRoomAmount - parseFloat(booking.discount_amount || 0);
+
+      newTotalAmount = calculatedRoomAmount - parseFloat(booking.discount_amount || 0);
+      metadata.logs.push(`Chuyển đổi sang biểu giá Day-use ở thực tế ${actualHours} giờ (${calculatedRoomAmount.toLocaleString("vi-VN")}đ)`);
+
       await Booking.updateCheckoutDateAndAmount(
         id,
         actualToday,
         newTotalAmount,
+        JSON.stringify(metadata)
       );
     } else {
+      // Logic dành cho khách ở qua đêm (Khác ngày)
       const configs = await SystemConfig.getAll();
       const checkOutConfig = configs.find(
         (c) => c.config_key === "check_out_time",
@@ -722,16 +793,11 @@ exports.checkOut = async (req, res) => {
         0,
       );
 
-      let isLateUpdated = false;
-
-      // 1. Kiểm tra lố ngày (Overstay) so với dự kiến trả phòng ban đầu
       if (actualTodayZero > expectedCheckOutZero) {
         let extraDays = Math.round(
           (actualTodayZero - expectedCheckOutZero) / (1000 * 60 * 60 * 24),
         );
-        if (extraDays <= 0) extraDays = 1;
 
-        // TÍNH ĐÚNG/ĐỦ: Tính tiền gốc + Phụ thu Lễ Tết cho những đêm lố (Overstay)
         let extraChargeAmount = 0;
         let overstaySurchargeAmount = 0;
         const surchargeRules = await Surcharge.getAppliedRules(
@@ -741,7 +807,7 @@ exports.checkOut = async (req, res) => {
         let currentOverstayDate = new Date(expectedCheckOutZero);
 
         while (currentOverstayDate < actualTodayZero) {
-          extraChargeAmount += parseFloat(roomType.base_price);
+          extraChargeAmount += basePrice;
           const appliedRulesForNight = surchargeRules.filter((rule) => {
             const ruleStart = new Date(rule.start_date).setHours(0, 0, 0, 0);
             const ruleEnd = new Date(rule.end_date).setHours(23, 59, 59, 999);
@@ -757,34 +823,64 @@ exports.checkOut = async (req, res) => {
               ),
             );
             overstaySurchargeAmount +=
-              (parseFloat(roomType.base_price) * maxSurchargePercent) / 100;
+              (basePrice * maxSurchargePercent) / 100;
           }
           currentOverstayDate.setDate(currentOverstayDate.getDate() + 1);
         }
 
         const totalExtra = extraChargeAmount + overstaySurchargeAmount;
-        const newTotalAmount = parseFloat(booking.total_amount) + totalExtra;
+        newTotalAmount += totalExtra;
 
-        // MINH BẠCH HÓA ĐƠN: Đóng dấu ghi chú giải trình tiền phạt lố ngày
-        const noteAppend = ` [Hệ thống: Phụ thu ở lố ${extraDays} đêm (${totalExtra.toLocaleString("vi-VN")}đ)] [OverstaySurcharge:${totalExtra}]`;
-
-        await Booking.updateCheckoutDateAndAmount(
-          id,
-          new Date(),
-          newTotalAmount,
-          noteAppend,
+        metadata.overstay_surcharge = (metadata.overstay_surcharge || 0) + extraChargeAmount;
+        metadata.logs.push(`Phụ thu ở lố ${extraDays} đêm (${extraChargeAmount.toLocaleString("vi-VN")}đ)`);
+        if (overstaySurchargeAmount > 0) {
+          metadata.holiday_surcharge = (metadata.holiday_surcharge || 0) + overstaySurchargeAmount;
+          metadata.logs.push(`Phụ thu lễ/tết cho những đêm ở lố (${overstaySurchargeAmount.toLocaleString("vi-VN")}đ)`);
+        }
+      } else if (actualTodayZero < expectedCheckOutZero) {
+        // TRẢ PHÒNG SỚM HƠN DỰ KIẾN
+        let earlyDays = Math.round(
+          (expectedCheckOutZero - actualTodayZero) / (1000 * 60 * 60 * 24),
         );
-        isLateUpdated = true;
+        let refundRoomAmount = 0;
+        let refundHolidayAmount = 0;
+        
+        const surchargeRules = await Surcharge.getAppliedRules(actualTodayZero, expectedCheckOutZero);
+        let currentRefundDate = new Date(actualTodayZero);
+
+        while (currentRefundDate < expectedCheckOutZero) {
+          refundRoomAmount += basePrice;
+          const appliedRulesForNight = surchargeRules.filter((rule) => {
+            const ruleStart = new Date(rule.start_date).setHours(0, 0, 0, 0);
+            const ruleEnd = new Date(rule.end_date).setHours(23, 59, 59, 999);
+            return (
+              currentRefundDate.getTime() >= ruleStart &&
+              currentRefundDate.getTime() <= ruleEnd
+            );
+          });
+          if (appliedRulesForNight.length > 0) {
+            const maxSurchargePercent = Math.max(
+              ...appliedRulesForNight.map((r) => parseFloat(r.surcharge_percent || 0))
+            );
+            refundHolidayAmount += (basePrice * maxSurchargePercent) / 100;
+          }
+          currentRefundDate.setDate(currentRefundDate.getDate() + 1);
+        }
+
+        newTotalAmount -= (refundRoomAmount + refundHolidayAmount);
+
+        metadata.logs.push(`Khách trả phòng sớm ${earlyDays} đêm. Tự động giảm trừ tiền phòng (-${refundRoomAmount.toLocaleString("vi-VN")}đ)`);
+        if (refundHolidayAmount > 0) {
+            metadata.holiday_surcharge = (metadata.holiday_surcharge || 0) - refundHolidayAmount;
+            metadata.logs.push(`Hoàn phụ thu lễ/tết những đêm không ở (-${refundHolidayAmount.toLocaleString("vi-VN")}đ)`);
+        }
       }
+
       const todayForLateCheck = new Date();
-      const expectedCheckOutDay = new Date(booking.check_out_date);
+      const expectedCheckOutDay = new Date(actualToday);
       expectedCheckOutDay.setHours(checkOutHour, 0, 0, 0);
 
-      if (
-        todayForLateCheck.toDateString() ===
-          expectedCheckOutDay.toDateString() &&
-        todayForLateCheck > expectedCheckOutDay
-      ) {
+      if (todayForLateCheck > expectedCheckOutDay) {
         const currentHour =
           todayForLateCheck.getHours() + todayForLateCheck.getMinutes() / 60;
         let surchargePercent = 0;
@@ -793,30 +889,21 @@ exports.checkOut = async (req, res) => {
         else surchargePercent = 1.0;
 
         if (surchargePercent > 0) {
-          const surchargeAmount = roomType.base_price * surchargePercent;
-          const newTotalWithSurcharge =
-            parseFloat(booking.total_amount) + surchargeAmount;
-
-          // MINH BẠCH HÓA ĐƠN: Đóng dấu ghi chú giải trình tiền phạt trả trễ theo giờ
-          const noteAppend = ` [Hệ thống: Phụ thu trả phòng trễ ${surchargePercent * 100}% giá gốc (${surchargeAmount.toLocaleString("vi-VN")}đ)] [LateOutSurcharge:${surchargeAmount}]`;
-
-          await Booking.updateCheckoutDateAndAmount(
-            id,
-            todayForLateCheck,
-            newTotalWithSurcharge,
-            noteAppend,
-          );
-          isLateUpdated = true;
+          const lateSurchargeAmount = basePrice * surchargePercent;
+          newTotalAmount += lateSurchargeAmount;
+          metadata.late_out_surcharge = (metadata.late_out_surcharge || 0) + lateSurchargeAmount;
+          metadata.logs.push(`Phụ thu trả phòng trễ ${surchargePercent * 100}% giá gốc (${lateSurchargeAmount.toLocaleString("vi-VN")}đ)`);
         }
       }
-      if (!isLateUpdated) {
+
         await Booking.updateCheckoutDateAndAmount(
           id,
           actualToday,
-          parseFloat(booking.total_amount),
+        newTotalAmount,
+        JSON.stringify(metadata)
         );
-      }
     }
+
     const finalBill = await Folio.getFolioDetails(id);
     await Booking.updateStatus(id, "Checked_out");
     await Booking.updatePaymentStatus(id, "Paid");
@@ -835,21 +922,48 @@ exports.checkOut = async (req, res) => {
       let totalDays = Math.ceil(
         Math.abs(checkOutDate - checkInDate) / (1000 * 60 * 60 * 24),
       );
-      if (totalDays === 0) totalDays = 1;
 
-      const services = await Folio.getServicesByBookingId(id);
+      // [VÁ LỖI QUAN TRỌNG 3]: Fix hiển thị số ngày in ra file PDF
+      let displayDays = totalDays;
+      if (checkInDate.toDateString() === checkOutDate.toDateString()) {
+        displayDays = 0; // Gắn cờ = 0 để in ra chữ "Theo giờ (Day-use)"
+      } else if (totalDays === 0) {
+        displayDays = 1;
+      }
+
+      // [VÁ LỖI QUAN TRỌNG]: Lọc và truyền đúng số tiền phạt của dịch vụ bị hủy vào PDF
+      // Thay vì lấy lại từ DB, ta dùng luôn finalBill đã tính toán chuẩn xác ở trên
+      const formattedServices = finalBill.services
+        .map((svc) => {
+          if (svc.status === "Cancelled") {
+            return {
+              service_name: `[Hủy] ${svc.services_name}`,
+              quantity: svc.quantity,
+              price: svc.unit_price,
+              total: parseFloat(svc.cancellation_fee || 0), // Chỉ lấy tiền phạt
+            };
+          }
+          return {
+            service_name: svc.services_name,
+            quantity: svc.quantity,
+            price: svc.unit_price,
+            total: parseFloat(svc.total_price || 0),
+          };
+        })
+        .filter((svc) => svc.total > 0); // Bỏ qua các dịch vụ hủy không mất phí
 
       const basePrice = parseFloat(completedBooking.base_price || 0);
       const totalAmount = parseFloat(completedBooking.total_amount || 0);
       const discountAmount = parseFloat(completedBooking.discount_amount || 0);
       const depositAmount = parseFloat(completedBooking.deposit_amount || 0);
-
-      const roomTotal = basePrice * totalDays;
-      const servicesTotal = services.reduce(
-        (sum, svc) => sum + parseFloat(svc.total || 0),
-        0,
-      );
-      const surcharge = totalAmount + discountAmount - roomTotal;
+      
+      let customerNote = completedBooking.note || "";
+      try {
+        const metaObj = JSON.parse(completedBooking.note);
+        if (metaObj && typeof metaObj === "object") {
+          customerNote = metaObj.customer_note || "";
+        }
+      } catch (e) {}
 
       const invoiceData = {
         booking_id: completedBooking.id,
@@ -858,15 +972,15 @@ exports.checkOut = async (req, res) => {
         check_out: checkOutDate,
         room_number: completedBooking.room_number || "---",
         base_price: basePrice,
-        total_days: totalDays,
+        total_days: displayDays === 0 ? "Theo giờ (Day-use)" : displayDays, // Cập nhật hiển thị
         discount: discountAmount,
         total_amount: totalAmount,
         deposit_amount: depositAmount,
-        surcharge: surcharge > 0 ? surcharge : 0,
-        services: services,
+        surcharge: 0, // Đã được bóc tách chi tiết thông qua noteStr bên trong pdfService
+        services: formattedServices,
+        note: customerNote,
       };
 
-      // Lấy dữ liệu PDF dạng Buffer thay vì gửi ngay ra Response
       const pdfBuffer = await new Promise((resolve, reject) => {
         const chunks = [];
         pdfService.generateInvoicePDF(
@@ -878,7 +992,6 @@ exports.checkOut = async (req, res) => {
 
       const user = await User.findById(completedBooking.user_id);
       if (user && user.email) {
-        // Gửi email đính kèm file
         await emailService.sendInvoiceEmail(
           user.email,
           user.full_name,
@@ -892,6 +1005,18 @@ exports.checkOut = async (req, res) => {
         emailError,
       );
     }
+
+    // BẢO VỆ DỮ LIỆU: Bổ sung Audit Log theo dõi nhân viên Check-out
+    const adminId = req.user?.id || req.user?.userId || 1;
+    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+    await Audit.logAction(
+      adminId,
+      "CHECK_OUT",
+      id,
+      { status: "Checked_in" },
+      { status: "Checked_out", payment_status: "Paid", final_total: finalBill.grand_total },
+      clientIp
+    ).catch(err => console.error("Lỗi ghi log Audit Check-out:", err));
 
     return res.status(200).json({
       status: "OK",
@@ -949,16 +1074,39 @@ exports.changeRoom = async (req, res) => {
     const oldRoomType = await RoomType.getById(oldRoom.room_type_id);
     const newRoomType = await RoomType.getById(newRoom.room_type_id);
 
+    // BẢO VỆ 1: Chặn đổi phòng nếu khách đã quá hạn Check-out (Tránh lỗi tính sai tiền phạt Overstay)
+    const todayZero = new Date();
+    todayZero.setHours(0, 0, 0, 0);
+    const checkOutDateZero = new Date(booking.check_out_date);
+    checkOutDateZero.setHours(0, 0, 0, 0);
+
+    if (todayZero > checkOutDateZero) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Khách đã quá hạn trả phòng. Vui lòng Check-out để thanh toán phụ thu thay vì đổi phòng!",
+      });
+    }
+
     let finalTotal = parseFloat(booking.total_amount);
-    let noteAppend = ""; // Lưu chuỗi ghi chú minh bạch hóa đơn
+    
+    let metadata = { customer_note: "", logs: [] };
+    try {
+      const parsed = JSON.parse(booking.note);
+      if (parsed && typeof parsed === "object") {
+        metadata = parsed;
+      } else {
+        metadata.customer_note = booking.note || "";
+      }
+    } catch(e) { metadata.customer_note = booking.note || ""; }
+    if (!metadata.logs) metadata.logs = [];
 
-    if (oldRoomType.base_price !== newRoomType.base_price && !isFreeUpgrade) {
-      // Chuẩn hóa ngày về 00:00:00 để trừ ra số đêm nguyên vẹn
-      const todayZero = new Date();
-      todayZero.setHours(0, 0, 0, 0);
-      const checkOutDateZero = new Date(booking.check_out_date);
-      checkOutDateZero.setHours(0, 0, 0, 0);
-
+    // BẢO VỆ 2 & 3: Minh bạch hóa đơn và Xử lý kiểu dữ liệu an toàn
+    if (isFreeUpgrade) {
+      metadata.logs.push("Khách được Đổi/Nâng hạng phòng miễn phí");
+    } else if (
+      parseFloat(oldRoomType.base_price) !== parseFloat(newRoomType.base_price)
+    ) {
       const remainingTime = checkOutDateZero.getTime() - todayZero.getTime();
       const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
 
@@ -1004,14 +1152,15 @@ exports.changeRoom = async (req, res) => {
         finalTotal = finalTotal + priceDifference;
 
         if (priceDifference !== 0) {
-          noteAppend = ` [Hệ thống: Thu/Hoàn ${priceDifference.toLocaleString("vi-VN")}đ do đổi phòng tính phí cho ${remainingDays} đêm còn lại] [ChangeRoomFee:${priceDifference}]`;
+          metadata.change_room_fee = (metadata.change_room_fee || 0) + priceDifference;
+          metadata.logs.push(`Thu/Hoàn ${priceDifference.toLocaleString("vi-VN")}đ do đổi phòng tính phí cho ${remainingDays} đêm còn lại`);
         }
       }
     }
 
     await Room.updateStatus(oldRoom.id, "Dirty");
     await Room.updateStatus(newRoom.id, "Occupied");
-    await Booking.changeRoom(bookingId, newRoom.id, finalTotal, noteAppend);
+    await Booking.changeRoom(bookingId, newRoom.id, finalTotal, JSON.stringify(metadata));
 
     const actionUserId = req.user?.id || req.user?.userId;
     const clientIp =
@@ -1207,10 +1356,19 @@ exports.downloadInvoice = async (req, res) => {
 
     const checkInDate = new Date(booking.check_in_date);
     const checkOutDate = new Date(booking.check_out_date);
+
+    // Tính toán số ngày
     let totalDays = Math.ceil(
       Math.abs(checkOutDate - checkInDate) / (1000 * 60 * 60 * 24),
     );
-    if (totalDays === 0) totalDays = 1;
+
+    // [VÁ LỖI]: Bóc tách riêng Day-use để in hóa đơn chuẩn xác
+    let displayDays = totalDays;
+    if (checkInDate.toDateString() === checkOutDate.toDateString()) {
+      displayDays = 0; // Đánh dấu là Day-use
+    } else if (totalDays === 0) {
+      displayDays = 1;
+    }
 
     const services = await Folio.getServicesByBookingId(id);
 
@@ -1219,7 +1377,23 @@ exports.downloadInvoice = async (req, res) => {
     const discountAmount = parseFloat(booking.discount_amount || 0);
     const depositAmount = parseFloat(booking.deposit_amount || 0);
 
-    const roomTotal = basePrice * totalDays;
+    // [VÁ LỖI]: Cân bằng lại giá trị dòng tiền nếu là Day-use
+    // Nếu là Day-use (0 ngày), tiền phòng tạm tính bằng đúng tổng tiền trừ đi các dịch vụ
+    let roomTotal = 0;
+    if (displayDays === 0) {
+      roomTotal = totalAmount + discountAmount; // Cân bằng Surcharge = 0
+    } else {
+      roomTotal = basePrice * displayDays;
+    }
+    
+    let customerNote = booking.note || "";
+    try {
+      const metaObj = JSON.parse(booking.note);
+      if (metaObj && typeof metaObj === "object") {
+        customerNote = metaObj.customer_note || "";
+      }
+    } catch (e) {}
+
     const servicesTotal = services.reduce(
       (sum, svc) => sum + parseFloat(svc.total || 0),
       0,
@@ -1234,24 +1408,22 @@ exports.downloadInvoice = async (req, res) => {
       check_out: checkOutDate,
       room_number: booking.room_number || "---",
       base_price: basePrice,
-      total_days: totalDays,
+      total_days: displayDays === 0 ? "Theo giờ (Day-use)" : displayDays, // Ghi rõ trên PDF
       discount: discountAmount,
       total_amount: totalAmount,
       deposit_amount: depositAmount,
       surcharge: surcharge > 0 ? surcharge : 0,
       services: services,
-      note: booking.note,
+      note: customerNote,
     };
 
     // GHI LOG (AUDIT) ĐỂ BẢO MẬT DỮ LIỆU
-    // Chỉ ghi log nếu người tải là nhân viên (Admin/Receptionist)
     if (userRole === "Admin" || userRole === "Receptionist") {
       const clientIp =
         req.headers["x-forwarded-for"] ||
         req.socket.remoteAddress ||
         "127.0.0.1";
 
-      // Gọi Audit.logAction chạy ngầm (không dùng await) để không làm chậm luồng xuất PDF
       Audit.logAction(
         currentUserId,
         "DOWNLOAD_INVOICE",
@@ -1415,7 +1587,13 @@ exports.confirmDeposit = async (req, res) => {
         .status(400)
         .json({ message: "Chỉ xác nhận đơn đang chờ thanh toán" });
 
-    await Booking.updateStatus(id, "Confirmed");
+    const checkInDate = new Date(booking.check_in_date);
+    checkInDate.setHours(18, 0, 0, 0); 
+
+    await db.query(
+      "UPDATE bookings SET status = 'Confirmed', hold_until = ? WHERE id = ?",
+      [checkInDate, id],
+    );
 
     const user = await User.findById(booking.user_id);
     if (user && user.email) {

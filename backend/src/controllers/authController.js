@@ -140,6 +140,17 @@ exports.login = async (req, res) => {
         .status(400)
         .json({ status: "error", message: "Email không tồn tại!" });
     }
+
+    if (user.status === "Locked" || user.trust_score < 0) {
+      if (user.status !== "Locked") {
+        await User.updateStatus(user.id, "Locked");
+      }
+      return res.status(403).json({
+        status: "error",
+        message:
+          "Tài khoản của bạn đã bị khóa do điểm tín nhiệm dưới 0 hoặc vi phạm chính sách!",
+      });
+    }
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res
@@ -149,7 +160,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "15m" },
+      { expiresIn: "2h" },
     );
     const refreshToken = jwt.sign(
       { userId: user.id },
@@ -158,8 +169,8 @@ exports.login = async (req, res) => {
     );
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: true, // Bắt buộc true khi Frontend và Backend khác domain
+      sameSite: "none", // Bắt buộc "none" để trình duyệt cho phép gửi Cookie chéo (Cross-site)
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     return res.status(200).json({
@@ -206,8 +217,8 @@ exports.refreshToken = async (req, res) => {
             .status(404)
             .json({ status: "error", message: "Người dùng không tồn tại!" });
         }
-        // SỬA LỖI 2: Chặn gia hạn Token nếu tài khoản đã bị Admin khóa
-        if (user.status !== "Active") {
+        // SỬA LỖI 2: Chặn gia hạn Token nếu tài khoản đã bị Admin khóa hoặc điểm tín nhiệm dưới 0
+        if (user.status !== "Active" || user.trust_score < 0) {
           return res.status(403).json({
             status: "error",
             message: "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa!",
@@ -329,7 +340,7 @@ exports.verifyForgotPassword = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user.userId;
     const { current_password, new_password } = req.body;
     const user = await User.findById(userId);
     if (!user) {

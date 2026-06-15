@@ -49,11 +49,19 @@ const User = {
     let currentScore = rows[0].trust_score;
     let newScore = currentScore + pointsToAdd;
     if (newScore > 100) newScore = 100;
-    if (newScore < 0) newScore = 0;
-    await db.query("UPDATE users SET trust_score = ? WHERE id = ?", [
-      newScore,
-      userId,
-    ]);
+
+    if (newScore < 0) {
+      newScore = 0; // Vẫn giữ điểm tối thiểu là 0
+      await db.query(
+        "UPDATE users SET trust_score = ?, status = 'Locked' WHERE id = ?",
+        [newScore, userId],
+      );
+    } else {
+      await db.query("UPDATE users SET trust_score = ? WHERE id = ?", [
+        newScore,
+        userId,
+      ]);
+    }
     return newScore;
   },
   updateProfile: async (id, full_name, phone, avatar_url, identity_number) => {

@@ -395,15 +395,16 @@ const Profile = () => {
 
   const handleChangePassword = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordModal(false);
       return setGlobalError("Mật khẩu xác nhận không khớp!");
     }
     try {
       setIsSubmitting(true);
-      await AuthService.changePassword({
+      const res = await AuthService.changePassword({
         current_password: passwordForm.current_password,
         new_password: passwordForm.new_password,
       });
-      setGlobalSuccess("Đổi mật khẩu thành công!");
+      setGlobalSuccess(res.message || "Đổi mật khẩu thành công!");
       setPasswordModal(false);
       setPasswordForm({
         current_password: "",
@@ -412,7 +413,7 @@ const Profile = () => {
       });
     } catch (err) {
       setGlobalError(
-        err.response?.data?.message || "Có lỗi xảy ra ở phần đổi mật khẩu.",
+        typeof err === "string" ? err : "Có lỗi xảy ra ở phần đổi mật khẩu."
       );
       setPasswordModal(false);
     } finally {
@@ -1877,31 +1878,58 @@ const Profile = () => {
                       detailModal.booking?.deposit_amount || 0,
                     );
 
+                    // ✨ BỘ TÍNH TOÁN TÀI CHÍNH MINH BẠCH (SỬ DỤNG JSON)
+                    let holiday = 0, earlyIn = 0, lateOut = 0, overstay = 0, changeRoom = 0;
+                    let fallbackReason = "";
+                    let customerNote = "";
+
+                    try {
+                      const metadata = JSON.parse(detailModal.booking?.note || "{}");
+                      holiday = metadata.holiday_surcharge || 0;
+                      earlyIn = metadata.early_in_surcharge || 0;
+                      lateOut = metadata.late_out_surcharge || 0;
+                      overstay = metadata.overstay_surcharge || 0;
+                      changeRoom = metadata.change_room_fee || 0;
+                      fallbackReason = (metadata.logs || []).join("; ");
+                      customerNote = metadata.customer_note || "";
+                    } catch (e) {
+                      // Tương thích ngược với hóa đơn cũ
+                      const noteStr = detailModal.booking?.note || "";
+                      [...noteStr.matchAll(/\[HolidaySurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (holiday += parseFloat(m[1])));
+                      [...noteStr.matchAll(/\[EarlyInSurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (earlyIn += parseFloat(m[1])));
+                      [...noteStr.matchAll(/\[LateOutSurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (lateOut += parseFloat(m[1])));
+                      [...noteStr.matchAll(/\[OverstaySurcharge:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (overstay += parseFloat(m[1])));
+                      [...noteStr.matchAll(/\[ChangeRoomFee:(-?\d+(?:\.\d+)?)\]/g)].forEach((m) => (changeRoom += parseFloat(m[1])));
+                      const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
+                      if (sysNotes) fallbackReason = sysNotes.map((n) => n.replace("[Hệ thống:", "").replace("]", "").trim()).join("; ");
+                      customerNote = noteStr.replace(/\[.*?\]/g, "").trim();
+                    }
+
+                    const knownTotal = holiday + earlyIn + lateOut + overstay + changeRoom;
+
                     const checkIn = new Date(detailModal.booking?.check_in_date);
                     const checkOut = new Date(detailModal.booking?.check_out_date);
                     let totalDays = Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24));
-                    if (totalDays === 0 || isNaN(totalDays)) totalDays = 1;
+
+                    let displayDays = totalDays;
+                    if (checkIn.toDateString() === checkOut.toDateString()) {
+                      displayDays = 0;
+                    } else if (totalDays === 0 || isNaN(totalDays)) {
+                      displayDays = 1;
+                    }
                     
                     const basePrice = parseFloat(detailModal.booking?.base_price || 0);
 
                     const grandTotal = originalRoomTotal + totalServiceAmount - discountAmount - depositAmount;
 
                     // Nếu basePrice = 0 (lỗi thiếu dữ liệu từ API), tự động gộp chung để không hiển thị 0đ
-                    const rawRoomTotal = basePrice > 0 ? basePrice * totalDays : originalRoomTotal;
+                    const rawRoomTotal = (basePrice > 0 && displayDays > 0) ? basePrice * displayDays : originalRoomTotal;
                     let roomGoc = rawRoomTotal;
-                    let totalSurcharge = originalRoomTotal - rawRoomTotal;
+                    let fallback = originalRoomTotal - rawRoomTotal - knownTotal;
 
-                    if (totalSurcharge < 0) {
-                        roomGoc = originalRoomTotal;
-                        totalSurcharge = 0;
-                    }
-
-                    // Trích xuất các ghi chú hệ thống nếu có
-                    let fallbackReason = "";
-                    const noteStr = detailModal.booking?.note || "";
-                    const sysNotes = noteStr.match(/\[Hệ thống:(.*?)\]/g);
-                    if (sysNotes && sysNotes.length > 0) {
-                      fallbackReason = sysNotes.map((n) => n.replace('[Hệ thống:', '').replace(']', '').trim()).join('; ');
+                    if (fallback < 0 || displayDays === 0) {
+                        roomGoc = originalRoomTotal - knownTotal;
+                        fallback = 0;
                     }
 
                     return (
@@ -1913,25 +1941,55 @@ const Profile = () => {
                           }}
                         >
                           <Typography variant="body2" color={LUXURY.warmGray}>
-                            Tiền phòng lưu trú ({totalDays} đêm):
+                            Tiền phòng lưu trú ({displayDays === 0 ? "Theo giờ (Day-use)" : `${displayDays} đêm`}):
                           </Typography>
                           <Typography variant="body2" fontWeight="700">
                             {roomGoc.toLocaleString()} đ
                           </Typography>
                         </Box>
                         
-                        {totalSurcharge > 0 && (
+                        {holiday > 0 && (
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="body2" color="error.main" fontWeight="500">Phụ phí Lễ/Tết:</Typography>
+                            <Typography variant="body2" fontWeight="700" color="error.main">+ {holiday.toLocaleString()} đ</Typography>
+                          </Box>
+                        )}
+                        {earlyIn > 0 && (
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="body2" color="error.main" fontWeight="500">Phụ thu Check-in sớm:</Typography>
+                            <Typography variant="body2" fontWeight="700" color="error.main">+ {earlyIn.toLocaleString()} đ</Typography>
+                          </Box>
+                        )}
+                        {lateOut > 0 && (
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="body2" color="error.main" fontWeight="500">Phụ thu Check-out trễ:</Typography>
+                            <Typography variant="body2" fontWeight="700" color="error.main">+ {lateOut.toLocaleString()} đ</Typography>
+                          </Box>
+                        )}
+                        {overstay > 0 && (
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="body2" color="error.main" fontWeight="500">Phụ thu ở lố ngày:</Typography>
+                            <Typography variant="body2" fontWeight="700" color="error.main">+ {overstay.toLocaleString()} đ</Typography>
+                          </Box>
+                        )}
+                        {changeRoom !== 0 && (
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="body2" color={changeRoom > 0 ? "error.main" : "success.main"} fontWeight="500">Phí đổi phòng:</Typography>
+                            <Typography variant="body2" fontWeight="700" color={changeRoom > 0 ? "error.main" : "success.main"}>{changeRoom > 0 ? "+" : ""} {changeRoom.toLocaleString()} đ</Typography>
+                          </Box>
+                        )}
+                        {fallback > 0 && (
                           <Box sx={{ mb: 0.5 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                              <Typography variant="body2" color="error.main">Phụ thu (Lễ Tết/Check-in sớm/Trả trễ):</Typography>
-                              <Typography variant="body2" fontWeight="700" color="error.main">+ {totalSurcharge.toLocaleString()} đ</Typography>
+                              <Typography variant="body2" color="error.main">Phụ thu phát sinh:</Typography>
+                              <Typography variant="body2" fontWeight="700" color="error.main">+ {fallback.toLocaleString()} đ</Typography>
                             </Box>
-                            {fallbackReason && (
-                              <Typography variant="caption" color="error.main" sx={{ fontStyle: "italic", display: "block", opacity: 0.8, mt: 0.5 }}>
-                                * Ghi chú: {fallbackReason}
-                              </Typography>
-                            )}
                           </Box>
+                        )}
+                        {fallbackReason && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", display: "block", opacity: 0.8, mt: 0.5 }}>
+                            * Ghi chú: {fallbackReason}
+                          </Typography>
                         )}
                         <Box
                           sx={{
@@ -2198,16 +2256,16 @@ const Profile = () => {
             {(() => {
               const item = cancelServiceModal.item;
               if (!item) return null;
-              let isPenalty = false;
+              let alertSeverity = "success";
               let warningText = "Bạn có thể hủy dịch vụ này miễn phí do Lễ tân chưa bắt đầu phục vụ.";
               
               if (item.service_type === "PreOrder" && item.usage_time) {
                 const diffHours = (new Date(item.usage_time) - new Date()) / (1000 * 60 * 60);
                 if (diffHours <= 0) {
-                  isPenalty = true;
+                  alertSeverity = "error";
                   warningText = "Dịch vụ này đã quá giờ hẹn phục vụ. Hủy lúc này sẽ bị phạt 100% giá trị.";
                 } else if (diffHours <= 2) {
-                  isPenalty = true;
+                  alertSeverity = "warning";
                   warningText = "Lưu ý: Hủy quá sát giờ (dưới 2 tiếng so với giờ hẹn). Bạn sẽ bị phạt 50% giá trị dịch vụ theo quy định.";
                 } else {
                   warningText = "Bạn đang hủy sớm hơn 2 tiếng so với giờ hẹn. Bạn sẽ KHÔNG bị mất phí phạt.";
@@ -2215,7 +2273,7 @@ const Profile = () => {
               }
 
               return (
-                <Alert severity={isPenalty ? "error" : "success"} sx={{ borderRadius: "12px", textAlign: "left" }}>
+                <Alert severity={alertSeverity} sx={{ borderRadius: "12px", textAlign: "left" }}>
                   {warningText}
                 </Alert>
               );
